@@ -1,211 +1,127 @@
-# PixelPlayer 🎵
+<p align="center">
+  <img src="app/src/main/ic_launcher-playstore.png" alt="VYBE logo" width="132" />
+</p>
+
+<h1 align="center">VYBE</h1>
 
 <p align="center">
-  <img src="assets/icon.png" alt="App Icon" width="128"/>
-</p>
-<p align="center">
-<a href="https://trendshift.io/repositories/15551" target="_blank"><img src="https://trendshift.io/api/badge/repositories/15551" alt="PixelPlayerHQ%2FPixelPlayer | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-</p>
-<p align="center">
-  <strong>A beautiful, feature-rich music player for Android</strong><br>
-  Built with Jetpack Compose and Material Design 3
+  A modern Android music experience for discovery, streaming, local playback, downloads, lyrics, and personal listening.
 </p>
 
 <p align="center">
-  <img src="assets/screenshot1.jpg" alt="Screenshot 1" width="200" style="border-radius:26px;"/>
-  <img src="assets/screenshot2.jpg" alt="Screenshot 2" width="200" style="border-radius:26px;"/>
-  <img src="assets/screenshot3.jpg" alt="Screenshot 3" width="200" style="border-radius:26px;"/>
-  <img src="assets/screenshot4.jpg" alt="Screenshot 4" width="200" style="border-radius:26px;"/>
+  <a href="https://github.com/anshdeepofficial/VYBE/releases/latest"><img src="https://img.shields.io/github/v/release/anshdeepofficial/VYBE?style=for-the-badge&logo=github&label=Latest%20Release" alt="Latest release" /></a>
+  <img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android 8.0+" />
+  <img src="https://img.shields.io/badge/Kotlin-Jetpack%20Compose-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin and Jetpack Compose" />
 </p>
+
+## Experience VYBE
 
 <p align="center">
-    <a href="https://github.com/theovilardo/PixelPlayer/releases/latest">
-        <img src="https://img.shields.io/github/v/release/theovilardo/PixelPlayer?include_prereleases&logo=github&style=for-the-badge&label=Latest%20Release" alt="Latest Release">
-    </a>
-    <a href="https://github.com/theovilardo/PixelPlayer/releases">
-        <img src="https://img.shields.io/github/downloads/theovilardo/PixelPlayer/total?logo=github&style=for-the-badge" alt="Total Downloads">
-    </a>
-    <img src="https://img.shields.io/badge/Android-11%2B-green?style=for-the-badge&logo=android" alt="Android 11+">
-    <img src="https://img.shields.io/badge/Kotlin-100%25-purple?style=for-the-badge&logo=kotlin" alt="Kotlin">
+  <img src="docs/screenshots/vybe-welcome.png" alt="VYBE welcome screen" width="210" />
+  <img src="docs/screenshots/vybe-home.png" alt="VYBE personalized home" width="210" />
+  <img src="docs/screenshots/vybe-search.png" alt="VYBE search and discovery" width="210" />
+  <img src="docs/screenshots/vybe-player.png" alt="VYBE playback experience" width="210" />
 </p>
 
----
+## What VYBE offers
 
-## ‼️ DISCLAIMER
-- No fork of this project will recieve support, if you use a fork, ask the forker to support you.
+### Discover and play
 
----
+- Search songs, albums, movies, and artists through the YouTube Music catalog.
+- Explore trending music, latest releases, Quick Picks, and recommendations without signing in.
+- Connect a YouTube Music account for playlists, liked music, listening history, and personalized discovery.
+- Open artist and album pages directly from search results and the player.
+- Stream in the background with Android media controls, queue management, shuffle, repeat, and crossfade.
 
-## ✨ Features
+### Your library, everywhere
 
-### 🎨 Modern UI/UX
-- **Material You** - Dynamic color theming that adapts to your wallpaper
-- **Smooth Animations** - Fluid transitions and micro-interactions
-- **Customizable UI** - Adjustable corner radius and navigation bar settings
-- **Dark/Light Theme** - Automatic or manual theme switching
-- **Album Art Colors** - Dynamic color extraction from album artwork
+- Browse downloads, songs, albums, artists, playlists, folders, and liked music in one library.
+- Play music already stored on the device.
+- Download supported tracks for offline playback and follow download progress in the app and notification area.
+- Import public Spotify playlists from a playlist URL without a Spotify account.
+- Optionally sync imported playlists with a connected YouTube Music account.
+- Back up and restore app preferences across devices.
 
-### 🎵 Powerful Playback
-- **Media3 ExoPlayer** - Industry-leading audio engine with FFmpeg support
-- **Background Playback** - Full media session integration
-- **Queue Management** - Drag-and-drop reordering
-- **Shuffle & Repeat** - All playback modes supported
-- **Gapless Playback** - Seamless transitions between tracks
-- **Custom Transitions** - Configure crossfades between songs
+### Lyrics and personalization
 
-### 📚 Library Management
-- **Multi-format Support** - MP3, FLAC, AAC, OGG, WAV, and more
-- **Browse By** - Songs, Albums, Artists, Genres, Folders
-- **Smart Artist Parsing** - Configurable delimiters for multi-artist tracks
-- **Album Artist Grouping** - Proper album organization
-- **Folder Filtering** - Choose which directories to scan
+- Load synchronized lyrics automatically when available.
+- Save, edit, translate, or romanize lyrics using a configured AI provider.
+- Follow the current lyric line from the player.
+- Generate a Daily Mix with AI using your own provider and API key.
+- Review listening history and statistics for songs, albums, artists, and genres.
 
-### 🔍 Discovery & Organization
-- **Full-text Search** - Search across your entire library
-- **Daily Mix** - AI-powered personalized playlist based on listening habits
-- **Playlists** - Create and manage custom playlists
-- **Statistics** - Track your listening history and habits
+### A player that feels personal
 
-### 🎤 Lyrics
-- **Synchronized Lyrics** - LRC format via LRCLIB API
-- **Lyrics Editing** - Modify or add lyrics to your tracks
-- **Scrolling Display** - Follow along as you listen
+- Material You colors with light, dark, and system themes.
+- Customizable navigation, corners, artwork quality, carousel style, and playback behavior.
+- Optional immersive artwork with focused cover art and subtle background blur.
+- Smooth mini-player progress, artwork transitions, and full-screen playback.
+- Configurable notification actions and volume-button playback controls.
+- In-app update checks backed by GitHub Releases.
 
-### 🖼️ Artist Artwork
-- **Deezer Integration** - Automatic artist images from Deezer API
-- **Smart Caching** - Memory (LRU) + database caching for offline access
-- **Fallback Icons** - Beautiful placeholders when images unavailable
+## Download
 
-### 📲 Connectivity
-- **Chromecast** - Stream to your TV or smart speakers
-- **Android Auto** - Full Android Auto support for in-car playback (Soon)
-- **Widgets** - Home screen control with Glance widgets
+The current release is **VYBE 0.7.9**.
 
-### ⚙️ Advanced Features
-- **Tag Editor** - Edit metadata with TagLib (MP3, FLAC, M4A support)
-- **AI Playlists** - Generate playlists with AI (Supports Gemini, Deepseek, OpenAI, etc.)
+| Device architecture | APK |
+| --- | --- |
+| Most modern Android phones (ARM64) | [Download VYBE 0.7.9 ARM64](https://github.com/anshdeepofficial/VYBE/releases/download/v0.7.9/VYBE-v0.7.9-arm64-v8a-release.apk) |
+| Older 32-bit ARM devices | [Download VYBE 0.7.9 ARMv7](https://github.com/anshdeepofficial/VYBE/releases/download/v0.7.9/VYBE-v0.7.9-armeabi-v7a-release.apk) |
 
----
+If you are unsure, choose the ARM64 build. Android may ask to allow installation from your browser or file manager when installing outside Google Play.
 
-## 🛠️ Tech Stack
+## Build from source
 
-| Category | Technology |
-|----------|------------|
-| **Language** | [Kotlin](https://kotlinlang.org/) 100% |
-| **UI Framework** | [Jetpack Compose](https://developer.android.com/jetpack/compose) |
-| **Design System** | [Material Design 3](https://m3.material.io/) |
-| **Audio Engine** | [Media3 ExoPlayer](https://developer.android.com/guide/topics/media/media3) + FFmpeg |
-| **Architecture** | MVVM with StateFlow/SharedFlow |
-| **DI** | [Hilt](https://dagger.dev/hilt/) |
-| **Database** | [Room](https://developer.android.com/training/data-storage/room) |
-| **Networking** | [Retrofit](https://square.github.io/retrofit/) + OkHttp |
-| **Image Loading** | [Coil](https://coil-kt.github.io/coil/) |
-| **Async** | Kotlin Coroutines & Flow |
-| **Background Tasks** | WorkManager |
-| **Metadata** | [TagLib](https://github.com/nicholaus/taglib-android) |
-| **Widgets** | [Glance](https://developer.android.com/jetpack/compose/glance) |
+### Requirements
 
----
+- Android Studio with the current Android SDK
+- JDK 21
+- Git
 
-## 📱 Requirements
+### Debug build
 
-- **Android 11** (API 30) or higher
-- **6GB RAM** recommended for smooth performance
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Android Studio Ladybug | 2024.2.1 or newer
-- Android SDK 29+
-- JDK 11+
-
-### Installation
-
-1. **Clone the repository**
-   ```sh
-   git clone https://github.com/theovilardo/PixelPlayer.git
-   ```
-
-2. **Open in Android Studio**
-   - Open Android Studio
-   - Select "Open an Existing Project"
-   - Navigate to the cloned directory
-
-3. **Sync and Build**
-   - Wait for Gradle to sync dependencies
-   - Build the project (Build → Make Project)
-
-4. **Run**
-   - Connect a device or start an emulator
-   - Click Run (▶️)
-
----
-
-## ⬇️ Download
-
-<p align="center">
-  <a href="https://github.com/theovilardo/PixelPlayer/releases/latest">
-    <img src="https://raw.githubusercontent.com/Kunzisoft/Github-badge/main/get-it-on-github.png" alt="Get it on GitHub" height="60">
-  </a>
-</p>
-
-<p align="center">
-  <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.theveloper.pixelplay%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Ftheovilardo%2FPixelPlayer%22%2C%22author%22%3A%22theovilardo%22%2C%22name%22%3A%22PixelPlayer%22%2C%22supportFixedAPKURL%22%3Afalse%7D">
-    <img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="50">
-  </a>
-</p>
-
----
-
-## 📂 Project Structure
-
-```
-app/src/main/java/com/theveloper/pixelplay/
-├── data/
-│   ├── database/       # Room entities, DAOs, migrations
-│   ├── model/          # Domain models (Song, Album, Artist, etc.)
-│   ├── network/        # API services (LRCLIB, Deezer)
-│   ├── preferences/    # DataStore preferences
-│   ├── repository/     # Data repositories
-│   ├── service/        # MusicService, HTTP server
-│   └── worker/         # WorkManager sync workers
-├── di/                 # Hilt dependency injection modules
-├── presentation/
-│   ├── components/     # Reusable Compose components
-│   ├── navigation/     # Navigation graph
-│   ├── screens/        # Screen composables
-│   └── viewmodel/      # ViewModels
-├── ui/
-│   ├── glancewidget/   # Home screen widgets
-│   └── theme/          # Colors, typography, theming
-└── utils/              # Extensions and utilities
+```powershell
+git clone https://github.com/anshdeepofficial/VYBE.git
+cd VYBE
+.\gradlew.bat :app:assembleDebug
 ```
 
----
+On macOS or Linux, run `./gradlew :app:assembleDebug` instead.
 
-## 🤝 Contributing
+The debug APK is written under `app/build/outputs/apk/debug/`.
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+### Release signing
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+Release signing credentials must remain local. Never commit a keystore, passwords, API keys, or `keystore.properties` to the repository. Configure the signing values locally, then run the appropriate release task for the required ABI.
 
----
+## Optional integrations
 
-## 📄 License
+VYBE works without an account. Features that connect to external services may require their own credentials or user authorization:
 
-This project is licensed under a Proprietary License - see the [LICENSE](LICENSE) file for details.
+- YouTube Music account connection for personalization and synchronization
+- AI provider API key for playlist generation and lyric tools
+- GitHub repository configuration for in-app update delivery
+- Optional cloud or self-hosted music sources exposed in the app
 
-Portions contributed before 2026-05-12 remain available under the MIT License; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Keep all private credentials outside version control.
+
+## Project notes
+
+- Minimum supported Android version: Android 8.0 (API 26)
+- UI: Jetpack Compose and Material 3
+- Playback: AndroidX Media3
+- Latest published version: 0.7.9 (version code 14)
+
+## Feedback and issues
+
+Found a reproducible problem or have a focused feature request? Open a [GitHub issue](https://github.com/anshdeepofficial/VYBE/issues) with the app version, Android version, device model, and clear reproduction steps.
+
+## License
+
+This repository is distributed under the terms in [LICENSE](LICENSE). Review those terms before using, modifying, redistributing, or publishing the project.
 
 ---
 
 <p align="center">
-  Made with ❤️ by <a href="https://github.com/theovilardo">theovilardo</a>
+  <strong>VYBE — your music, your way.</strong>
 </p>
