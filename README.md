@@ -61,12 +61,12 @@
 
 ## Download
 
-The current release is **VYBE 0.7.9**.
+The current release is **VYBE 0.7.10**.
 
 | Device architecture | APK |
 | --- | --- |
-| Most modern Android phones (ARM64) | [Download VYBE 0.7.9 ARM64](https://github.com/anshdeepofficial/VYBE/releases/download/v0.7.9/VYBE-v0.7.9-arm64-v8a-release.apk) |
-| Older 32-bit ARM devices | [Download VYBE 0.7.9 ARMv7](https://github.com/anshdeepofficial/VYBE/releases/download/v0.7.9/VYBE-v0.7.9-armeabi-v7a-release.apk) |
+| Most modern Android phones (ARM64) | [Download VYBE 0.7.10 ARM64](https://github.com/anshdeepofficial/VYBE/releases/download/v0.7.10/VYBE-v0.7.10-arm64-v8a-release.apk) |
+| Older 32-bit ARM devices | [Download VYBE 0.7.10 ARMv7](https://github.com/anshdeepofficial/VYBE/releases/download/v0.7.10/VYBE-v0.7.10-armeabi-v7a-release.apk) |
 
 If you are unsure, choose the ARM64 build. Android may ask to allow installation from your browser or file manager when installing outside Google Play.
 
@@ -110,7 +110,7 @@ Keep all private credentials outside version control.
 - Minimum supported Android version: Android 8.0 (API 26)
 - UI: Jetpack Compose and Material 3
 - Playback: AndroidX Media3
-- Latest published version: 0.7.9 (version code 14)
+- Latest published version: 0.7.10 (version code 15)
 
 ## Feedback and issues
 

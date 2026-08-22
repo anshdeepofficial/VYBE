@@ -32,6 +32,14 @@ private data class ChangelogRelease(
 
 private val VybeChangelog = listOf(
     ChangelogRelease(
+        version = "0.7.10",
+        date = "22 August 2026",
+        changes = listOf(
+            "Prevented legacy or damaged local databases from trapping VYBE in a startup crash loop.",
+            "Added automatic recovery for corrupted app settings while preserving healthy user data.",
+        ),
+    ),
+    ChangelogRelease(
         version = "0.7.8",
         date = "22 August 2026",
         changes = listOf(

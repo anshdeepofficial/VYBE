@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string-array name="changelog_0710_fixes">
+        <item>Prevented legacy or damaged local databases from trapping VYBE in a startup crash loop.</item>
+        <item>Added automatic recovery for corrupted app settings while preserving healthy user data.</item>
+    </string-array>
+
     <string name="changelog_title">Changelog</string>
     <string name="changelog_view_github">View on GitHub</string>
     <string name="changelog_sec_improvements">Improvements</string>

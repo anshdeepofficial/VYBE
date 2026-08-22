@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.10] - 2026-08-22
+
+### Fixed
+- Added release-safe recovery for legacy, incompatible, or corrupted local databases that could trap the app in an immediate startup crash loop.
+- Added automatic recovery for a corrupted settings DataStore instead of crashing before the first screen appears.
+- Release upgrades now rebuild only when local persistence cannot be opened safely; healthy databases and settings remain untouched.
+
 ## [0.7.9] - 2026-08-22
 
 ### Fixed

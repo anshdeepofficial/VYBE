@@ -26,7 +26,11 @@ class LibraryTabIdTest {
         )
         val order = decodeLibraryTabOrder(Json.encodeToString(storedKeys))
 
-        assertEquals(LibraryTabId.Liked, order.first(), "First entry should match stored stable key")
+        assertEquals(LibraryTabId.Downloads, order.first(), "Downloads should remain the fixed first tab")
+        assertTrue(
+            order.indexOf(LibraryTabId.Liked) < order.indexOf(LibraryTabId.Playlists),
+            "Stored relative order should be preserved after the fixed Downloads tab"
+        )
         assertTrue(order.containsAll(LibraryTabId.defaultOrder), "All default tabs should be present exactly once")
         assertEquals(LibraryTabId.defaultOrder.size, order.size)
     }

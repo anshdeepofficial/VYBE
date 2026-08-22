@@ -1,6 +1,8 @@
 package com.theveloper.pixelplay.di
 
 import android.content.Context
+import android.database.sqlite.SQLiteDatabaseCorruptException
+import android.util.Log
 import androidx.annotation.OptIn
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -44,6 +46,7 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.Locale
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -103,10 +106,12 @@ object AppModule {
     @Singleton
     @Provides
     fun providePixelPlayDatabase(@ApplicationContext context: Context): PixelPlayDatabase {
-        val builder = Room.databaseBuilder(
-            context.applicationContext,
+        val appContext = context.applicationContext
+
+        fun buildDatabase(): PixelPlayDatabase = Room.databaseBuilder(
+            appContext,
             PixelPlayDatabase::class.java,
-            "pixelplay_database"
+            DATABASE_NAME
         ).addMigrations(
             PixelPlayDatabase.MIGRATION_3_4,
             PixelPlayDatabase.MIGRATION_4_5,
@@ -153,13 +158,59 @@ object AppModule {
         )
             .addCallback(PixelPlayDatabase.createRuntimeArtifactsCallback())
             .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
+            // A few early internal builds did not export every migration. If one of
+            // those databases is still present, prefer rebuilding the local index
+            // over trapping the user in a release-only startup crash loop.
+            .fallbackToDestructiveMigration(dropAllTables = true)
+            .build()
 
-        if (BuildConfig.DEBUG) {
-            builder.fallbackToDestructiveMigration(dropAllTables = true)
+        fun verifyDatabase(database: PixelPlayDatabase) {
+            val sqliteDatabase = database.openHelper.writableDatabase
+            sqliteDatabase.query("PRAGMA quick_check(1)").use { cursor ->
+                val result = if (cursor.moveToFirst()) cursor.getString(0) else null
+                if (!result.equals("ok", ignoreCase = true)) {
+                    throw SQLiteDatabaseCorruptException(
+                        "VYBE database integrity check failed: ${result ?: "no result"}"
+                    )
+                }
+            }
         }
 
-        return builder.build()
+        val database = buildDatabase()
+        try {
+            verifyDatabase(database)
+            return database
+        } catch (failure: RuntimeException) {
+            runCatching { database.close() }
+            if (!isRecoverableDatabaseFailure(failure)) throw failure
+
+            Log.e(
+                DATABASE_RECOVERY_TAG,
+                "Recovering an unreadable or incompatible local database",
+                failure
+            )
+            appContext.deleteDatabase(DATABASE_NAME)
+
+            return buildDatabase().also(::verifyDatabase)
+        }
     }
+
+    private fun isRecoverableDatabaseFailure(failure: Throwable): Boolean =
+        generateSequence(failure) { it.cause }.any { cause ->
+            if (cause is SQLiteDatabaseCorruptException) return@any true
+
+            val message = cause.message.orEmpty().lowercase(Locale.ROOT)
+            message.contains("migration didn't properly handle") ||
+                message.contains("a migration from") ||
+                message.contains("room cannot verify the data integrity") ||
+                message.contains("invalid schema") ||
+                message.contains("identity hash") ||
+                message.contains("database disk image is malformed") ||
+                message.contains("file is not a database")
+        }
+
+    private const val DATABASE_NAME = "pixelplay_database"
+    private const val DATABASE_RECOVERY_TAG = "VYBEDatabaseRecovery"
 
     @Singleton
     @Provides
