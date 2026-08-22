@@ -147,6 +147,7 @@ object AppModule {
             PixelPlayDatabase.MIGRATION_39_40,
             PixelPlayDatabase.MIGRATION_40_41,
             PixelPlayDatabase.MIGRATION_41_42,
+            PixelPlayDatabase.MIGRATION_42_43,
             PixelPlayDatabase.MIGRATION_43_44,
             PixelPlayDatabase.MIGRATION_44_45
         )

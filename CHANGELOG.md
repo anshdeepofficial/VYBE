@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.9] - 2026-08-22
+
+### Fixed
+- Existing installations now migrate safely from database version 42 instead of crashing during startup.
+- Added automated migration coverage through the current database version to prevent release-only upgrade failures.
+
 ## [0.7.8] - 2026-08-22
 
 ### Fixed

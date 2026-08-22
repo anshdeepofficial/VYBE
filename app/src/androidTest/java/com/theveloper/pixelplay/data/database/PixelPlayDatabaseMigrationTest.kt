@@ -27,7 +27,7 @@ class PixelPlayDatabaseMigrationTest {
     @After
     fun tearDown() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        for (version in 25..41) {
+        for (version in 25..44) {
             context.deleteDatabase(databaseNameFor(version))
         }
         context.deleteDatabase(DB_NAME_33_TO_34)
@@ -38,7 +38,7 @@ class PixelPlayDatabaseMigrationTest {
 
     @Test
     fun migrateEveryExportedSchemaToLatest() {
-        for (startVersion in 25..41) {
+        for (startVersion in 25..44) {
             helper.createDatabase(databaseNameFor(startVersion), startVersion).close()
 
             helper.runMigrationsAndValidate(
@@ -149,6 +149,23 @@ class PixelPlayDatabaseMigrationTest {
                 assertTrue("index_songs_parent_directory_path_source_type_id" in indexes)
             } finally {
                 db.close()
+            }
+        }
+    }
+
+    @Test
+    fun migration42To43CreatesAudiusFavoritesTable() {
+        helper.createDatabase(databaseNameFor(42), 42).close()
+
+        helper.runMigrationsAndValidate(
+            databaseNameFor(42),
+            43,
+            true,
+            PixelPlayDatabase.MIGRATION_42_43
+        ).use { db ->
+            db.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'audius_favorites'").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("audius_favorites", cursor.getString(0))
             }
         }
     }
@@ -304,7 +321,7 @@ class PixelPlayDatabaseMigrationTest {
     }
 
     private object PixelPlayDatabaseVersion {
-        const val LATEST = 42
+        const val LATEST = 45
     }
 
     companion object {
@@ -330,7 +347,10 @@ class PixelPlayDatabaseMigrationTest {
             PixelPlayDatabase.MIGRATION_38_39,
             PixelPlayDatabase.MIGRATION_39_40,
             PixelPlayDatabase.MIGRATION_40_41,
-            PixelPlayDatabase.MIGRATION_41_42
+            PixelPlayDatabase.MIGRATION_41_42,
+            PixelPlayDatabase.MIGRATION_42_43,
+            PixelPlayDatabase.MIGRATION_43_44,
+            PixelPlayDatabase.MIGRATION_44_45
         )
     }
 }

@@ -64,6 +64,13 @@ data class ChangelogVersion(
 @Composable
 private fun changelogVersions(): List<ChangelogVersion> = listOf(
     ChangelogVersion(
+        version = "0.7.9",
+        date = "2026-08-22",
+        sections = listOf(
+            ChangelogSection(R.string.changelog_sec_fixes, R.array.changelog_079_fixes)
+        )
+    ),
+    ChangelogVersion(
         version = "0.7.5",
         date = "2026-06-13",
         sections = listOf(
@@ -132,7 +139,7 @@ fun ChangelogBottomSheet(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val changelogUrl = "https://github.com/theovilardo/PixelPlayer/blob/master/CHANGELOG.md"
+    val changelogUrl = "https://github.com/anshdeepofficial/VYBE/blob/main/CHANGELOG.md"
     val changelog = changelogVersions()
 
     val fabCornerRadius = 16.dp

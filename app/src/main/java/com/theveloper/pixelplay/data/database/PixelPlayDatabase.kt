@@ -1535,6 +1535,14 @@ abstract class PixelPlayDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_42_43 = object : Migration(42, 43) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `audius_favorites` (`id` TEXT NOT NULL, `title` TEXT NOT NULL, `artist` TEXT NOT NULL, `albumArtUrl` TEXT, `duration` INTEGER NOT NULL, `streamUrl` TEXT NOT NULL, PRIMARY KEY(`id`))"
+                )
+            }
+        }
+
         val MIGRATION_43_44 = object : Migration(43, 44) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(

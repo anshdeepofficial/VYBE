@@ -6,6 +6,11 @@
     <string name="changelog_sec_fixes">Fixes</string>
     <string name="changelog_sec_whats_new">What\'s New</string>
     <string name="changelog_sec_added">Added</string>
+
+    <string-array name="changelog_079_fixes">
+        <item>Fixed an immediate startup crash affecting existing installations upgrading from database version 42.</item>
+        <item>Expanded database migration verification through the current release schema.</item>
+    </string-array>
     <string-array name="changelog_020_added">
         <item>Chromecast support for casting audio from your device.</item>
         <item>In-app changelog to keep you updated on the latest features.</item>
