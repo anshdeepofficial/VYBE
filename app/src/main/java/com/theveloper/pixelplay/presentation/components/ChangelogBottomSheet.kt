@@ -1,4 +1,53 @@
 package com.theveloper.pixelplay.presentation.components
+}
+    ChangelogVersion(
+        version = "0.7.21",
+        date = "2026-08-23",
+        sections = listOf(
+            ChangelogSection(R.string.changelog_sec_added, R.array.changelog_0721_added),
+            ChangelogSection(R.string.changelog_sec_improvements, R.array.changelog_0721_improvements)
+        )
+    ),
+    ChangelogVersion(
+        version = "0.7.20",
+        date = "2026-08-23",
+        sections = listOf(
+            ChangelogSection(R.string.changelog_sec_fixes, R.array.changelog_0720_fixes)
+        )
+    ),
+    ChangelogVersion(
+        version = "0.7.19",
+        date = "2026-08-23",
+        sections = listOf(
+            ChangelogSection(R.string.changelog_sec_fixes, R.array.changelog_0719_fixes),
+            ChangelogSection(R.string.changelog_sec_improvements, R.array.changelog_0719_improvements)
+        )
+    ),
+    ChangelogVersion(
+        version = "0.7.18",
+        date = "2026-08-23",
+        sections = listOf(
+            ChangelogSection(R.string.changelog_sec_fixes, R.array.changelog_0718_fixes),
+            ChangelogSection(R.string.changelog_sec_improvements, R.array.changelog_0718_improvements)
+        )
+    ),
+    ChangelogVersion(
+        version = "0.7.17",
+        date = "2026-08-23",
+        sections = listOf(
+            ChangelogSection(R.string.changelog_sec_added, R.array.changelog_0717_added),
+            ChangelogSection(R.string.changelog_sec_fixes, R.array.changelog_0717_fixes),
+            ChangelogSection(R.string.changelog_sec_improvements, R.array.changelog_0717_improvements)
+        )
+    ),
+    ChangelogVersion(
+        version = "0.7.16",
+        date = "2026-08-23",
+        sections = listOf(
+            ChangelogSection(R.string.changelog_sec_fixes, R.array.changelog_0716_fixes)
+        )
+    ),
+package com.theveloper.pixelplay.presentation.components
 
 import android.content.ActivityNotFoundException
 import android.content.Context

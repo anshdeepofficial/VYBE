@@ -32,6 +32,56 @@ private data class ChangelogRelease(
 
 private val VybeChangelog = listOf(
     ChangelogRelease(
+        version = "0.7.21",
+        date = "23 August 2026",
+        changes = listOf(
+            "Search Enhancements: YouTube Music search results are now cleanly categorized, with a dedicated section and tab just for Videos, separating them from standard songs.",
+            "UI Architecture: Completely removed the experimental Liquid Glass App UI Style setting as it caused performance and layout issues. The app now strictly uses the polished Material UI."
+        )
+    ),
+    ChangelogRelease(
+        version = "0.7.20",
+        date = "23 August 2026",
+        changes = listOf(
+            "Library Crash Fix: Fixed a critical crash that occurred when switching between tabs in the Library after playing music, which was caused by duplicate unique IDs in the listening history grid."
+        )
+    ),
+    ChangelogRelease(
+        version = "0.7.19",
+        date = "23 August 2026",
+        changes = listOf(
+            "Onboarding Improvements: Made critical permissions (Media, Notifications, and Battery Optimization) strictly mandatory. Users can no longer skip these during the initial setup.",
+            "Notification Fix: Fixed an issue where tapping the media notification in the status bar would unnecessarily trigger the player sheet to slide open."
+        )
+    ),
+    ChangelogRelease(
+        version = "0.7.18",
+        date = "23 August 2026",
+        changes = listOf(
+            "UI Enhancements: Upgraded the Playlist and Artist detail screens by replacing standard rectangular buttons with a sleek row of three floating action buttons (Play, Shuffle, Loop) shaped with RoundedStarShape.",
+            "App Launch/Setup Crash: Fixed a critical race condition that caused the app to crash or freeze on many devices immediately after completing the onboarding setup.",
+            "Release Stability: Added comprehensive ProGuard and R8 rules to prevent aggressive code stripping for Hilt, Room DAOs, ExoPlayer/Media3, and WorkManager.",
+            "Sync Safety: Wrapped initial library full sync in a safety block so that localized sync failures do not block app setup."
+        )
+    ),
+    ChangelogRelease(
+        version = "0.7.17",
+        date = "23 August 2026",
+        changes = listOf(
+            "Search History: Added a Search History UI that displays previous search queries when the search bar is empty.",
+            "Branding Updates: Removed the old Beta clean-install disclaimer on startup. Replaced the Beta button in the top bar with Smoothy Play text.",
+            "Queue Deletion Crash: Fixed a NumberFormatException crash when attempting to delete online songs from the queue by safely filtering non-local IDs.",
+            "Song Info Sheet: Online songs no longer display the Delete from device option, preventing unsupported actions."
+        )
+    ),
+    ChangelogRelease(
+        version = "0.7.16",
+        date = "23 August 2026",
+        changes = listOf(
+            "Keystore Crash Fix: Fixed crashes on devices with broken MasterKey/EncryptedSharedPreferences by safely falling back to standard SharedPreferences."
+        )
+    ),
+    ChangelogRelease(
         version = "0.7.15",
         date = "23 August 2026",
         changes = listOf(

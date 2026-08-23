@@ -1,5 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string-array name="changelog_0721_added">
+        <item>Search Enhancements: YouTube Music search results are now cleanly categorized, with a dedicated section and tab just for "Videos", separating them from standard songs.</item>
+    </string-array>
+    <string-array name="changelog_0721_improvements">
+        <item>UI Architecture: Completely removed the experimental "Liquid Glass" App UI Style setting as it caused performance and layout issues. The app now strictly uses the polished Material UI.</item>
+    </string-array>
+
+    <string-array name="changelog_0720_fixes">
+        <item>Library Crash Fix: Fixed a critical crash that occurred when switching between tabs (like Folders/Albums) in the Library after playing music, which was caused by duplicate unique IDs in the listening history grid.</item>
+    </string-array>
+
+    <string-array name="changelog_0719_improvements">
+        <item>Onboarding Improvements: Made critical permissions (Media, Notifications, and Battery Optimization) strictly mandatory. Users can no longer skip these during the initial setup, preventing unexpected crashes later. Optional preferences (Theme, Backup, Layouts) remain skippable.</item>
+    </string-array>
+    <string-array name="changelog_0719_fixes">
+        <item>Notification Fix: Fixed an issue where tapping the media notification in the status bar would unnecessarily trigger the player sheet to slide open. It now correctly returns you to your previous state in the app without unwanted actions.</item>
+    </string-array>
+
+    <string-array name="changelog_0718_improvements">
+        <item>UI Enhancements: Upgraded the Playlist and Artist detail screens by replacing standard rectangular buttons with a sleek row of three floating action buttons (Play, Shuffle, Loop) shaped with RoundedStarShape.</item>
+    </string-array>
+    <string-array name="changelog_0718_fixes">
+        <item>App Launch/Setup Crash: Fixed a critical race condition that caused the app to crash or freeze on many devices immediately after completing the onboarding setup. Navigation to the Home screen now safely waits for DataStore commits.</item>
+        <item>Release Stability: Added comprehensive ProGuard and R8 rules to prevent aggressive code stripping for Hilt, Room DAOs, ExoPlayer/Media3, and WorkManager, which caused invisible crashes on fresh installs.</item>
+        <item>Sync Safety: Wrapped initial library full sync in a safety block so that localized sync failures do not block app setup.</item>
+    </string-array>
+
+    <string-array name="changelog_0717_added">
+        <item>Search History: Added a Search History UI that displays previous search queries when the search bar is empty.</item>
+    </string-array>
+    <string-array name="changelog_0717_improvements">
+        <item>Branding Updates: Removed the old Beta clean-install disclaimer on startup. Replaced the Beta button in the top bar with "Smoothy Play" text.</item>
+    </string-array>
+    <string-array name="changelog_0717_fixes">
+        <item>Queue Deletion Crash: Fixed a NumberFormatException crash when attempting to delete online songs from the queue by safely filtering non-local IDs.</item>
+        <item>Song Info Sheet: Online songs no longer display the "Delete from device" option, preventing unsupported actions.</item>
+    </string-array>
+
+    <string-array name="changelog_0716_fixes">
+        <item>Keystore Crash Fix: Fixed crashes on devices with broken MasterKey/EncryptedSharedPreferences by safely falling back to standard SharedPreferences.</item>
+    </string-array>
     <string-array name="changelog_0712_fixes">
         <item>Fixed the duplicate artist-history key crash.</item>
         <item>Fixed square and landscape artwork presentation in the immersive player.</item>
