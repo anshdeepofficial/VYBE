@@ -56,6 +56,8 @@ data class SetupUiState(
 sealed interface SetupEvent {
     data class Message(val value: String) : SetupEvent
     data class RestoreCompleted(val message: String) : SetupEvent
+    /** Fired after the setup-complete flag has been durably written to DataStore. */
+    object SetupCompleted : SetupEvent
 }
 
 @HiltViewModel
@@ -253,7 +255,16 @@ class SetupViewModel @Inject constructor(
 
     fun setSetupComplete() {
         viewModelScope.launch {
-            completeSetup(syncAfter = true)
+            try {
+                completeSetup(syncAfter = true)
+                // Only navigate after DataStore write has committed successfully
+                _events.emit(SetupEvent.SetupCompleted)
+            } catch (e: Exception) {
+                // Write failed - show error but don't crash
+                _events.emit(SetupEvent.Message(
+                    context.getString(R.string.common_error_unknown)
+                ))
+            }
         }
     }
     
@@ -382,9 +393,17 @@ class SetupViewModel @Inject constructor(
     }
 
     private suspend fun completeSetup(syncAfter: Boolean) {
+        // Write the flag first — this is the critical gate
         userPreferencesRepository.setInitialSetupDone(true)
+        // Kick off the sync in a best-effort manner. A failure here must never
+        // prevent the flag write above from being observed: the user can sync
+        // later from the Settings → Library screen.
         if (syncAfter) {
-            syncManager.fullSync()
+            try {
+                syncManager.fullSync()
+            } catch (e: Exception) {
+                android.util.Log.e("SetupViewModel", "Initial sync failed (non-fatal)", e)
+            }
         }
     }
 }

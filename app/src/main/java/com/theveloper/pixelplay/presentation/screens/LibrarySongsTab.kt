@@ -11,9 +11,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -315,7 +317,7 @@ fun LibrarySongsTab(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        items(listeningHistorySongs, key = { "history_grid_${it.id}" }) { song ->
+                        itemsIndexed(listeningHistorySongs, key = { index, song -> "history_grid_${index}_${song.id}" }) { _, song ->
                             LibrarySongGridCard(
                                 song = song,
                                 onClick = {
@@ -331,7 +333,7 @@ fun LibrarySongsTab(
                         contentPadding = PaddingValues(bottom = bottomBarHeight + MiniPlayerHeight + 30.dp),
                     ) {
                         item { Text("Recently listened", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(8.dp)) }
-                        items(listeningHistorySongs, key = { "history_${it.id}" }) { song ->
+                        itemsIndexed(listeningHistorySongs, key = { index, song -> "history_${index}_${song.id}" }) { _, song ->
                             EnhancedSongListItem(
                                 song = song,
                                 isPlaying = false,

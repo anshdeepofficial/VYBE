@@ -104,16 +104,19 @@ class YouTubeMusicEngine @Inject constructor(
         val songs = mutableListOf<Song>()
         val albums = mutableListOf<YouTubeAlbum>()
         val artists = mutableListOf<YouTubeArtist>()
+        val videos = mutableListOf<Song>()
 
         // A mixed WEB_REMIX response already contains songs, albums and artists. Keep
         // interactive search to one bounded request; sequential filtered retries made a
         // single query take minutes on mobile connections and then appear empty.
-        searchStructuredEndpoint(cleanQuery, region, songs, albums, artists)
+        searchStructuredEndpoint(cleanQuery, region, songs, albums, artists, videos)
 
         // Filter out non-music items from songs
         val filteredSongs = songs
             .filter(::isMusicOnlySong)
             .distinctBy { it.id }
+            
+        val distinctVideos = videos.distinctBy { it.id }
 
         val distinctAlbums = albums.distinctBy { it.browseId }
         val distinctArtists = artists
@@ -129,7 +132,8 @@ class YouTubeMusicEngine @Inject constructor(
         YouTubeSearchResult(
             songs = filteredSongs,
             albums = distinctAlbums,
-            artists = distinctArtists
+            artists = distinctArtists,
+            videos = distinctVideos
         )
     }
 
@@ -146,6 +150,7 @@ class YouTubeMusicEngine @Inject constructor(
         songs: MutableList<Song>,
         albums: MutableList<YouTubeAlbum>,
         artists: MutableList<YouTubeArtist>,
+        videos: MutableList<Song>,
         params: String? = null,
     ) {
         try {
@@ -156,7 +161,7 @@ class YouTubeMusicEngine @Inject constructor(
                     if (!params.isNullOrBlank()) put("params", params)
                 }
             } ?: return
-            parseStructuredSearchResponse(responseBody, songs, albums, artists)
+            parseStructuredSearchResponse(responseBody, songs, albums, artists, videos)
         } catch (e: Exception) {
             Log.w(TAG, "Structured search failed for '$query': ${e.message}")
         }
@@ -317,6 +322,7 @@ class YouTubeMusicEngine @Inject constructor(
                         mutableListOf(),
                         releaseAlbums,
                         mutableListOf(),
+                        mutableListOf()
                     )
                 }
             }
@@ -823,6 +829,7 @@ class YouTubeMusicEngine @Inject constructor(
                     mutableListOf(),
                     extraAlbums,
                     extraArtists,
+                    mutableListOf()
                 )
             }
             val extraSongs = extraTracks.filter { it.resultType != YouTubeMusicEntityType.MUSIC_VIDEO }.map { it.toSong() }
@@ -943,11 +950,12 @@ class YouTubeMusicEngine @Inject constructor(
         jsonString: String,
         songs: MutableList<Song>,
         albums: MutableList<YouTubeAlbum>,
-        artists: MutableList<YouTubeArtist>
+        artists: MutableList<YouTubeArtist>,
+        videos: MutableList<Song>
     ) {
         try {
             val root = JSONObject(jsonString)
-            parseStructuredRecursive(root, songs, albums, artists)
+            parseStructuredRecursive(root, songs, albums, artists, videos)
         } catch (e: Exception) {
             Log.e(TAG, "parseStructuredSearchResponse error: ${e.message}")
         }
@@ -957,13 +965,14 @@ class YouTubeMusicEngine @Inject constructor(
         json: Any?,
         songs: MutableList<Song>,
         albums: MutableList<YouTubeAlbum>,
-        artists: MutableList<YouTubeArtist>
+        artists: MutableList<YouTubeArtist>,
+        videos: MutableList<Song>
     ) {
         when (json) {
             is JSONObject -> {
                 if (json.has("musicResponsiveListItemRenderer")) {
                     val item = json.optJSONObject("musicResponsiveListItemRenderer")!!
-                    categorizeAndAddItem(item, songs, albums, artists)
+                    categorizeAndAddItem(item, songs, albums, artists, videos)
                 } else if (json.has("musicTwoRowItemRenderer")) {
                     val item = json.optJSONObject("musicTwoRowItemRenderer")!!
                     categorizeTwoRowItem(item, albums, artists)
@@ -972,12 +981,12 @@ class YouTubeMusicEngine @Inject constructor(
                 val keys = json.keys()
                 while (keys.hasNext()) {
                     val key = keys.next()
-                    parseStructuredRecursive(json.opt(key), songs, albums, artists)
+                    parseStructuredRecursive(json.opt(key), songs, albums, artists, videos)
                 }
             }
             is JSONArray -> {
                 for (i in 0 until json.length()) {
-                    parseStructuredRecursive(json.opt(i), songs, albums, artists)
+                    parseStructuredRecursive(json.opt(i), songs, albums, artists, videos)
                 }
             }
         }
@@ -987,10 +996,15 @@ class YouTubeMusicEngine @Inject constructor(
         item: JSONObject,
         songs: MutableList<Song>,
         albums: MutableList<YouTubeAlbum>,
-        artists: MutableList<YouTubeArtist>
+        artists: MutableList<YouTubeArtist>,
+        videos: MutableList<Song>
     ) {
         parseListItem(item)?.let { track ->
-            songs.add(track.toSong())
+            if (track.resultType == YouTubeMusicEntityType.MUSIC_VIDEO) {
+                videos.add(track.toSong())
+            } else {
+                songs.add(track.toSong())
+            }
             collectSongArtists(item, artists)
             return
         }

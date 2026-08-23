@@ -251,6 +251,10 @@ fun SetupScreen(
                         onSetupComplete()
                     }
                 }
+                is SetupEvent.SetupCompleted -> {
+                    // DataStore write has committed — now safe to navigate to main UI
+                    onSetupComplete()
+                }
             }
         }
     }
@@ -301,8 +305,9 @@ fun SetupScreen(
                 },
                 onFinishClicked = {
                     if (allRequiredPermissionsGrantedNow(context)) {
+                        // setSetupComplete() will emit SetupEvent.SetupCompleted
+                        // after DataStore write commits — do NOT call onSetupComplete() here
                         setupViewModel.setSetupComplete()
-                        onSetupComplete()
                     } else {
                         setupViewModel.checkPermissions(context)
                         Toast.makeText(context, context.getString(R.string.setup_toast_grant_all_permissions), Toast.LENGTH_SHORT).show()
@@ -592,11 +597,18 @@ private fun isPermissionGateSatisfied(
     page: SetupPage,
     uiState: SetupUiState
 ): Boolean {
-    return true
+    return when (page) {
+        is SetupPage.MediaPermission -> hasMediaPermissionNow(context)
+        is SetupPage.NotificationsPermission -> hasNotificationsPermissionNow(context)
+        is SetupPage.BatteryOptimization -> isIgnoringBatteryOptimizationsNow(context)
+        else -> true
+    }
 }
 
 private fun allRequiredPermissionsGrantedNow(context: Context): Boolean {
-    return true
+    return hasMediaPermissionNow(context) &&
+           hasNotificationsPermissionNow(context) &&
+           isIgnoringBatteryOptimizationsNow(context)
 }
 
 private fun hasMediaPermissionNow(context: Context): Boolean {
@@ -606,6 +618,11 @@ private fun hasMediaPermissionNow(context: Context): Boolean {
         Manifest.permission.READ_EXTERNAL_STORAGE
     }
     return ContextCompat.checkSelfPermission(context, mediaPermission) == PackageManager.PERMISSION_GRANTED
+}
+
+private fun hasNotificationsPermissionNow(context: Context): Boolean {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return true
+    return ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 }
 
 private fun isIgnoringBatteryOptimizationsNow(context: Context): Boolean {

@@ -18,8 +18,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -315,7 +317,7 @@ fun LibraryAlbumsTab(
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    items(listeningHistoryAlbums, key = { "history_album_${it.id}" }) { album ->
+                    itemsIndexed(listeningHistoryAlbums, key = { index, album -> "history_album_${index}_${album.id}" }) { _, album ->
                         AlbumGridItemRedesigned(
                             album = album,
                             albumColorSchemePairFlow = playerViewModel.themeStateHolder.getAlbumColorSchemeFlow(album.albumArtUriString.orEmpty()),

@@ -147,6 +147,12 @@ class SearchStateHolder @Inject constructor(
                                                     SearchResultItem.ArtistItem(artist.toArtist())
                                                 })
                                             }
+                                            if (
+                                                currentFilter == SearchFilterType.ALL ||
+                                                currentFilter == SearchFilterType.VIDEOS
+                                            ) {
+                                                addAll(result.videos.map(SearchResultItem::VideoItem))
+                                            }
                                         }
                                     }.getOrElse { error ->
                                         Timber.w(error, "Online search failed for query: %s", normalizedQuery)
@@ -163,9 +169,10 @@ class SearchStateHolder @Inject constructor(
                             compareBy { result ->
                                 when (result) {
                                     is SearchResultItem.SongItem -> 0
-                                    is SearchResultItem.AlbumItem -> 1
-                                    is SearchResultItem.ArtistItem -> 2
-                                    is SearchResultItem.PlaylistItem -> 3
+                                    is SearchResultItem.VideoItem -> 1
+                                    is SearchResultItem.AlbumItem -> 2
+                                    is SearchResultItem.ArtistItem -> 3
+                                    is SearchResultItem.PlaylistItem -> 4
                                 }
                             }
                         )
@@ -273,6 +280,7 @@ class SearchStateHolder @Inject constructor(
 
     private fun searchResultKey(result: SearchResultItem): String = when (result) {
         is SearchResultItem.SongItem -> "song:${result.song.id}"
+        is SearchResultItem.VideoItem -> "video:${result.song.id}"
         is SearchResultItem.AlbumItem -> "album:${result.album.id}"
         is SearchResultItem.ArtistItem -> "artist:${result.artist.remoteBrowseId ?: result.artist.id}"
         is SearchResultItem.PlaylistItem -> "playlist:${result.playlist.id}"

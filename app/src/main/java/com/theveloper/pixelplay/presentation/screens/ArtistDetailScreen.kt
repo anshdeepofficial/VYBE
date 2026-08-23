@@ -34,6 +34,7 @@ import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Shuffle
+import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.SurroundSound
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -1004,9 +1005,7 @@ private fun SharedArtistTopBarProbe(
             }
         )
 
-        LargeExtendedFloatingActionButton(
-            onClick = onPlayClick,
-            shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
+        Row(
             modifier = Modifier
                 .align(shuffleAlignment)
                 .statusBarsPadding()
@@ -1015,9 +1014,30 @@ private fun SharedArtistTopBarProbe(
                     scaleX = expandedContentAlpha
                     scaleY = expandedContentAlpha
                     alpha = expandedContentAlpha
-                }
+                },
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Icon(Icons.Rounded.Shuffle, contentDescription = stringResource(R.string.artist_cd_shuffle_play))
+            FloatingActionButton(
+                onClick = onPlayClick,
+                shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+            ) {
+                Icon(Icons.Rounded.PlayArrow, contentDescription = "Play")
+            }
+            FloatingActionButton(
+                onClick = onPlayClick,
+                shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            ) {
+                Icon(Icons.Rounded.Shuffle, contentDescription = "Shuffle")
+            }
+            FloatingActionButton(
+                onClick = onPlayClick,
+                shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            ) {
+                Icon(Icons.Rounded.Repeat, contentDescription = "Loop")
+            }
         }
     }
 }
@@ -1226,9 +1246,7 @@ private fun CustomCollapsingTopBar(
                 }
 
                 // Botón de Play
-                LargeExtendedFloatingActionButton(
-                    onClick = onPlayClick,
-                    shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
+                Row(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(16.dp)
@@ -1236,9 +1254,30 @@ private fun CustomCollapsingTopBar(
                             scaleX = fabScale
                             scaleY = fabScale
                             alpha = fabScale
-                        }
+                        },
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(Icons.Rounded.Shuffle, contentDescription = stringResource(R.string.common_shuffle_play_album))
+                    FloatingActionButton(
+                        onClick = onPlayClick,
+                        shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    ) {
+                        Icon(Icons.Rounded.PlayArrow, contentDescription = "Play")
+                    }
+                    FloatingActionButton(
+                        onClick = onPlayClick,
+                        shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    ) {
+                        Icon(Icons.Rounded.Shuffle, contentDescription = "Shuffle")
+                    }
+                    FloatingActionButton(
+                        onClick = onPlayClick,
+                        shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    ) {
+                        Icon(Icons.Rounded.Repeat, contentDescription = "Loop")
+                    }
                 }
             }
         }

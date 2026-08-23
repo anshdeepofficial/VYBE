@@ -107,7 +107,8 @@ data class YouTubeArtist(
 data class YouTubeSearchResult(
     val songs: List<Song> = emptyList(),
     val albums: List<YouTubeAlbum> = emptyList(),
-    val artists: List<YouTubeArtist> = emptyList()
+    val artists: List<YouTubeArtist> = emptyList(),
+    val videos: List<Song> = emptyList()
 )
 
 @Immutable

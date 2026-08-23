@@ -399,6 +399,7 @@ class MainActivity : ComponentActivity() {
 
             intent.getBooleanExtra("ACTION_SHOW_PLAYER", false) -> {
                 playerViewModel.showPlayer()
+                intent.removeExtra("ACTION_SHOW_PLAYER")
             }
 
             intent.action == android.content.Intent.ACTION_VIEW &&

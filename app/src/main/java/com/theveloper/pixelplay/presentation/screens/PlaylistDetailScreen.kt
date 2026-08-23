@@ -143,6 +143,7 @@ import com.theveloper.pixelplay.presentation.components.LibrarySortBottomSheet
 import com.theveloper.pixelplay.data.model.SortOption
 import com.theveloper.pixelplay.data.model.PlaylistShapeType
 import kotlinx.coroutines.launch
+import androidx.compose.material.icons.rounded.Repeat
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(
@@ -359,13 +360,12 @@ fun PlaylistDetailScreen(
                 val playbackControlBottomPadding = if (isFolderPlaylist) 8.dp else 6.dp
                 Row(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(62.dp)
+                        .align(Alignment.End)
                         .padding(horizontal = 20.dp)
                         .padding(bottom = playbackControlBottomPadding),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Button(
+                    androidx.compose.material3.FloatingActionButton(
                         onClick = {
                             if (localReorderableSongs.isNotEmpty()) {
                                 playerViewModel.playSongs(
@@ -376,37 +376,12 @@ fun PlaylistDetailScreen(
                                 if (playerStableState.isShuffleEnabled) playerViewModel.toggleShuffle()
                             }
                         },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(76.dp),
-                        enabled = localReorderableSongs.isNotEmpty(),
-                        shape = AbsoluteSmoothCornerShape(
-                            cornerRadiusTL = 60.dp,
-                            smoothnessAsPercentTR = 60,
-                            cornerRadiusTR = 14.dp,
-                            smoothnessAsPercentTL = 60,
-                            cornerRadiusBL = 60.dp,
-                            smoothnessAsPercentBR = 60,
-                            cornerRadiusBR = 14.dp,
-                            smoothnessAsPercentBL = 60
-                        ),
-                        contentPadding = PaddingValues(horizontal = 10.dp),
+                        shape = com.theveloper.pixelplay.utils.shapes.RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
                     ) {
-                        Icon(
-                            Icons.Rounded.PlayArrow,
-                            contentDescription = stringResource(R.string.common_play),
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                        TightWrapText(
-                                text = playItLabel,
-                                modifier = Modifier.padding(end = 4.dp),
-                                overflow = TextOverflow.Ellipsis,
-                                maxLines = 2,
-                                lineHeight = 20.sp
-                            )
+                        Icon(Icons.Rounded.PlayArrow, contentDescription = playItLabel)
                     }
-                    FilledTonalButton(
+                    androidx.compose.material3.FloatingActionButton(
                         onClick = {
                             if (localReorderableSongs.isNotEmpty()) {
                                 playerViewModel.playSongsShuffled(
@@ -417,35 +392,26 @@ fun PlaylistDetailScreen(
                                 )
                             }
                         },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(76.dp),
-                        enabled = localReorderableSongs.isNotEmpty(),
-                        shape = AbsoluteSmoothCornerShape(
-                            cornerRadiusTL = 14.dp,
-                            smoothnessAsPercentTR = 60,
-                            cornerRadiusTR = 60.dp,
-                            smoothnessAsPercentTL = 60,
-                            cornerRadiusBL = 14.dp,
-                            smoothnessAsPercentBR = 60,
-                            cornerRadiusBR = 60.dp,
-                            smoothnessAsPercentBL = 60
-                        ),
-                        contentPadding = PaddingValues(horizontal = 10.dp),
+                        shape = com.theveloper.pixelplay.utils.shapes.RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
                     ) {
-                        Icon(
-                            Icons.Rounded.Shuffle,
-                            contentDescription = shuffleLabel,
-                            modifier = Modifier.size(ButtonDefaults.IconSize)
-                        )
-                        Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                        TightWrapText(
-                                text = shuffleLabel,
-                                modifier = Modifier.padding(end = 4.dp),
-                                overflow = TextOverflow.Ellipsis,
-                                maxLines = 2,
-                                lineHeight = 20.sp
-                            )
+                        Icon(Icons.Rounded.Shuffle, contentDescription = shuffleLabel)
+                    }
+                    androidx.compose.material3.FloatingActionButton(
+                        onClick = {
+                            if (localReorderableSongs.isNotEmpty()) {
+                                playerViewModel.playSongs(
+                                    localReorderableSongs,
+                                    localReorderableSongs.first(),
+                                    currentPlaylist.name
+                                )
+                                playerViewModel.cycleRepeatMode()
+                            }
+                        },
+                        shape = com.theveloper.pixelplay.utils.shapes.RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    ) {
+                        Icon(Icons.Rounded.Repeat, contentDescription = "Loop")
                     }
                 }
 

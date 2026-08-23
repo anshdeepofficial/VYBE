@@ -50,6 +50,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -997,7 +998,7 @@ fun SearchHistoryList(
                 top = 8.dp,
             )
         ) {
-            items(historyItems, key = { "history_${it.id ?: it.query}" }, contentType = { "search_history" }) { item ->
+            itemsIndexed(historyItems, key = { index, item -> "history_${index}_${item.id ?: item.query}" }, contentType = { _, _ -> "search_history" }) { _, item ->
                 SearchHistoryListItem(
                     item = item,
                     onHistoryClick = onHistoryClick,
@@ -1133,6 +1134,7 @@ fun SearchResultsList(
         results.groupBy { item ->
             when (item) {
                 is SearchResultItem.SongItem -> SearchFilterType.SONGS
+                is SearchResultItem.VideoItem -> SearchFilterType.VIDEOS
                 is SearchResultItem.AlbumItem -> SearchFilterType.ALBUMS
                 is SearchResultItem.ArtistItem -> SearchFilterType.ARTISTS
                 is SearchResultItem.PlaylistItem -> SearchFilterType.PLAYLISTS
@@ -1144,6 +1146,11 @@ fun SearchResultsList(
             groupedResults[SearchFilterType.SONGS]
                 ?.forEach { item ->
                     val song = (item as? SearchResultItem.SongItem)?.song ?: return@forEach
+                    add(song)
+                }
+            groupedResults[SearchFilterType.VIDEOS]
+                ?.forEach { item ->
+                    val song = (item as? SearchResultItem.VideoItem)?.song ?: return@forEach
                     add(song)
                 }
         }
@@ -1168,6 +1175,7 @@ fun SearchResultsList(
 
     val sectionOrder = listOf(
         SearchFilterType.SONGS,
+        SearchFilterType.VIDEOS,
         SearchFilterType.ALBUMS,
         SearchFilterType.ARTISTS,
         SearchFilterType.PLAYLISTS
@@ -1198,6 +1206,7 @@ fun SearchResultsList(
                     SearchResultSectionHeader(
                         title = when (filterType) {
                             SearchFilterType.SONGS -> "Songs"
+                            SearchFilterType.VIDEOS -> "Videos"
                             SearchFilterType.ALBUMS -> "Albums"
                             SearchFilterType.ARTISTS -> "Artists"
                             SearchFilterType.PLAYLISTS -> "Playlists"
@@ -1212,6 +1221,7 @@ fun SearchResultsList(
                         val item = itemsForSection[index]
                         when (item) {
                             is SearchResultItem.SongItem -> "song_${item.song.id}"
+                            is SearchResultItem.VideoItem -> "video_${item.song.id}"
                             is SearchResultItem.AlbumItem -> "album_${item.album.id}"
                             is SearchResultItem.ArtistItem -> "artist_${item.artist.id}"
                             is SearchResultItem.PlaylistItem -> "playlist_${item.playlist.id}_${index}"
@@ -1220,6 +1230,7 @@ fun SearchResultsList(
                     contentType = { index ->
                         when (itemsForSection[index]) {
                             is SearchResultItem.SongItem -> "search_song"
+                            is SearchResultItem.VideoItem -> "search_video"
                             is SearchResultItem.AlbumItem -> "search_album"
                             is SearchResultItem.ArtistItem -> "search_artist"
                             is SearchResultItem.PlaylistItem -> "search_playlist"
@@ -1230,6 +1241,22 @@ fun SearchResultsList(
                     Box(modifier = Modifier.padding(bottom = 12.dp)) {
                         when (item) {
                             is SearchResultItem.SongItem -> {
+                                val isSelected = selectedSongIds.contains(item.song.id)
+                                val selectionIndex = getSelectionIndex(item.song.id)
+                                EnhancedSongListItem(
+                                    song = item.song,
+                                    isPlaying = isPlaying,
+                                    isCurrentSong = currentPlayingSongId == item.song.id,
+                                    onMoreOptionsClick = onSongMoreOptionsClick,
+                                    onClick = { onSongResultClick(item.song) },
+                                    isSelected = isSelected,
+                                    selectionIndex = selectionIndex,
+                                    isSelectionMode = isSelectionMode,
+                                    onLongPress = { onSongLongPress(item.song) }
+                                )
+                            }
+                            
+                            is SearchResultItem.VideoItem -> {
                                 val isSelected = selectedSongIds.contains(item.song.id)
                                 val selectionIndex = getSelectionIndex(item.song.id)
                                 EnhancedSongListItem(
@@ -1728,6 +1755,7 @@ fun SearchFilterChip(
     val labelResId = when (filterType) {
         SearchFilterType.ALL -> R.string.common_all
         SearchFilterType.SONGS -> R.string.library_tab_songs
+        SearchFilterType.VIDEOS -> R.string.search_tab_videos
         SearchFilterType.ALBUMS -> R.string.library_tab_albums
         SearchFilterType.ARTISTS -> R.string.library_tab_artists
         SearchFilterType.PLAYLISTS -> R.string.library_tab_playlists

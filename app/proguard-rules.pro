@@ -20,6 +20,34 @@
 # hide the original source file name.
 -renamesourcefileattribute SourceFile
 
+# =============================================================================
+# ENUM CONSTANTS  --  RELEASE-BLOCKING. DO NOT REMOVE.
+# =============================================================================
+# R8 runs in full mode with `android.r8.strictFullModeForKeepRules=true`
+# (see gradle.properties). The default rule inherited from
+# proguard-android-optimize.txt only keeps the *methods*:
+#
+#     -keepclassmembers enum * { values(); valueOf(); }
+#
+# ...it does NOT keep the enum *constant fields*. R8 additionally
+# constant-folds expressions like `MyEnum.CONST.name` into a plain string
+# literal, which orphans the backing field and lets the shrinker delete it.
+#
+# The observable result was that `mapping.txt` kept SyncMode.INCREMENTAL and
+# SyncMode.REBUILD but `usage.txt` listed SyncMode.FULL as REMOVED, so
+# `SyncMode.valueOf("FULL")` threw IllegalArgumentException in release builds
+# only -- silently killing the post-onboarding library scan and leaving Home
+# permanently empty. Roughly a dozen other enums were pruned the same way
+# (AppLanguage lost 11 of 12 languages, LibraryTabId lost all 7, etc).
+#
+# Keeping the fields costs a negligible amount of dex size and removes an
+# entire class of release-only failure. Enum constants must never be stripped.
+-keepclassmembers enum * {
+    <fields>;
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+
 # Keep javax.lang.model classes (often needed by annotation processors or code generation libraries)
 -keep class javax.lang.model.** { *; }
 -keep interface javax.lang.model.** { *; }
@@ -235,3 +263,70 @@
 -dontwarn javax.sound.sampled.spi.AudioFileReader
 -dontwarn javax.sound.sampled.spi.FormatConversionProvider
 -dontwarn javax.swing.filechooser.FileFilter
+
+# =============================================================================
+# HILT / DAGGER: Prevent R8 from stripping Hilt-generated injection entry points.
+# Without these, @AndroidEntryPoint classes silently lose their injected fields
+# in release builds, causing NullPointerExceptions or ClassNotFoundExceptions.
+# =============================================================================
+-keep @dagger.hilt.android.AndroidEntryPoint class * { *; }
+-keep @dagger.hilt.android.HiltAndroidApp class * { *; }
+-keep @dagger.hilt.InstallIn class * { *; }
+-keep @dagger.Module class * { *; }
+-keepclassmembers class * {
+    @dagger.* <fields>;
+    @javax.inject.* <fields>;
+    @dagger.hilt.* <fields>;
+}
+# Keep Hilt ViewModel factory / generated components
+-keep class **_HiltModules* { *; }
+-keep class **_Hilt* { *; }
+-keep class *_MembersInjector { *; }
+-keep class *_Factory { *; }
+
+# =============================================================================
+# ROOM DATABASE: Prevent R8 from stripping Room DAOs and generated impls.
+# =============================================================================
+-keep @androidx.room.Dao class * { *; }
+-keep @androidx.room.Database class * { *; }
+-keep @androidx.room.Entity class * { *; }
+-keep class **_Impl extends androidx.room.RoomDatabase { *; }
+-keepclassmembers class * extends androidx.room.RoomDatabase {
+    abstract *;
+}
+
+# =============================================================================
+# WORKMANAGER + HILT WORKER: Keep @HiltWorker annotated classes.
+# =============================================================================
+-keep class * extends androidx.work.Worker { <init>(...); }
+-keep class * extends androidx.work.CoroutineWorker { <init>(...); }
+-keep class * extends androidx.work.ListenableWorker { <init>(...); }
+-keepclassmembers class * extends androidx.work.ListenableWorker {
+    public <init>(android.content.Context, androidx.work.WorkerParameters);
+}
+
+# =============================================================================
+# KOTLIN COROUTINES: prevent R8 from breaking coroutine state machines.
+# =============================================================================
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+-keepclassmembers class kotlinx.coroutines.** {
+    volatile <fields>;
+}
+
+# Keep kotlinx.serialization
+-keepattributes *Annotation*, InnerClasses
+-dontnote kotlinx.serialization.AnnotationsKt
+-keepclassmembers @kotlinx.serialization.Serializable class ** {
+    *** Companion;
+    kotlinx.serialization.KSerializer serializer(...);
+}
+-keep class kotlinx.serialization.** { *; }
+
+# =============================================================================
+# MEDIA3 / EXOPLAYER: Keep MediaSession/MediaLibraryService entry points
+# =============================================================================
+-keep class androidx.media3.session.** { *; }
+-keep class androidx.media3.exoplayer.** { *; }
+-keep class androidx.media3.common.** { *; }
+-keep class androidx.media3.datasource.** { *; }
