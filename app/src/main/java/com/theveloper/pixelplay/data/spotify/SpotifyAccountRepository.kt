@@ -1,6 +1,7 @@
 package com.theveloper.pixelplay.data.spotify
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.net.Uri
 import android.util.Base64
 import androidx.security.crypto.EncryptedSharedPreferences
