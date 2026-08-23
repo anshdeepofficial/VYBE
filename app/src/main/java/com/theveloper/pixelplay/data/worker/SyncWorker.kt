@@ -482,7 +482,7 @@ constructor(
                         )
                     }
                     Result.success(workDataOf(OUTPUT_TOTAL_SONGS to finalTotalSongs.toLong()))
-                } catch (e: Throwable) {
+                } catch (e: Exception) {
                     Log.e(TAG, "Error during MediaStore synchronization", e)
                     AdvancedPerformanceDiagnostics.recordEventIfEnabled(
                         type = AdvancedPerformanceDiagnostics.EventTypes.WORKER,
@@ -783,7 +783,7 @@ constructor(
                 }
             }.awaitAll()
             
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Log.e(TAG, "Error fetching genre map", e)
         }
         
@@ -931,7 +931,7 @@ constructor(
                                     continue
                                 }
                             }
-                        } catch (e: Throwable) {
+                        } catch (e: Exception) {
                             // Proceed on error
                         }
 
@@ -1161,7 +1161,7 @@ constructor(
                         if (meta.year != null) year = meta.year
 
                     }
-                } catch (e: Throwable) {
+                } catch (e: Exception) {
                     Log.w(TAG, "Failed to read metadata via TagLib for ${raw.filePath}", e)
                 }
             }
@@ -1436,7 +1436,7 @@ constructor(
                                 if (meta.sampleRate != null && meta.sampleRate > 0) realSampleRate = meta.sampleRate
                             }
                             resolvedAlbumArtUri = tSong.resolveAlbumArtUri()
-                        } catch (e: Throwable) {
+                        } catch (e: Exception) {
                             // Ignore read errors, fall back to TdApi metadata
                         }
                     }
@@ -1575,7 +1575,7 @@ constructor(
             }
 
             Log.i(TAG, "Synced $totalSynced Telegram songs with Unified Metadata.")
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Log.e(TAG, "Failed to sync Telegram data", e)
         }
     }
@@ -1697,7 +1697,7 @@ constructor(
                 deletedSongIds = deletedUnifiedSongIds
             )
             Log.i(TAG, "Synced ${songsToInsert.size} Netease songs with Unified Metadata.")
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Log.e(TAG, "Failed to sync Netease data", e)
         }
     }
@@ -1756,7 +1756,7 @@ constructor(
                     navidromeRepository.syncUnifiedLibrarySongsFromNavidrome()
                 }
             )
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Log.e(TAG, "Failed to sync Navidrome data", e)
         }
     }

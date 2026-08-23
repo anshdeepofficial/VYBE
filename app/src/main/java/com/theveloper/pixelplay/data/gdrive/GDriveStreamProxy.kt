@@ -116,7 +116,7 @@ class GDriveStreamProxy @Inject constructor(
                 Timber.d("GDriveStreamProxy started on port $actualPort")
             } catch (e: CancellationException) {
                 Timber.d("GDriveStreamProxy start cancelled")
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 Timber.e(e, "Failed to start GDriveStreamProxy")
             }
         }
@@ -254,7 +254,7 @@ class GDriveStreamProxy @Inject constructor(
                                 }
                             }
                         }
-                    } catch (e: Throwable) {
+                    } catch (e: Exception) {
                         val msg = e.toString()
                         if (msg.contains("ChannelWriteException") ||
                             msg.contains("ClosedChannelException") ||

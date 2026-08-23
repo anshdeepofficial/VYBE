@@ -764,7 +764,7 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
                 if (jsonString != null) {
                     try {
                         json.decodeFromString<List<String>>(jsonString)
-                    } catch (e: Throwable) {
+                    } catch (e: Exception) {
                         emptyList()
                     }
                 } else {
@@ -784,7 +784,7 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
                 if (jsonString != null) {
                     try {
                         json.decodeFromString<List<String>>(jsonString)
-                    } catch (e: Throwable) {
+                    } catch (e: Exception) {
                         emptyList()
                     }
                 } else {

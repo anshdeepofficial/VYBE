@@ -122,7 +122,7 @@ object NavidromeResponseParser {
         return (0 until songs.length()).mapNotNull { index ->
             try {
                 parseSong(songs.getJSONObject(index))
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 Timber.w(e, "$TAG: Failed to parse song at index $index")
                 null
             }
@@ -167,7 +167,7 @@ object NavidromeResponseParser {
         val songs = (0 until entries.length()).mapNotNull { index ->
             try {
                 parseSong(entries.getJSONObject(index))
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 Timber.w(e, "$TAG: Failed to parse playlist entry at index $index")
                 null
             }
@@ -188,7 +188,7 @@ object NavidromeResponseParser {
             (0 until array.length()).mapNotNull { index ->
                 try {
                     parseArtist(array.getJSONObject(index))
-                } catch (e: Throwable) {
+                } catch (e: Exception) {
                     Timber.w(e, "$TAG: Failed to parse search artist at index $index")
                     null
                 }
@@ -199,7 +199,7 @@ object NavidromeResponseParser {
             (0 until array.length()).mapNotNull { index ->
                 try {
                     parseAlbum(array.getJSONObject(index))
-                } catch (e: Throwable) {
+                } catch (e: Exception) {
                     Timber.w(e, "$TAG: Failed to parse search album at index $index")
                     null
                 }
@@ -210,7 +210,7 @@ object NavidromeResponseParser {
             (0 until array.length()).mapNotNull { index ->
                 try {
                     parseSong(array.getJSONObject(index))
-                } catch (e: Throwable) {
+                } catch (e: Exception) {
                     Timber.w(e, "$TAG: Failed to parse search song at index $index")
                     null
                 }
@@ -231,7 +231,7 @@ object NavidromeResponseParser {
             // Subsonic API returns ISO 8601 format: "2023-01-15T10:30:00"
             // Try parsing as ISO 8601
             java.time.OffsetDateTime.parse(timestamp).toInstant().toEpochMilli()
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             try {
                 // Fallback: try without timezone
                 java.time.LocalDateTime.parse(timestamp)

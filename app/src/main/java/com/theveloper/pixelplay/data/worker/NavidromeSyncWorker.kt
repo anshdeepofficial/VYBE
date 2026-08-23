@@ -67,7 +67,7 @@ class NavidromeSyncWorker @AssistedInject constructor(
                 )
             }
             Result.success()
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Timber.e(e, "NavidromeSyncWorker: Sync failed")
             AdvancedPerformanceDiagnostics.recordEventIfEnabled(
                 type = AdvancedPerformanceDiagnostics.EventTypes.WORKER,

@@ -78,7 +78,7 @@ class GitHubAnnouncementPropertiesService @Inject constructor() {
                         )
                     }
                 }
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 Result.failure(e)
             } finally {
                 connection?.disconnect()

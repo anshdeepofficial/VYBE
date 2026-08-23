@@ -102,7 +102,7 @@ class AiPlaylistGenerator @Inject constructor(
 
         } catch (e: IllegalArgumentException) {
             Result.failure(Exception(e.message ?: "AI response did not contain a valid playlist."))
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             val errorDetails = buildDetailedErrorMessage(e)
             Result.failure(Exception(errorDetails, e))
         }
@@ -112,7 +112,7 @@ class AiPlaylistGenerator @Inject constructor(
      * Builds a user-friendly error message from the exception chain.
      * Walks the cause chain to find the most specific error detail.
      */
-    private fun buildDetailedErrorMessage(e: Throwable): String {
+    private fun buildDetailedErrorMessage(e: Exception): String {
         val rootMessage = e.message?.takeIf { it.isNotBlank() }
         val causeMessage = e.cause?.message?.takeIf { it.isNotBlank() }
         val className = e::class.simpleName ?: "Unknown"

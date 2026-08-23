@@ -42,7 +42,7 @@ class BackupFileValidator @Inject constructor(
                 }
                 formatDetector.detect(header)
             }
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             errors.add(ValidationError("FILE_ACCESS", "Cannot open backup file: ${e.message}"))
             return BackupValidationResult.Invalid(errors)
         }
@@ -160,7 +160,7 @@ class BackupFileValidator @Inject constructor(
                     }
                 }
             } ?: errors.add(ValidationError("FILE_ACCESS", "Cannot open backup file."))
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             errors.add(ValidationError("ZIP_CORRUPT", "Backup ZIP archive is corrupted: ${e.message}"))
         }
     }

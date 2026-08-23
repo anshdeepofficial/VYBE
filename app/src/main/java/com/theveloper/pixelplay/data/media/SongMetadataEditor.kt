@@ -464,14 +464,14 @@ class SongMetadataEditor(
                                     Timber.tag(TAG).e("Cannot write back: file is not writeable and no MediaStore URI resolved")
                                 }
                             }
-                        } catch (e: Throwable) {
+                        } catch (e: Exception) {
                             Timber.tag(TAG).e(e, "Failed to write edited bytes back to destination")
                         }
                         writeBackSuccess
                     } else {
                         false
                     }
-                } catch (e: Throwable) {
+                } catch (e: Exception) {
                     Timber.tag(TAG).e(e, "Error processing file metadata via temp file")
                     false
                 } finally {
@@ -569,7 +569,7 @@ class SongMetadataEditor(
                 error = MetadataEditError.FILE_CORRUPTED,
                 errorMessage = "File too large or corrupted"
             )
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Timber.e(e, "Failed to update metadata for songId: $songId")
             val errorType = when {
                 e.message?.contains("corrupt", ignoreCase = true) == true -> MetadataEditError.FILE_CORRUPTED
@@ -640,7 +640,7 @@ class SongMetadataEditor(
                     FlacAnalysisResult.Safe(sampleRate, bitsPerSample)
                 }
             }
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Timber.tag(TAG).w(e, "Could not analyze FLAC file: $filePath")
             // If we can't analyze, assume it might be problematic
             FlacAnalysisResult.Unknown
@@ -719,7 +719,7 @@ class SongMetadataEditor(
                     else -> DetectedContainer.UNKNOWN
                 }
             }
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Timber.tag(TAG).w(e, "Container detection failed for $filePath")
             DetectedContainer.UNKNOWN
         }
@@ -860,14 +860,14 @@ class SongMetadataEditor(
                 java.io.RandomAccessFile(audioFile, "rw").use { raf ->
                     raf.fd.sync()
                 }
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 Timber.tag(TAG).w(e, "Could not sync file, changes should still be persisted")
             }
 
             Timber.tag(TAG).e("TAGLIB: SUCCESS - Updated file metadata: ${audioFile.path}")
             true
 
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Timber.tag(TAG).e("TAGLIB ERROR: ${e.javaClass.simpleName}: ${e.message}")
             e.printStackTrace()
             false
@@ -954,7 +954,7 @@ class SongMetadataEditor(
                         tag.setField(artwork)
                         Timber.tag(TAG)
                             .d("JAUDIOTAGGER: Embedded new cover art (${update.mimeType}, ${options.outWidth}x${options.outHeight})")
-                    } catch (e: Throwable) {
+                    } catch (e: Exception) {
                         Timber.tag(TAG).e(e, "JAUDIOTAGGER: Failed to create artwork from bytes")
                     }
                 } else {
@@ -965,7 +965,7 @@ class SongMetadataEditor(
             audioFile.commit()
             Timber.tag(TAG).d("JAUDIOTAGGER: SUCCESS - Updated file metadata: $filePath")
             true
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Timber.tag(TAG).e("JAUDIOTAGGER ERROR: ${e.javaClass.simpleName}: ${e.message}")
             e.printStackTrace()
             false
@@ -1060,14 +1060,14 @@ class SongMetadataEditor(
             Timber.tag(TAG).e("VORBISJAVA: SUCCESS - Updated file metadata: ${audioFile.path}")
             true
 
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Timber.tag(TAG).e("VORBISJAVA ERROR: ${e.javaClass.simpleName}: ${e.message}")
             e.printStackTrace()
             false
         } finally {
             try {
                 opusFile?.close()
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 Timber.tag(TAG).w(e, "VORBISJAVA: Could not close source Opus file")
             }
             if (tempFile != null && tempFile.exists() && tempFile.delete() == false) {
@@ -1109,7 +1109,7 @@ class SongMetadataEditor(
             Timber.d("MediaStore update: $rowsUpdated row(s) affected")
             success
 
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Timber.e(e, "Failed to update MediaStore for songId: $songId")
             false
         }
@@ -1130,7 +1130,7 @@ class SongMetadataEditor(
             } else {
                 Timber.tag(TAG).e("RESCAN: File does not exist: $filePath")
             }
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Timber.tag(TAG).e("RESCAN ERROR: ${e.message}")
         }
     }
@@ -1156,7 +1156,7 @@ class SongMetadataEditor(
                     null
                 }
             }
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Timber.tag(TAG).e("getFilePathFromMediaStore: Error querying MediaStore: ${e.message}")
             null
         }
@@ -1180,7 +1180,7 @@ class SongMetadataEditor(
             }
 
             file.toUri().toString()
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Timber.e(e, "Error saving cover art preview for songId: $songId")
             null
         }

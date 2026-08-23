@@ -444,7 +444,7 @@ class DualPlayerEngine @Inject constructor(
                     desiredMode,
                     sleepingForOffload
                 )
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 Timber.tag("DualPlayerEngine").w(e, "Failed to apply offload-aware wake mode")
             }
         }
@@ -565,7 +565,7 @@ class DualPlayerEngine @Inject constructor(
                                 ?.let { resolveCloudUri(it) }
                         }
                     }
-                } catch (e: Throwable) {
+                } catch (e: Exception) {
                     Timber.tag("DualPlayerEngine").w(e, "Pre-resolution error")
                 }
             }
@@ -811,7 +811,7 @@ class DualPlayerEngine @Inject constructor(
                         for (uriToResolve in adjacentCloudUris) {
                             resolveCloudUri(uriToResolve)
                         }
-                    } catch (e: Throwable) {
+                    } catch (e: Exception) {
                         Timber.tag("DualPlayerEngine").w(e, "Error during pre-resolution triggered manually")
                     }
                 }
@@ -840,9 +840,9 @@ class DualPlayerEngine @Inject constructor(
         if (::playerA.isInitialized) {
             removeMasterPlayerListeners(playerA)
             onPlayerAboutToBeReleasedListener?.invoke(playerA)
-            try { playerA.release() } catch (e: Throwable) { /* Ignore */ }
+            try { playerA.release() } catch (e: Exception) { /* Ignore */ }
         }
-        playerB?.let { try { it.release() } catch (e: Throwable) { /* Ignore */ } }
+        playerB?.let { try { it.release() } catch (e: Exception) { /* Ignore */ } }
         playerB = null
 
         playerA = buildPlayer()
@@ -961,7 +961,7 @@ class DualPlayerEngine @Inject constructor(
             playerB?.setWakeMode(mode)
             currentWakeMode = mode
             Timber.tag("DualPlayerEngine").d("Wake mode updated to %d", mode)
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Timber.tag("DualPlayerEngine").w(e, "Failed to update wake mode")
         }
     }
@@ -1520,7 +1520,7 @@ class DualPlayerEngine @Inject constructor(
             auxiliaryPlayer.prepare()
             auxiliaryPlayer.volume = 0f
             auxiliaryPlayer.pause()
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             resetPreparedWindowState()
             Timber.tag("TransitionDebug").e(e, "Failed to prepare next player")
         }
@@ -1535,7 +1535,7 @@ class DualPlayerEngine @Inject constructor(
             try {
                 auxiliaryPlayer.stop()
                 auxiliaryPlayer.clearMediaItems()
-            } catch (e: Throwable) { /* Ignore */ }
+            } catch (e: Exception) { /* Ignore */ }
         }
         if (::playerA.isInitialized) {
             playerA.volume = 1f
@@ -1554,7 +1554,7 @@ class DualPlayerEngine @Inject constructor(
         transitionJob = scope.launch {
             try {
                 performOverlapTransition(settings)
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 if (e !is kotlinx.coroutines.CancellationException) {
                     Timber.tag("TransitionDebug").e(e, "Error performing transition")
                 }

@@ -296,7 +296,7 @@ class QqMusicApiService @Inject constructor(
             val result = output.toString(StandardCharsets.UTF_8.name())
             Timber.d("QqMusicApiService: Decompressed ${data.size} bytes -> ${result.length} chars")
             return result
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Timber.w(e, "QqMusicApiService: Zlib decompression failed, returning raw string")
             return directStr
         }

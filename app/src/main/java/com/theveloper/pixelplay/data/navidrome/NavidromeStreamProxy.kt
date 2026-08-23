@@ -47,7 +47,7 @@ class NavidromeStreamProxy @Inject constructor(
     override suspend fun resolveStreamUrl(id: String): String? {
         return try {
             repository.getStreamUrl(id)
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Timber.w(e, "NavidromeStreamProxy: Failed to resolve stream URL for song $id")
             null
         }
@@ -70,7 +70,7 @@ class NavidromeStreamProxy @Inject constructor(
         if (!CloudStreamSecurity.validateNavidromeSongId(songId)) return
         try {
             getOrFetchStreamUrl(songId)
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Timber.w(e, "warmUpStreamUrl failed for $songId")
         }
     }

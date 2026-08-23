@@ -227,12 +227,12 @@ abstract class PixelPlayDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 try {
                     db.execSQL("ALTER TABLE songs ADD COLUMN telegram_chat_id INTEGER DEFAULT NULL")
-                } catch (e: Throwable) {
+                } catch (e: Exception) {
                     // Column might already exist
                 }
                 try {
                     db.execSQL("ALTER TABLE songs ADD COLUMN telegram_file_id INTEGER DEFAULT NULL")
-                } catch (e: Throwable) {
+                } catch (e: Exception) {
                     // Column might already exist
                 }
 

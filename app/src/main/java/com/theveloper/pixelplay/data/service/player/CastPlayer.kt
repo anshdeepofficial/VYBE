@@ -188,7 +188,7 @@ class CastPlayer(
                 }
                 complete(requestStatus = true)
             }
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             commandHandler.removeCallbacks(timeoutRunnable)
             if (retriesLeft > 0) {
                 Timber.w(e, "Cast command threw; retrying %s", queuedCommand.name)
@@ -446,7 +446,7 @@ class CastPlayer(
                                     onComplete(false, failureDetail)
                                 }
                             }
-                        } catch (e: Throwable) {
+                        } catch (e: Exception) {
                             timeoutHandler.removeCallbacks(timeoutRunnable)
                             Timber.tag(castLogTag).e(e, "queueLoad threw exception (size=%d startIndex=%d)", songs.size, startIndex)
                             if (!callbackFired) {
@@ -455,7 +455,7 @@ class CastPlayer(
                             }
                         }
                     }
-                } catch (e: Throwable) {
+                } catch (e: Exception) {
                     Timber.tag(castLogTag).e(e, "queueLoad probe threw exception (size=%d startIndex=%d)", songs.size, startIndex)
                     timeoutHandler.post {
                         if (!callbackFired) {
@@ -465,7 +465,7 @@ class CastPlayer(
                     }
                 }
             }.start()
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             timeoutHandler.removeCallbacks(timeoutRunnable)
             Timber.tag(castLogTag).e(e, "queueLoad threw exception (size=%d startIndex=%d)", songs.size, startIndex)
             if (!callbackFired) {

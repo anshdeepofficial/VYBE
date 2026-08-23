@@ -84,7 +84,7 @@ class DailyMixManager @Inject constructor(
                         )
                     }
                 } else null
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 Log.e(TAG, "Failed to read legacy engagement data", e)
                 null
             }
@@ -99,7 +99,7 @@ class DailyMixManager @Inject constructor(
                 // Rename legacy file as backup instead of deleting
                 val backupFile = File(context.filesDir, "song_scores.json.bak")
                 legacyScoresFile.renameTo(backupFile)
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 Log.e(TAG, "Failed to insert legacy engagement data into Room", e)
             }
         }

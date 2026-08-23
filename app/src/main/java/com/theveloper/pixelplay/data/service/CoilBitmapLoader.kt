@@ -71,7 +71,7 @@ class CoilBitmapLoader(private val context: Context, private val scope: Coroutin
                 } else {
                     future.setException(IllegalStateException("Coil returned null drawable for data: $data"))
                 }
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 future.setException(e)
             }
         }

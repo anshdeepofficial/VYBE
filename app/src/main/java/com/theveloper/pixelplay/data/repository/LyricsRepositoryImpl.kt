@@ -444,7 +444,7 @@ class LyricsRepositoryImpl @Inject constructor(
                     
                     return@withContext lyrics
                 }
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 Log.w(TAG, "Error fetching from source ${index + 1}: ${e.message}")
                 // Continue to next source
             }
@@ -601,7 +601,7 @@ class LyricsRepositoryImpl @Inject constructor(
             }
 
             return@withContext null
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Log.e(TAG, "LRCLIB lyrics fetch failed: ${e.message}", e)
             return@withContext null
         }
@@ -923,7 +923,7 @@ class LyricsRepositoryImpl @Inject constructor(
             val parsed = LyricsUtils.parseLyrics(lrc)
             if (!parsed.isValid()) return@withContext null
             return@withContext parsed.copy(areFromRemote = true)
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Log.w(TAG, "AMLLDB fetch failed for $neteaseSongId: ${e.message}")
             return@withContext null
         }
@@ -1048,7 +1048,7 @@ class LyricsRepositoryImpl @Inject constructor(
                     }
                 }
             }
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Log.e(TAG, "Error searching for local lyrics file", e)
         }
         return@withContext null
@@ -1084,7 +1084,7 @@ class LyricsRepositoryImpl @Inject constructor(
             val json = gson.toJson(lyricsData)
             file.writeText(json)
             Log.d(TAG, "Saved lyrics to JSON cache: ${file.absolutePath}")
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Log.e(TAG, "Error saving lyrics to JSON cache: ${e.message}", e)
         }
     }
@@ -1123,7 +1123,7 @@ class LyricsRepositoryImpl @Inject constructor(
                     return parsed
                 }
             }
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Log.e(TAG, "Error reading JSON cache: ${e.message}", e)
         }
         return null
@@ -1206,7 +1206,7 @@ class LyricsRepositoryImpl @Inject constructor(
             } finally {
                 tempFile.delete()
             }
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             LogUtils.e(this@LyricsRepositoryImpl, e, "Error reading lyrics from file metadata")
             null
         }
@@ -1377,7 +1377,7 @@ class LyricsRepositoryImpl @Inject constructor(
                 LogUtils.d(this@LyricsRepositoryImpl, "No lyrics found remotely for: ${song.title}")
                 Result.failure(NoLyricsFoundException())
             }
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             LogUtils.e(this@LyricsRepositoryImpl, e, "Error fetching lyrics from remote")
             when {
                 e is HttpException && e.code() == 404 -> Result.failure(NoLyricsFoundException())
@@ -1458,7 +1458,7 @@ class LyricsRepositoryImpl @Inject constructor(
                 LogUtils.d(this@LyricsRepositoryImpl, "No lyrics found remotely for: ${song.title}")
                 Result.failure(NoLyricsFoundException(combinedQuery))
             }
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             LogUtils.e(this@LyricsRepositoryImpl, e, "Error searching remote for lyrics")
             when {
                 e is SocketTimeoutException -> Result.failure(LyricsException(context.getString(R.string.lyrics_fetch_timeout), e))
@@ -1512,7 +1512,7 @@ class LyricsRepositoryImpl @Inject constructor(
             } else {
                 Result.success(Pair(query, results))
             }
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             LogUtils.e(this@LyricsRepositoryImpl, e, "Manual search failed")
             Result.failure(LyricsException(context.getString(R.string.lyrics_failed_to_search), e)
             )
@@ -1548,7 +1548,7 @@ class LyricsRepositoryImpl @Inject constructor(
         lyricsCache.remove(cacheKey)
         try {
             lyricsDao.deleteLyrics(songId)
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Log.w(TAG, "Error removing lyrics from DB for ID: $songId", e)
         }
         
@@ -1556,7 +1556,7 @@ class LyricsRepositoryImpl @Inject constructor(
         try {
             val file = File(context.filesDir, "lyrics/${songId}.json")
             if (file.exists()) file.delete()
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Log.w(TAG, "Error deleting JSON cache: ${e.message}")
         }
     }
@@ -1572,7 +1572,7 @@ class LyricsRepositoryImpl @Inject constructor(
             if (lyricsDir.exists()) {
                 lyricsDir.listFiles()?.forEach { it.delete() }
             }
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Log.w(TAG, "Error clearing JSON cache: ${e.message}")
         }
     }
@@ -1658,13 +1658,13 @@ class LyricsRepositoryImpl @Inject constructor(
                                             )
                                             updatedCount.incrementAndGet()
                                             LogUtils.d(this@LyricsRepositoryImpl, "Auto-assigned lyrics from ${foundFile.name}")
-                                        } catch (e: Throwable) {
+                                        } catch (e: Exception) {
                                             Log.w(TAG, "Skipping DB update for ID in scanner: ${song.id}", e)
                                         }
                                     }
                                 }
                             }
-                        } catch (e: Throwable) {
+                        } catch (e: Exception) {
                             Log.w(TAG, "Error scanning lyrics for ${song.title}: ${e.message}")
                         }
                         
@@ -1704,7 +1704,7 @@ class LyricsRepositoryImpl @Inject constructor(
                 }
                 tempFile
             }
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             LogUtils.e(this, e, "Error creating temp file from URI")
             null
         }

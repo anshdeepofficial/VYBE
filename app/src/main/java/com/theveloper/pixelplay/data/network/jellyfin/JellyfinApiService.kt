@@ -107,7 +107,7 @@ class JellyfinApiService @Inject constructor(
                     Timber.d("$TAG: Authentication successful for user $username")
                     Result.success(Pair(accessToken, userId))
                 }
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 Timber.e(e, "$TAG: Authentication failed")
                 Result.failure(e)
             }
@@ -148,7 +148,7 @@ class JellyfinApiService @Inject constructor(
                     Timber.d("$TAG: <<< HTTP $code for $path, body length: ${body.length}")
                     Result.success(body)
                 }
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 Timber.e(e, "$TAG: !!! FAILED GET $path")
                 Result.failure(e)
             }

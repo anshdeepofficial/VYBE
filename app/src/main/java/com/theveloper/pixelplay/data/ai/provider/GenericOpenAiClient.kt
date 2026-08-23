@@ -126,7 +126,7 @@ class GenericOpenAiClient(
                             requestedModel = resolvedModel
                         )
                 }
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 throw AiProviderSupport.wrapThrowable(providerName, e, resolvedModel)
             }
         }
@@ -155,7 +155,7 @@ class GenericOpenAiClient(
                 val responseBody = response.body.string()
                 val modelsResponse = json.decodeFromString<ModelsResponse>(responseBody)
                 modelsResponse.data.map { it.id }.let { UnifiedModelFilter.filterChatModels(it) }
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 listOf(defaultModelId)
             }
         }
@@ -173,7 +173,7 @@ class GenericOpenAiClient(
                 
                 val response = client.newCall(request).execute()
                 response.isSuccessful
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 false
             }
         }

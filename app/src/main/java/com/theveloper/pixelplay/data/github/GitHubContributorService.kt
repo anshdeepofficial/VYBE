@@ -53,7 +53,7 @@ class GitHubContributorService @Inject constructor() {
                     Timber.e("Failed to fetch contributors: $responseCode - $errorMessage")
                     Result.failure(Exception("Failed to fetch contributors: $responseCode"))
                 }
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 Timber.e(e, "Exception fetching contributors")
                 Result.failure(e)
             }

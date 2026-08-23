@@ -25,8 +25,8 @@ object YouTubeAuthPreferences {
                 EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
             )
-        } catch (e: Throwable) {
-            timber.log.Timber.e(e, "YouTubeAuthPreferences: Keystore failed. Falling back to plain SharedPreferences.")
+        } catch (t: Throwable) {
+            timber.log.Timber.e(t, "YouTubeAuthPreferences: Keystore failed. Falling back to plain SharedPreferences.")
             context.getSharedPreferences(SECURE_PREFS_NAME + "_plain", Context.MODE_PRIVATE)
         }
         migrateLegacyPreferences(context, secure)

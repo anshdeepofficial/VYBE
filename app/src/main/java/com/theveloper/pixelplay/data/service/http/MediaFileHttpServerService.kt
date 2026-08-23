@@ -542,7 +542,7 @@ class MediaFileHttpServerService : Service() {
                                     ) {
                                         source.inputStreamFactory()
                                     }
-                                } catch (e: Throwable) {
+                                } catch (e: Exception) {
                                     if (e.isClientAbortDuringResponse()) {
                                         Timber.tag(castHttpLogTag).d(
                                             "GET /song client disconnected. songId=%s uri=%s",
@@ -682,7 +682,7 @@ class MediaFileHttpServerService : Service() {
                                         contentType
                                     )
                                     call.respond(HttpStatusCode.OK)
-                                } catch (e: Throwable) {
+                                } catch (e: Exception) {
                                     if (e.isClientAbortDuringResponse()) {
                                         Timber.tag(castHttpLogTag).d("HEAD /song client disconnected. songId=%s", song.id)
                                         Timber.tag("PX_CAST_HTTP")
@@ -734,7 +734,7 @@ class MediaFileHttpServerService : Service() {
                                             inputStream.copyTo(this)
                                         }
                                     }
-                                } catch (e: Throwable) {
+                                } catch (e: Exception) {
                                     if (e.isClientAbortDuringResponse()) {
                                         Timber.tag(castHttpLogTag).d("GET /art client disconnected. songId=%s", song.id)
                                         Timber.tag("PX_CAST_HTTP").w("GET /art client_closed songId=${song.id} error=${e.javaClass.simpleName}")
@@ -786,7 +786,7 @@ class MediaFileHttpServerService : Service() {
                                         artSource.contentType
                                     )
                                     call.respond(HttpStatusCode.OK)
-                                } catch (e: Throwable) {
+                                } catch (e: Exception) {
                                     if (e.isClientAbortDuringResponse()) {
                                         Timber.tag(castHttpLogTag).d("HEAD /art client disconnected. songId=%s", song.id)
                                         Timber.tag("PX_CAST_HTTP").w("HEAD /art client_closed songId=${song.id} error=${e.javaClass.simpleName}")
@@ -808,7 +808,7 @@ class MediaFileHttpServerService : Service() {
                         }
                 }.start(wait = false)
                 isServerRunning = true
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 isServerRunning = false
                 serverAddress = null
                 serverHostAddress = null
@@ -1307,7 +1307,7 @@ class MediaFileHttpServerService : Service() {
             } else {
                 retriever.embeddedPicture
             }
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Timber.tag(castHttpLogTag).d(e, "Embedded album art extraction failed. songId=%s", song.id)
             null
         } finally {
@@ -2385,7 +2385,7 @@ class MediaFileHttpServerService : Service() {
                 }
             }
             outputStream.flush()
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             if (!e.isClientAbortDuringResponse()) {
                 Timber.tag(castHttpLogTag).e(e, "transcode %s→AAC error songId=%s", codecInfo.codecMime, song.id)
                 Timber.tag("PX_CAST_HTTP").e(e, "transcode_mediacodec_error codec=${codecInfo.codecMime} songId=${song.id}")
@@ -2927,7 +2927,7 @@ class MediaFileHttpServerService : Service() {
                 // Grace period 100ms, timeout 2000ms
                 serverInstance?.stop(100, 2000)
                 Timber.d("MediaFileHttpServerService: Ktor server stopped")
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 Timber.e(e, "MediaFileHttpServerService: Error stopping Ktor server")
             }
         }.start()

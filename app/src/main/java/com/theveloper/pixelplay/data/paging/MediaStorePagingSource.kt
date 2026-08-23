@@ -72,7 +72,7 @@ class MediaStorePagingSource(
                 prevKey = prevKey,
                 nextKey = nextKey
             )
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Log.e(
                 TAG,
                 "Failed loading page (pageIndex=${params.key ?: 0}, loadSize=${params.loadSize}, totalIds=${filteredIds.size})",

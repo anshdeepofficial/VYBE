@@ -304,7 +304,7 @@ class TelegramCoilFetcher(
                 noArtMarker.createNewFile()
                 null
             }
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             // Only log extraction failures once per file
             if (shouldLogFailure("extract_$audioFilePath")) {
                 Timber.w("TelegramCoilFetcher: Failed to extract embedded art from $audioFilePath: ${e.message}")
@@ -314,7 +314,7 @@ class TelegramCoilFetcher(
         } finally {
             try {
                 retriever.release()
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 // Ignore release errors
             }
         }
@@ -368,7 +368,7 @@ class TelegramCoilFetcher(
         } catch (e: kotlinx.coroutines.CancellationException) {
             // Don't log cancellations - they're normal during fast scrolling
             throw e
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             // Only log first attempt failures with sampling
             Timber.v("TelegramCoilFetcher: First download attempt failed for fileId: $initialFileId")
         }
@@ -397,7 +397,7 @@ class TelegramCoilFetcher(
             result
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             // Log retry failures with sampling
             if (shouldLogFailure("retry_$refreshedFileId")) {
                 Timber.w("TelegramCoilFetcher: Retry download failed for fileId: $refreshedFileId")

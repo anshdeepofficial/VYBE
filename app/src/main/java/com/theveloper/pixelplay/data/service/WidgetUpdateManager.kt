@@ -183,7 +183,7 @@ internal class WidgetUpdateManager(
             } else {
                 Timber.tag(TAG).w("No se encontraron widgets para actualizar")
             }
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Error al actualizar el widget")
         }
     }

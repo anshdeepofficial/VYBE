@@ -1126,7 +1126,7 @@ class MusicRepositoryImpl @Inject constructor(
                 )
             }
             // Forum channels: topic playlists are managed by replaceTelegramSongsForTopic
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Log.e("MusicRepo", "Failed to update app playlist for Telegram channel ${channel.chatId}", e)
         }
 

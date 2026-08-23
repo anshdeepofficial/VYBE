@@ -92,7 +92,7 @@ class NavidromeRepository @Inject constructor(
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
-    } catch (e: Throwable) {
+    } catch (e: Exception) {
         Timber.e(e, "$TAG: Failed to create EncryptedSharedPreferences, falling back to plain")
         context.getSharedPreferences("${PREFS_NAME}_plain", Context.MODE_PRIVATE)
     }
@@ -191,7 +191,7 @@ class NavidromeRepository @Inject constructor(
                 _isLoggedInFlow.value = true
                 Timber.d("$TAG: Login successful for $username@$serverUrl")
                 Result.success(username)
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 Timber.e(e, "$TAG: Login failed")
                 api.clearCredentials()
                 _isLoggedInFlow.value = false
@@ -306,7 +306,7 @@ class NavidromeRepository @Inject constructor(
 
                 Timber.d("$TAG: Synced ${entities.size} playlists")
                 Result.success(entities)
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 Timber.e(e, "$TAG: Failed to sync playlists")
                 Result.failure(e)
             }
@@ -369,7 +369,7 @@ class NavidromeRepository @Inject constructor(
 
                 Timber.d("$TAG: Synced ${entities.size} songs for playlist $playlistId")
                 Result.success(entities.size)
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 Timber.e(e, "$TAG: Failed to sync playlist songs")
                 Result.failure(e)
             }
@@ -458,7 +458,7 @@ class NavidromeRepository @Inject constructor(
                 Timber.d("$TAG: Synced ${entities.size} library songs from ${fetchedAlbums.size} albums")
                 onProgress?.invoke(1f, context.getString(R.string.cloud_sync_status_library_sync_complete))
                 Result.success(entities.size)
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 Timber.e(e, "$TAG: Failed to sync library songs")
                 Result.failure(e)
             }
@@ -517,7 +517,7 @@ class NavidromeRepository @Inject constructor(
                 // Playlists failed but library songs may have synced
                 try {
                     syncUnifiedLibrarySongsFromNavidrome()
-                } catch (e: Throwable) {
+                } catch (e: Exception) {
                     Timber.e(e, "$TAG: Failed to sync unified library after playlist fetch failure")
                 }
                 return@withContext Result.success(
@@ -554,7 +554,7 @@ class NavidromeRepository @Inject constructor(
             // Sync to unified library once after everything is synced
             try {
                 syncUnifiedLibrarySongsFromNavidrome()
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 Timber.e(e, "$TAG: Failed to sync unified library")
             }
 
@@ -621,7 +621,7 @@ class NavidromeRepository @Inject constructor(
                 val songs = navidromeSongs.map { it.toSong() }
 
                 Result.success(songs)
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 Timber.e(e, "$TAG: Search failed")
                 Result.failure(e)
             }
@@ -686,7 +686,7 @@ class NavidromeRepository @Inject constructor(
                 }
 
                 Result.failure(Exception("No lyrics found"))
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 Timber.e(e, "$TAG: Failed to get lyrics for song $songId")
                 Result.failure(e)
             }
@@ -871,7 +871,7 @@ class NavidromeRepository @Inject constructor(
                 )
                 Timber.d("$TAG: Created app playlist for Navidrome playlist $navidromePlaylistId")
             }
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Timber.e(e, "$TAG: Failed to update app playlist for Navidrome playlist $navidromePlaylistId")
         }
     }
@@ -881,7 +881,7 @@ class NavidromeRepository @Inject constructor(
             val appPlaylistId = getAppPlaylistIdForNavidrome(navidromePlaylistId)
             playlistPreferencesRepository.deletePlaylist(appPlaylistId)
             Timber.d("$TAG: Deleted app playlist for Navidrome playlist $navidromePlaylistId")
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Timber.w(e, "$TAG: Failed to delete app playlist for Navidrome playlist $navidromePlaylistId")
         }
     }

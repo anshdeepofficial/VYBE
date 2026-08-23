@@ -107,7 +107,7 @@ class JioSaavnEngine @Inject constructor(
                 return mediaUrl
             }
             null
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Log.d(TAG, "Saavn resolve failed on $apiBase: ${e.message}")
             null
         }
@@ -200,7 +200,7 @@ class JioSaavnEngine @Inject constructor(
                     }
                     if (songs.isNotEmpty()) break
                 }
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 Log.d(TAG, "Saavn search error on $apiBase: ${e.message}")
             }
         }
