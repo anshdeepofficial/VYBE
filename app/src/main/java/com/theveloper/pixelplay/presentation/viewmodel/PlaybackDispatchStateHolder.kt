@@ -866,7 +866,7 @@ class PlaybackDispatchStateHolder @Inject constructor(
 
             val startMediaItem = buildResolvedPlaybackMediaItem(effectiveStartSong)
 
-            val playSongsAction = {
+            val playSongsAction: () -> Unit = {
                 cb.scope.launch(Dispatchers.Main.immediate) {
                     // Use Direct Engine Access to avoid TransactionTooLargeException on Binder
                     dualPlayerEngine.cancelNext()
