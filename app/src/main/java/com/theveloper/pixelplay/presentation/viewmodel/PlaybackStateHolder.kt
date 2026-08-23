@@ -931,7 +931,7 @@ class PlaybackStateHolder @Inject constructor(
         val coroutineScope = scope ?: return
         val castSession = castStateHolder.castSession.value
         if (castSession != null && castSession.remoteMediaClient != null) {
-            shuffleToggleJob = coroutineScope.launch {
+            shuffleToggleJob = coroutineScope.launch(Dispatchers.Main.immediate) {
                 _stablePlayerState.update { it.copy(isShuffleTransitionInProgress = true) }
                 try {
                     val remoteMediaClient = castSession.remoteMediaClient
@@ -948,7 +948,7 @@ class PlaybackStateHolder @Inject constructor(
                 }
             }
          } else {
-            shuffleToggleJob = coroutineScope.launch {
+            shuffleToggleJob = coroutineScope.launch(Dispatchers.Main.immediate) {
                 _stablePlayerState.update { it.copy(isShuffleTransitionInProgress = true) }
                 try {
                     val player = mediaController ?: return@launch
