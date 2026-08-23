@@ -18,6 +18,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -96,82 +97,49 @@ class ArtistDetailViewModel @Inject constructor(
     }
 
     private var currentLoadJob: Job? = null
+    private var currentEnrichmentJob: Job? = null
 
     private fun loadOnlineArtistData(browseId: String) {
         currentLoadJob?.cancel()
+        currentEnrichmentJob?.cancel()
         currentLoadJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
-                val profile = onlineMusicRepository.getArtistProfile(browseId)
+                val profile = withTimeoutOrNull(ARTIST_PROFILE_TIMEOUT_MS) {
+                    onlineMusicRepository.getArtistProfile(browseId)
+                }
                 if (profile != null) {
-                    val releases = (profile.albums + profile.singles).distinctBy { it.browseId }
-                    val releaseDetails = buildList {
-                        // Keep network pressure bounded while still resolving the complete
-                        // discography rather than showing album shells with no songs.
-                        releases.chunked(4).forEach { batch ->
-                            addAll(
-                                supervisorScope {
-                                    batch.map { release ->
-                                        async { onlineMusicRepository.getAlbumDetails(release.browseId) }
-                                    }.awaitAll().filterNotNull()
-                                }
-                            )
-                        }
-                    }
-                    val completeSongs = (profile.topSongs + releaseDetails.flatMap { it.tracks })
-                        .distinctBy { it.id }
                     val artist = Artist(
                         id = browseId.hashCode().toLong(),
                         name = profile.name,
-                        songCount = completeSongs.size,
+                        songCount = profile.topSongs.size,
                         imageUrl = profile.avatarUrl ?: profile.bannerUrl,
                         customImageUri = null,
                         remoteBrowseId = browseId,
                     )
-                    val sections = mutableListOf<ArtistAlbumSection>()
-                    if (profile.topSongs.isNotEmpty()) {
-                        sections.add(
-                            ArtistAlbumSection(
-                                albumId = "${browseId}_top_songs".hashCode().toLong(),
-                                title = "Top Songs",
-                                year = null,
-                                albumArtUriString = profile.topSongs.firstNotNullOfOrNull { it.albumArtUriString },
-                                songs = profile.topSongs,
-                            )
-                        )
-                    }
-                    if (releaseDetails.isNotEmpty()) {
-                        releaseDetails
-                            .sortedWith(compareBy({ it.year ?: Int.MAX_VALUE }, { it.title.lowercase() }))
-                            .forEach { album ->
-                            sections.add(
-                                ArtistAlbumSection(
-                                    albumId = album.browseId.hashCode().toLong(),
-                                    title = album.title,
-                                    year = album.year,
-                                    albumArtUriString = album.coverUrl,
-                                    songs = album.tracks,
-                                )
-                            )
-                        }
-                    }
                     val effectiveUrl = profile.bannerUrl ?: profile.avatarUrl
-                    val newScheme = if (!effectiveUrl.isNullOrBlank()) {
-                        try {
-                            themeStateHolder.getOrGenerateColorScheme(effectiveUrl)
-                        } catch (e: Exception) { null }
-                    } else null
-
-                    _artistColorScheme.value = newScheme
                     _uiState.value = ArtistDetailUiState(
                         artist = artist,
-                        songs = completeSongs,
-                        albumSections = sections,
+                        songs = profile.topSongs,
+                        albumSections = topSongsSection(browseId, profile.topSongs),
                         effectiveImageUrl = effectiveUrl,
-                        isLoading = false
+                        isLoading = false,
                     )
+                    warmArtistPalette(effectiveUrl)
+                    currentEnrichmentJob = launch {
+                        loadOnlineDiscography(browseId, profile, emptyList())
+                    }
                 } else {
-                    _uiState.update { it.copy(error = "Unable to load artist profile", isLoading = false) }
+                    _uiState.value = ArtistDetailUiState(
+                        artist = Artist(
+                            id = browseId.hashCode().toLong(),
+                            name = "Artist",
+                            songCount = 0,
+                            remoteBrowseId = browseId,
+                        ),
+                        isLoading = false,
+                        error = "Artist profile is temporarily unavailable. Please try again.",
+                    )
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = e.localizedMessage ?: "Failed to load artist", isLoading = false) }
@@ -181,6 +149,7 @@ class ArtistDetailViewModel @Inject constructor(
 
     private fun loadArtistData(id: Long) {
         currentLoadJob?.cancel()
+        currentEnrichmentJob?.cancel()
         currentLoadJob = viewModelScope.launch {
             Log.d("ArtistDebug", "loadArtistData: id=$id")
             _uiState.update { it.copy(isLoading = true, error = null) }
@@ -212,41 +181,25 @@ class ArtistDetailViewModel @Inject constructor(
                         val orderedSongs = albumSections.flatMap { it.songs }
 
                         // 1) Resolve effective image URL (custom > Deezer, may fetch from API)
-                        val effectiveUrl = try {
-                            artistImageRepository.getEffectiveArtistImageUrl(
-                                artistId = artist.id,
-                                artistName = artist.name
-                            )
-                        } catch (e: Exception) {
-                            Log.w("ArtistDebug", "Failed to resolve effective artist image: ${e.message}")
-                            artist.effectiveImageUrl
-                        }
+                        val effectiveUrl = artist.effectiveImageUrl
 
                         // 2) Pre-warm the color scheme BEFORE emitting isLoading = false.
                         //    getOrGenerateColorScheme checks the in-memory LRU first (≈0 ms if cached),
                         //    then the DB cache (fast), and only generates from scratch ~on first visit.
                         //    Either way, the scheme is ready before the screen first renders.
-                        val newScheme = if (!effectiveUrl.isNullOrBlank()) {
-                            try {
-                                themeStateHolder.getOrGenerateColorScheme(effectiveUrl)
-                            } catch (e: Exception) {
-                                Log.w("ArtistDebug", "Color scheme pre-warm failed: ${e.message}")
-                                null
-                            }
-                        } else null
+                        _artistColorScheme.value = null
 
                         // 3) Atomically publish state + pre-warmed color scheme.
                         //    Both flows update before the Compose frame runs, so no intermediate null frame.
-                        _artistColorScheme.value = newScheme
                         _uiState.value = ArtistDetailUiState(
-                            artist = artist.copy(
-                                imageUrl = if (artist.customImageUri.isNullOrBlank()) effectiveUrl else artist.imageUrl
-                            ),
+                            artist = artist,
                             songs = orderedSongs,
                             albumSections = albumSections,
                             effectiveImageUrl = effectiveUrl,
                             isLoading = false
                         )
+                        currentEnrichmentJob?.cancel()
+                        currentEnrichmentJob = launch { enrichLocalArtist(artist, orderedSongs) }
                     }
 
             } catch (e: Exception) {
@@ -258,6 +211,124 @@ class ArtistDetailViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    private suspend fun enrichLocalArtist(artist: Artist, localSongs: List<Song>) = supervisorScope {
+        val imageDeferred = async {
+            withTimeoutOrNull(IMAGE_LOOKUP_TIMEOUT_MS) {
+                artistImageRepository.getEffectiveArtistImageUrl(artist.id, artist.name)
+            }
+        }
+        val profileDeferred = async {
+            val remoteId = artist.remoteBrowseId?.takeIf(String::isNotBlank)
+                ?: withTimeoutOrNull(SEARCH_TIMEOUT_MS) {
+                    onlineMusicRepository.searchMusicStructured(artist.name).artists
+                        .firstOrNull { it.name.equals(artist.name, ignoreCase = true) }
+                        ?.browseId
+                }
+            remoteId?.let { browseId ->
+                withTimeoutOrNull(ARTIST_PROFILE_TIMEOUT_MS) {
+                    onlineMusicRepository.getArtistProfile(browseId)
+                }?.let { browseId to it }
+            }
+        }
+
+        val resolvedImage = imageDeferred.await()
+        if (!resolvedImage.isNullOrBlank()) {
+            _uiState.update { state ->
+                state.copy(
+                    effectiveImageUrl = resolvedImage,
+                    artist = state.artist?.copy(imageUrl = resolvedImage),
+                )
+            }
+            warmArtistPalette(resolvedImage)
+        }
+
+        profileDeferred.await()?.let { (browseId, profile) ->
+            val profileImage = profile.bannerUrl ?: profile.avatarUrl ?: resolvedImage
+            val baseSongs = (localSongs + profile.topSongs).distinctBy { it.id }
+            _uiState.update { state ->
+                state.copy(
+                    artist = state.artist?.copy(
+                        name = profile.name.takeUnless { it == "Artist" } ?: artist.name,
+                        songCount = baseSongs.size,
+                        imageUrl = profile.avatarUrl ?: resolvedImage,
+                        remoteBrowseId = browseId,
+                    ),
+                    songs = baseSongs,
+                    albumSections = mergeSections(
+                        buildAlbumSections(localSongs),
+                        topSongsSection(browseId, profile.topSongs),
+                    ),
+                    effectiveImageUrl = profileImage,
+                    error = null,
+                )
+            }
+            warmArtistPalette(profileImage)
+            loadOnlineDiscography(browseId, profile, localSongs)
+        }
+    }
+
+    private suspend fun loadOnlineDiscography(
+        browseId: String,
+        profile: com.theveloper.pixelplay.data.network.ytmusic.YouTubeArtistProfile,
+        localSongs: List<Song>,
+    ) {
+        val releases = (profile.albums + profile.singles).distinctBy { it.browseId }
+        val resolvedAlbums = mutableListOf<com.theveloper.pixelplay.data.network.ytmusic.YouTubeAlbumDetails>()
+        releases.chunked(RELEASE_BATCH_SIZE).forEach { batch ->
+            resolvedAlbums += supervisorScope {
+                batch.map { release ->
+                    async {
+                        withTimeoutOrNull(ALBUM_DETAILS_TIMEOUT_MS) {
+                            onlineMusicRepository.getAlbumDetails(release.browseId)
+                        }
+                    }
+                }.awaitAll().filterNotNull()
+            }
+
+            val remoteSongs = (profile.topSongs + resolvedAlbums.flatMap { it.tracks }).distinctBy { it.id }
+            val completeSongs = (localSongs + remoteSongs).distinctBy { it.id }
+            val releaseSections = resolvedAlbums
+                .sortedWith(
+                    compareByDescending<com.theveloper.pixelplay.data.network.ytmusic.YouTubeAlbumDetails> { it.year ?: 0 }
+                        .thenBy { it.title.lowercase() }
+                )
+                .map { album ->
+                    val songsWithArtwork = album.tracks.map { track ->
+                        if (track.albumArtUriString.isNullOrBlank()) {
+                            track.copy(albumArtUriString = album.coverUrl)
+                        } else track
+                    }
+                    ArtistAlbumSection(
+                        albumId = album.browseId.hashCode().toLong(),
+                        title = album.title,
+                        year = album.year,
+                        albumArtUriString = album.coverUrl,
+                        songs = songsWithArtwork,
+                    )
+                }
+            _uiState.update { state ->
+                state.copy(
+                    artist = state.artist?.copy(songCount = completeSongs.size, remoteBrowseId = browseId),
+                    songs = completeSongs,
+                    albumSections = mergeSections(
+                        buildAlbumSections(localSongs),
+                        topSongsSection(browseId, profile.topSongs),
+                        releaseSections,
+                    ),
+                )
+            }
+        }
+    }
+
+    private suspend fun warmArtistPalette(url: String?) {
+        if (url.isNullOrBlank()) return
+        _artistColorScheme.value = runCatching {
+            withTimeoutOrNull(IMAGE_LOOKUP_TIMEOUT_MS) {
+                themeStateHolder.getOrGenerateColorScheme(url)
+            }
+        }.getOrNull()
     }
 
     /**
@@ -355,6 +426,12 @@ class ArtistDetailViewModel @Inject constructor(
             )
         }
     }
+
+    fun retry() {
+        val artist = _uiState.value.artist ?: return
+        artist.remoteBrowseId?.takeIf(String::isNotBlank)?.let(::loadOnlineArtistData)
+            ?: loadArtistData(artist.id)
+    }
 }
 
 private val songDisplayComparator = compareBy<Song> { it.discNumber ?: 1 }
@@ -388,3 +465,28 @@ private fun buildAlbumSections(songs: List<Song>): List<ArtistAlbumSection> {
 
     return withYearSorted + withoutYearSorted
 }
+
+private fun topSongsSection(browseId: String, songs: List<Song>): List<ArtistAlbumSection> =
+    if (songs.isEmpty()) emptyList() else listOf(
+        ArtistAlbumSection(
+            albumId = "${browseId}_top_songs".hashCode().toLong(),
+            title = "Top Songs",
+            year = null,
+            albumArtUriString = songs.firstNotNullOfOrNull { it.albumArtUriString },
+            songs = songs,
+        )
+    )
+
+private fun mergeSections(vararg groups: List<ArtistAlbumSection>): List<ArtistAlbumSection> =
+    groups.asSequence().flatten()
+        .filter { it.songs.isNotEmpty() }
+        .distinctBy { section ->
+            section.title.trim().lowercase() to section.songs.map { it.id }.sorted()
+        }
+        .toList()
+
+private const val SEARCH_TIMEOUT_MS = 8_000L
+private const val IMAGE_LOOKUP_TIMEOUT_MS = 6_000L
+private const val ARTIST_PROFILE_TIMEOUT_MS = 20_000L
+private const val ALBUM_DETAILS_TIMEOUT_MS = 15_000L
+private const val RELEASE_BATCH_SIZE = 4

@@ -185,6 +185,8 @@ import com.theveloper.pixelplay.presentation.viewmodel.LyricsRefreshProgress
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.SettingsViewModel
 import com.theveloper.pixelplay.ui.theme.GoogleSansRounded
+import com.theveloper.pixelplay.utils.StorageUsageManager
+import com.theveloper.pixelplay.utils.StorageUsageSnapshot
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -254,6 +256,9 @@ fun SettingsCategoryScreen(
     var showExportDataDialog by remember { mutableStateOf(false) }
     var showImportFlow by remember { mutableStateOf(false) }
     var showListenTogetherDialog by remember { mutableStateOf(false) }
+    var showStorageUsageDialog by remember { mutableStateOf(false) }
+    var storageUsage by remember { mutableStateOf<StorageUsageSnapshot?>(null) }
+    var isStorageUsageLoading by remember { mutableStateOf(false) }
     var listenTogetherInvite by remember { mutableStateOf("") }
     var exportSections by remember { mutableStateOf(BackupSection.defaultSelection) }
     var importFileUri by remember { mutableStateOf<Uri?>(null) }
@@ -287,6 +292,14 @@ fun SettingsCategoryScreen(
     LaunchedEffect(Unit) {
         settingsViewModel.dataTransferEvents.collectLatest { message ->
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    LaunchedEffect(showStorageUsageDialog) {
+        if (showStorageUsageDialog) {
+            isStorageUsageLoading = true
+            storageUsage = StorageUsageManager.calculate(context)
+            isStorageUsageLoading = false
         }
     }
 
@@ -456,6 +469,13 @@ fun SettingsCategoryScreen(
                                     leadingIcon = { Icon(Icons.Outlined.Person, null, tint = MaterialTheme.colorScheme.secondary) },
                                     trailingIcon = { Icon(Icons.Rounded.ChevronRight, stringResource(R.string.settings_cd_open), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                                     onClick = { navController.navigateSafely(Screen.ArtistSettings.route) }
+                                )
+                                SettingsItem(
+                                    title = "Storage & cache",
+                                    subtitle = "Images, offline downloads and total VYBE storage",
+                                    leadingIcon = { Icon(Icons.Outlined.Info, null, tint = MaterialTheme.colorScheme.secondary) },
+                                    trailingIcon = { Icon(Icons.Rounded.ChevronRight, stringResource(R.string.settings_cd_open), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                    onClick = { showStorageUsageDialog = true },
                                 )
                             }
 
@@ -1881,6 +1901,50 @@ fun SettingsCategoryScreen(
         }
     )
 
+    if (showStorageUsageDialog) {
+        AlertDialog(
+            onDismissRequest = { if (!isStorageUsageLoading) showStorageUsageDialog = false },
+            title = { Text("VYBE storage") },
+            text = {
+                val usage = storageUsage
+                if (usage == null || isStorageUsageLoading) {
+                    Box(Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        StorageUsageRow("Image cache", usage.imageCacheBytes, context)
+                        StorageUsageRow("Offline downloads", usage.downloadBytes, context)
+                        StorageUsageRow("Settings, database and other data", usage.otherAppDataBytes, context)
+                        androidx.compose.material3.HorizontalDivider()
+                        StorageUsageRow("Total VYBE storage", usage.totalAppBytes, context, emphasized = true)
+                        Text(
+                            "Clearing image cache does not remove downloaded songs, playlists or settings.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !isStorageUsageLoading,
+                    onClick = {
+                        coroutineScope.launch {
+                            isStorageUsageLoading = true
+                            storageUsage = StorageUsageManager.clearImageCache(context)
+                            isStorageUsageLoading = false
+                            Toast.makeText(context, "Image cache cleared", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                ) { Text("Clear image cache") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showStorageUsageDialog = false }) { Text("Done") }
+            },
+        )
+    }
+
     if (showPaletteRegenerateSheet) {
         ModalBottomSheet(
             onDismissRequest = {
@@ -2189,6 +2253,28 @@ fun SettingsCategoryScreen(
                 onRemoveHistoryEntry = { settingsViewModel.removeBackupHistoryEntry(it) }
             )
         }
+    }
+}
+
+@Composable
+private fun StorageUsageRow(
+    label: String,
+    bytes: Long,
+    context: Context,
+    emphasized: Boolean = false,
+) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(
+            text = label,
+            style = if (emphasized) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyMedium,
+            fontWeight = if (emphasized) FontWeight.Bold else FontWeight.Normal,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = Formatter.formatFileSize(context, bytes),
+            style = if (emphasized) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyMedium,
+            fontWeight = if (emphasized) FontWeight.Bold else FontWeight.Medium,
+        )
     }
 }
 

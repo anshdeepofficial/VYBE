@@ -23,6 +23,7 @@ import com.theveloper.pixelplay.utils.AlbumArtCacheManager
 import com.theveloper.pixelplay.utils.AlbumArtUtils
 import com.theveloper.pixelplay.utils.CrashHandler
 import com.theveloper.pixelplay.utils.AppLocaleManager
+import com.theveloper.pixelplay.utils.AppUpgradeGuard
 import com.theveloper.pixelplay.utils.MediaMetadataRetrieverPool
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -94,6 +95,7 @@ class PixelPlayApplication : Application(), ImageLoaderFactory, Configuration.Pr
     override fun onCreate() {
         instance = this
         super.onCreate()
+        AppUpgradeGuard.run(this)
 
         // Benchmark variant intentionally restarts/kills app process during tests.
         // Avoid persisting those events as user-facing crash reports.

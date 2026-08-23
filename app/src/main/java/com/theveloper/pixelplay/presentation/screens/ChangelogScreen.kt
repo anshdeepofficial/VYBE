@@ -32,6 +32,17 @@ private data class ChangelogRelease(
 
 private val VybeChangelog = listOf(
     ChangelogRelease(
+        version = "0.7.11",
+        date = "23 August 2026",
+        changes = listOf(
+            "Made artist pages render immediately and progressively load original profiles, artwork, and complete catalogues.",
+            "Added a Storage & cache dashboard for artwork cache, offline downloads, other app data, and total usage.",
+            "Added VYBE song links that open and play shared tracks in VYBE, with a download fallback for recipients.",
+            "Fixed missing online durations and hid private online and in-app download paths from Song Info.",
+            "Hardened database and transient-cache recovery during updates from older VYBE versions.",
+        ),
+    ),
+    ChangelogRelease(
         version = "0.7.10",
         date = "22 August 2026",
         changes = listOf(

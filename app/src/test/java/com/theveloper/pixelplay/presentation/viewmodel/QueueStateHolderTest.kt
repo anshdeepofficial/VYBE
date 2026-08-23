@@ -286,4 +286,44 @@ class QueueStateHolderTest {
 
         assertEquals(artistSongs, playedSongs)
     }
+
+    @Test
+    fun `removing a queue item also removes it from the shuffle restore snapshot`() {
+        val holder = holder()
+        holder.saveOriginalQueueState(listOf(song1, song2, song3), "Original")
+
+        holder.onQueueItemRemoved(index = 1, songId = song2.id)
+
+        assertEquals(listOf(song1, song3), holder.getOriginalQueueForRestore())
+    }
+
+    @Test
+    fun `queue snapshot mutations preserve add and reorder operations`() {
+        val holder = holder()
+        holder.saveOriginalQueueState(listOf(song1, song2), "Original")
+
+        holder.onQueueItemAdded(song3, index = 1)
+        holder.onQueueItemMoved(fromIndex = 2, toIndex = 0)
+
+        assertEquals(listOf(song2, song1, song3), holder.getOriginalQueueForRestore())
+    }
+
+    @Test
+    fun `online seed playback dispatches provider continuation instead of search results`() = runTest {
+        val continuation = listOf(song1, song3, song2)
+        coEvery { onlineMusicRepository.getAutoplayQueue(song1) } returns continuation
+        var playedSongs: List<Song>? = null
+        var startSong: Song? = null
+        val callbacks = PlaybackSourceCallbacks(
+            scope = this,
+            playSongs = { songs, start, _, _ -> playedSongs = songs; startSong = start },
+            showSheet = {},
+        )
+
+        holder().playOnlineSeed(song1, "VYBE Radio", callbacks)
+        coroutineContext.job.children.forEach { it.join() }
+
+        assertEquals(continuation, playedSongs)
+        assertEquals(song1, startSong)
+    }
 }

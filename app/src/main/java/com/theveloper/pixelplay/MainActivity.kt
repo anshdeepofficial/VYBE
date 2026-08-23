@@ -390,6 +390,12 @@ class MainActivity : ComponentActivity() {
                 playerViewModel.showPlayer()
             }
 
+            intent.action == android.content.Intent.ACTION_VIEW &&
+                intent.data?.scheme == "vybe" && intent.data?.host == "play" -> {
+                intent.data?.let(playerViewModel::playSharedVybeLink)
+                clearExternalIntentPayload(intent)
+            }
+
             intent.action == android.content.Intent.ACTION_VIEW && intent.data != null -> {
                 intent.data?.let { uri ->
                     persistUriPermissionIfNeeded(intent, uri)
@@ -786,6 +792,7 @@ class MainActivity : ComponentActivity() {
         }
 
         LaunchedEffect(Unit) {
+            updateService.cleanupTemporaryUpdates(this@MainActivity)
             updateService.checkForUpdate(this@MainActivity)
                 .onSuccess { update -> availableUpdate = update }
                 .onFailure { throwable ->

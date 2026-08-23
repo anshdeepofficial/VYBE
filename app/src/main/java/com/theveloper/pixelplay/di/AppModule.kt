@@ -206,7 +206,9 @@ object AppModule {
                 message.contains("invalid schema") ||
                 message.contains("identity hash") ||
                 message.contains("database disk image is malformed") ||
-                message.contains("file is not a database")
+                message.contains("file is not a database") ||
+                message.contains("no such table") ||
+                message.contains("no such column")
         }
 
     private const val DATABASE_NAME = "pixelplay_database"

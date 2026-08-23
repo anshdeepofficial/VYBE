@@ -1,6 +1,8 @@
 package com.theveloper.pixelplay.data.repository
 
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.data.database.OnlineSongCacheDao
+import com.theveloper.pixelplay.data.database.toOnlineSongCacheEntity
 import com.theveloper.pixelplay.data.network.saavn.JioSaavnEngine
 import com.theveloper.pixelplay.data.network.ytmusic.YouTubeAlbumDetails
 import com.theveloper.pixelplay.data.network.ytmusic.YouTubeArtistProfile
@@ -17,7 +19,8 @@ import javax.inject.Singleton
 @Singleton
 class OnlineMusicRepository @Inject constructor(
     private val youTubeEngine: YouTubeMusicEngine,
-    private val saavnEngine: JioSaavnEngine
+    private val saavnEngine: JioSaavnEngine,
+    private val onlineSongCacheDao: OnlineSongCacheDao,
 ) {
     suspend fun searchSongs(query: String, region: String = "IN"): List<Song> = withContext(Dispatchers.IO) {
         youTubeEngine.search(query, region).map { it.toSong() }
@@ -78,6 +81,39 @@ class OnlineMusicRepository @Inject constructor(
         }
     }
 
+    /** Returns a seed-first continuation queue, never the raw search-result collection. */
+    suspend fun getAutoplayQueue(seed: Song, region: String = "IN"): List<Song> = withContext(Dispatchers.IO) {
+        if (seed.id.startsWith("yt_") || seed.id.startsWith("saavn_")) {
+            onlineSongCacheDao.upsertAll(listOf(seed.toOnlineSongCacheEntity()))
+        }
+        val normalized = normalizedRegion(region)
+        val providerContinuation = if (seed.id.startsWith("yt_") || seed.contentUriString.startsWith("yt://")) {
+            youTubeEngine.getAutoplayTracks(seed.id, normalized).map { it.toSong() }
+        } else {
+            emptyList()
+        }
+
+        val relatedFallback = if (providerContinuation.size >= 5) emptyList() else {
+            val albumSignal = seed.album
+                .takeUnless { it.isBlank() || it.equals("YouTube Music", ignoreCase = true) }
+                .orEmpty()
+            val relatedQuery = listOf(seed.artist, albumSignal).filter(String::isNotBlank).joinToString(" ")
+            if (relatedQuery.isBlank()) emptyList() else {
+                val yt = runCatching { youTubeEngine.search(relatedQuery, normalized).map { it.toSong() } }
+                    .getOrDefault(emptyList())
+                val fallback = if (yt.isEmpty()) {
+                    runCatching { saavnEngine.searchSongs("${seed.artist} songs") }.getOrDefault(emptyList())
+                } else emptyList()
+                (yt + fallback).filter(::isUsefulDiscoverySong)
+            }
+        }
+
+        listOf(seed) + (providerContinuation + relatedFallback)
+            .filterNot { it.id == seed.id }
+            .distinctBy { it.id }
+            .take(49)
+    }
+
     private fun normalizedRegion(region: String): String =
         region.takeUnless { it.isBlank() || it.equals("Global", ignoreCase = true) } ?: "IN"
 
@@ -124,6 +160,21 @@ class OnlineMusicRepository @Inject constructor(
             if (!saavnUrl.isNullOrBlank()) return@withContext saavnUrl
         }
         null
+    }
+
+    /** Resolves a provider URL at download time instead of trusting a possibly expired signed URL. */
+    suspend fun resolveFreshDownloadUrl(song: Song): String? = withContext(Dispatchers.IO) {
+        when {
+            song.id.startsWith("yt_") || song.contentUriString.startsWith("yt://") -> {
+                youTubeEngine.invalidateStreamUrl(song.id)
+                youTubeEngine.resolveStreamUrl(song.id)
+            }
+            song.id.startsWith("saavn_") || song.contentUriString.startsWith("saavn://") -> {
+                saavnEngine.invalidateCache(song.id)
+                saavnEngine.resolveStreamByQuery("${song.title} ${song.artist}".trim())
+            }
+            else -> resolvePlaybackUrl(song)
+        }
     }
 
     fun resolvePlaybackUrlSync(videoId: String, title: String, artist: String, isSaavn: Boolean): String? {

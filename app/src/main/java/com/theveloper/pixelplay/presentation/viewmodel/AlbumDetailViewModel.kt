@@ -57,6 +57,11 @@ class AlbumDetailViewModel @Inject constructor(
             try {
                 val details = onlineMusicRepository.getAlbumDetails(browseId)
                 if (details != null) {
+                    val resolvedTracks = details.tracks.map { track ->
+                        if (track.albumArtUriString.isNullOrBlank() && !details.coverUrl.isNullOrBlank()) {
+                            track.copy(albumArtUriString = details.coverUrl)
+                        } else track
+                    }
                     val album = Album(
                         id = browseId.hashCode().toLong(),
                         title = details.title,
@@ -64,12 +69,12 @@ class AlbumDetailViewModel @Inject constructor(
                         year = details.year ?: 0,
                         dateAdded = System.currentTimeMillis(),
                         albumArtUriString = details.coverUrl,
-                        songCount = details.tracks.size,
+                        songCount = resolvedTracks.size,
                         albumArtist = details.artist
                     )
                     _uiState.value = AlbumDetailUiState(
                         album = album,
-                        songs = details.tracks,
+                        songs = resolvedTracks,
                         isLoading = false
                     )
                 } else {

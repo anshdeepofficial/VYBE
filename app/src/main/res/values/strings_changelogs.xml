@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string-array name="changelog_0711_fixes">
+        <item>Artist pages now open immediately and progressively load original profiles, artwork, and full catalogues.</item>
+        <item>Added a Storage &amp; cache dashboard with image cache, downloads, other app data, and total usage.</item>
+        <item>Added VYBE song links with direct in-app playback and a download fallback.</item>
+        <item>Fixed online song duration metadata and protected private online and offline file paths.</item>
+        <item>Improved update recovery for older databases and stale transient files.</item>
+    </string-array>
     <string-array name="changelog_0710_fixes">
         <item>Prevented legacy or damaged local databases from trapping VYBE in a startup crash loop.</item>
         <item>Added automatic recovery for corrupted app settings while preserving healthy user data.</item>

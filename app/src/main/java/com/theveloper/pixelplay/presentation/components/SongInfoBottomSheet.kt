@@ -84,6 +84,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.data.sharing.VybeSongShareLink
 import com.theveloper.pixelplay.presentation.components.subcomps.AutoSizingTextToFill
 import com.theveloper.pixelplay.utils.formatDuration
 import com.theveloper.pixelplay.utils.shapes.RoundedStarShape
@@ -156,6 +157,7 @@ fun SongInfoBottomSheet(
     var pendingTonePermissionSong by remember { mutableStateOf<Song?>(null) }
     var pendingTonePermissionTarget by remember { mutableStateOf<ToneTarget?>(null) }
     val audioMeta by songInfoViewModel.audioMeta.collectAsStateWithLifecycle()
+    val resolvedDurationMs by songInfoViewModel.resolvedDurationMs.collectAsStateWithLifecycle()
     val resolvedArtists by songInfoViewModel.resolvedArtists.collectAsStateWithLifecycle()
     val isPixelPlayWatchAvailable by songInfoViewModel.isPixelPlayWatchAvailable.collectAsStateWithLifecycle()
     val isWatchAvailabilityResolved by songInfoViewModel.isWatchAvailabilityResolved.collectAsStateWithLifecycle()
@@ -505,9 +507,9 @@ fun SongInfoBottomSheet(
                                             onShareClick = {
                                                 try {
                                                     val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                                        type = "audio/*"
-                                                        putExtra(Intent.EXTRA_STREAM, song.contentUriString.toUri())
-                                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                                        type = "text/plain"
+                                                        putExtra(Intent.EXTRA_SUBJECT, "${song.title} on VYBE")
+                                                        putExtra(Intent.EXTRA_TEXT, VybeSongShareLink.shareText(song))
                                                     }
                                                     context.startActivity(
                                                         Intent.createChooser(
@@ -602,7 +604,7 @@ fun SongInfoBottomSheet(
                                         ) {
                                             SongInfoSegmentedListItem(
                                                 headline = stringResource(R.string.song_info_duration_label),
-                                                supporting = formatDuration(song.duration),
+                                                supporting = formatDuration(resolvedDurationMs.takeIf { it > 0L } ?: song.duration),
                                                 icon = Icons.Rounded.Schedule,
                                                 iconDescription = stringResource(R.string.song_info_duration_label),
                                                 shape = infoSegmentItemShape,
@@ -1794,4 +1796,3 @@ private fun Row4Actions(
         }
     }
 }
-

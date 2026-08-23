@@ -15,6 +15,7 @@ import com.theveloper.pixelplay.data.database.DownloadedSongDao
 import com.theveloper.pixelplay.data.database.DownloadedSongEntity
 import com.theveloper.pixelplay.data.database.toSong
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.data.repository.OnlineMusicRepository
 import com.theveloper.pixelplay.di.AppScope
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -58,7 +59,7 @@ data class SongDownloadProgress(
 class YouTubeDownloadManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val okHttpClient: OkHttpClient,
-    private val engine: YouTubeMusicEngine,
+    private val onlineMusicRepository: OnlineMusicRepository,
     private val downloadedSongDao: DownloadedSongDao,
     private val audiusFavoriteDao: AudiusFavoriteDao,
     @AppScope private val appScope: CoroutineScope,
@@ -164,12 +165,6 @@ class YouTubeDownloadManager @Inject constructor(
         }
         val preparing = status == SongDownloadStatus.PREPARING
         val failed = status == SongDownloadStatus.FAILED
-        if (status != SongDownloadStatus.DOWNLOADING) {
-            if (failed) {
-                NotificationManagerCompat.from(context).cancel(notificationId(song.id))
-            }
-            return
-        }
         val notification = NotificationCompat.Builder(context, DOWNLOAD_CHANNEL_ID)
             .setSmallIcon(R.drawable.monochrome_player)
             .setContentTitle(song.title)
@@ -212,65 +207,38 @@ class YouTubeDownloadManager @Inject constructor(
                 Toast.makeText(context, "Starting download: \"${song.title}\"...", Toast.LENGTH_SHORT).show()
             }
 
-            // 1. Resolve direct audio stream URL
-            val streamUrl = if (song.path.startsWith("http://") || song.path.startsWith("https://")) {
-                song.path
-            } else {
-                engine.resolveStreamUrl(song.id)
-            }
-
-            if (streamUrl.isNullOrBlank()) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Could not resolve audio stream for download", Toast.LENGTH_SHORT).show()
-                }
-                return@withContext false
-            }
-
             val dir = getDownloadsDirectory()
             val safeFileName = "${song.id.replace(Regex("[^a-zA-Z0-9_-]"), "_")}.m4a"
             val targetFile = File(dir, safeFileName)
             val tempFile = File(dir, "${safeFileName}.tmp")
 
-            val request = Request.Builder()
-                .url(streamUrl)
-                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
-                .build()
-
             tempFile.delete()
-            okHttpClient.newCall(request).execute().use { response ->
-                if (!response.isSuccessful || response.body == null) {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, "Download server error (${response.code})", Toast.LENGTH_SHORT).show()
-                    }
-                    return@withContext false
+            val isProviderTrack = song.id.startsWith("yt_") || song.id.startsWith("saavn_") ||
+                song.contentUriString.startsWith("yt://") || song.contentUriString.startsWith("saavn://")
+            var transferCode = -1
+            for (attempt in 0..1) {
+                val streamUrl = if (isProviderTrack) {
+                    if (attempt > 0) onlineMusicRepository.invalidateStreamUrl(song.id)
+                    onlineMusicRepository.resolveFreshDownloadUrl(song)
+                } else {
+                    song.path.takeIf { it.startsWith("http://") || it.startsWith("https://") }
+                        ?: onlineMusicRepository.resolvePlaybackUrl(song)
                 }
-
-                val body = response.body!!
-                val totalBytes = body.contentLength()
-                onProgress?.invoke(0)
-
-                body.byteStream().use { input ->
-                    FileOutputStream(tempFile).use { output ->
-                        val buffer = ByteArray(32 * 1024)
-                        var bytesRead: Int
-                        var totalRead = 0L
-
-                        while (input.read(buffer).also { bytesRead = it } != -1) {
-                            output.write(buffer, 0, bytesRead)
-                            totalRead += bytesRead
-                            if (totalBytes > 0 && onProgress != null) {
-                                val progress = ((totalRead * 100) / totalBytes).toInt()
-                                onProgress(progress)
-                            }
-                        }
-                        output.flush()
-                    }
+                if (streamUrl.isNullOrBlank()) continue
+                tempFile.delete()
+                transferCode = transferStream(streamUrl, tempFile, onProgress)
+                if (transferCode in 200..299 && tempFile.length() > 0L) break
+                val retryable = transferCode == 401 || transferCode == 403 || transferCode == 410 || transferCode >= 500
+                if (!retryable) break
+            }
+            if (transferCode !in 200..299 || !tempFile.exists() || tempFile.length() == 0L) {
+                withContext(Dispatchers.Main) {
+                    val detail = transferCode.takeIf { it > 0 }?.let { " ($it)" }.orEmpty()
+                    Toast.makeText(context, "Download source failed$detail", Toast.LENGTH_SHORT).show()
                 }
+                return@withContext false
             }
 
-            if (!tempFile.exists() || tempFile.length() == 0L) {
-                throw IllegalStateException("The download completed without audio data")
-            }
             if (targetFile.exists() && !targetFile.delete()) {
                 throw IllegalStateException("Could not replace the existing download")
             }
@@ -319,6 +287,40 @@ class YouTubeDownloadManager @Inject constructor(
                 Toast.makeText(context, "Download failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
             }
             false
+        }
+    }
+
+    private fun transferStream(
+        streamUrl: String,
+        tempFile: File,
+        onProgress: ((Int) -> Unit)?,
+    ): Int {
+        val request = Request.Builder()
+            .url(streamUrl)
+            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+            .build()
+        okHttpClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) return response.code
+            val body = response.body
+            val totalBytes = body.contentLength()
+            onProgress?.invoke(0)
+            body.byteStream().use { input ->
+                FileOutputStream(tempFile).use { output ->
+                    val buffer = ByteArray(64 * 1024)
+                    var totalRead = 0L
+                    while (true) {
+                        val bytesRead = input.read(buffer)
+                        if (bytesRead < 0) break
+                        output.write(buffer, 0, bytesRead)
+                        totalRead += bytesRead
+                        if (totalBytes > 0L) {
+                            onProgress?.invoke(((totalRead * 100L) / totalBytes).toInt())
+                        }
+                    }
+                    output.flush()
+                }
+            }
+            return response.code
         }
     }
 

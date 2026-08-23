@@ -9,6 +9,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.collections.immutable.toPersistentList
 
 @ViewModelScoped
 class QueueUndoStateHolder @Inject constructor() {
@@ -20,6 +21,7 @@ class QueueUndoStateHolder @Inject constructor() {
         songId: String,
         getUiState: () -> PlayerUiState,
         updateUiState: (((PlayerUiState) -> PlayerUiState) -> Unit),
+        onQueueItemRemoved: (index: Int, songId: String) -> Unit,
     ) {
         val controller = mediaController ?: return
         
@@ -36,17 +38,30 @@ class QueueUndoStateHolder @Inject constructor() {
         if (indexToRemove == -1) return
 
         val currentQueue = getUiState().currentPlaybackQueue
-        val removedSong = currentQueue.find { it.id == songId } ?: return
+        val uiIndex = indexToRemove
+            .takeIf { it in currentQueue.indices && currentQueue[it].id == songId }
+            ?: currentQueue.indexOfFirst { it.id == songId }.takeIf { it >= 0 }
+        val removedSong = uiIndex?.let(currentQueue::get)
 
         controller.removeMediaItem(indexToRemove)
+        onQueueItemRemoved(indexToRemove, songId)
 
         updateUiState {
+            val updatedQueue = uiIndex
+                ?.takeIf { queueIndex -> queueIndex in it.currentPlaybackQueue.indices }
+                ?.let { queueIndex ->
+                    it.currentPlaybackQueue.toMutableList().apply { removeAt(queueIndex) }.toPersistentList()
+                }
+                ?: it.currentPlaybackQueue
             it.copy(
-                showQueueItemUndoBar = true,
+                currentPlaybackQueue = updatedQueue,
+                showQueueItemUndoBar = removedSong != null,
                 lastRemovedQueueSong = removedSong,
-                lastRemovedQueueIndex = indexToRemove
+                lastRemovedQueueIndex = if (removedSong != null) indexToRemove else -1
             )
         }
+
+        if (removedSong == null) return
 
         queueItemUndoTimerJob?.cancel()
         queueItemUndoTimerJob = scope.launch {
@@ -67,6 +82,7 @@ class QueueUndoStateHolder @Inject constructor() {
         mediaController: MediaController?,
         getUiState: () -> PlayerUiState,
         updateUiState: (((PlayerUiState) -> PlayerUiState) -> Unit),
+        onQueueItemAdded: (song: Song, index: Int) -> Unit,
     ) {
         val uiState = getUiState()
         val song = uiState.lastRemovedQueueSong ?: return
@@ -77,6 +93,7 @@ class QueueUndoStateHolder @Inject constructor() {
             val mediaItem = MediaItemBuilder.build(song)
             val insertAt = index.coerceAtMost(controller.mediaItemCount)
             controller.addMediaItem(insertAt, mediaItem)
+            onQueueItemAdded(song, insertAt)
         }
 
         hideQueueItemUndoBar(updateUiState)

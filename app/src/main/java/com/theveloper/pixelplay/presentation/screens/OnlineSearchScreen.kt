@@ -34,6 +34,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
 import com.theveloper.pixelplay.presentation.viewmodel.OnlineSearchViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.OnlineSearchFilter
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
@@ -292,7 +294,7 @@ fun OnlineSearchScreen(
                                     onMoreOptionsClick = { contextMenuSong = song },
                                     onClick = {
                                         viewModel.rememberSearch(query)
-                                        playerViewModel.playSongs(searchResultsSongs, song, "Search: $query")
+                                        playerViewModel.playOnlineSeed(song, "VYBE Radio")
                                     }
                                 )
                             }
@@ -311,20 +313,11 @@ fun OnlineSearchScreen(
                                 modifier = Modifier.padding(horizontal = 16.dp)
                             )
                         }
-                        item(key = "albums_row") {
-                            LazyRow(
-                                contentPadding = PaddingValues(horizontal = 16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                items(searchResultsAlbums, key = { it.browseId }) { album ->
-                                    AlbumSearchCard(
-                                        album = album,
-                                        onClick = {
-                                            navController.navigate("album_detail/${album.browseId}")
-                                        }
-                                    )
-                                }
-                            }
+                        items(searchResultsAlbums, key = { "album_${it.browseId}" }) { album ->
+                            AlbumSearchCard(
+                                album = album,
+                                onClick = { navController.navigate("album_detail/${album.browseId}") }
+                            )
                         }
                     }
                 }
@@ -550,23 +543,36 @@ private fun AlbumSearchCard(
 ) {
     Card(
         modifier = Modifier
-            .width(140.dp)
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
         )
     ) {
-        Column {
-            AsyncImage(
+        Row(
+            modifier = Modifier.padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SubcomposeAsyncImage(
                 model = album.thumbnailUrl,
                 contentDescription = album.title,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .size(140.dp)
-                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                    .size(76.dp)
+                    .clip(RoundedCornerShape(12.dp)),
+                loading = {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+                    }
+                },
+                error = {
+                    Icon(Icons.Rounded.Album, contentDescription = null, modifier = Modifier.padding(20.dp))
+                },
+                success = { SubcomposeAsyncImageContent() },
             )
-            Column(modifier = Modifier.padding(10.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 12.dp).weight(1f)) {
                 Text(
                     text = album.title,
                     maxLines = 1,
@@ -581,6 +587,12 @@ private fun AlbumSearchCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = listOfNotNull(album.type, album.year?.toString()).joinToString(" • "),
+                    maxLines = 1,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -605,20 +617,24 @@ private fun ArtistSearchCard(
                 .background(MaterialTheme.colorScheme.secondaryContainer),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Rounded.Person,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(42.dp)
+            SubcomposeAsyncImage(
+                model = artist.thumbnailUrl,
+                contentDescription = artist.name,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+                loading = {
+                    CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                },
+                error = {
+                    Icon(
+                        imageVector = Icons.Rounded.Person,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(42.dp)
+                    )
+                },
+                success = { SubcomposeAsyncImageContent() },
             )
-            if (!artist.thumbnailUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = artist.thumbnailUrl,
-                    contentDescription = artist.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
         }
         Spacer(modifier = Modifier.height(8.dp))
         Text(

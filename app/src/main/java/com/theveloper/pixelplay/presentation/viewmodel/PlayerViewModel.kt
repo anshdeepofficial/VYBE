@@ -5,6 +5,7 @@ import android.app.Activity
 import android.net.Uri
 import android.os.Trace
 import android.util.Log
+import android.widget.Toast
 import kotlinx.coroutines.withContext
 import androidx.compose.animation.core.Animatable
 import androidx.core.content.ContextCompat
@@ -46,6 +47,7 @@ import com.theveloper.pixelplay.data.model.Lyrics
 import com.theveloper.pixelplay.data.model.LyricsSourcePreference
 import com.theveloper.pixelplay.data.model.SearchFilterType
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.data.sharing.VybeSongShareLink
 import com.theveloper.pixelplay.data.model.SavedPlaybackQueue
 import com.theveloper.pixelplay.data.model.toSavedQueueSong
 import com.theveloper.pixelplay.data.model.SortOption
@@ -2187,13 +2189,59 @@ class PlayerViewModel @Inject constructor(
     fun playArtist(artist: Artist) =
         queueStateHolder.playArtist(artist, playbackSourceCallbacks())
 
+    fun playOnlineSeed(song: Song, sourceName: String = "VYBE Radio") =
+        queueStateHolder.playOnlineSeed(song, sourceName, playbackSourceCallbacks())
+
+    fun playSharedVybeLink(uri: Uri) {
+        val shared = VybeSongShareLink.parse(uri) ?: return
+        viewModelScope.launch {
+            val providerSong = shared.providerId
+                ?.takeIf { it.startsWith("yt_") || it.startsWith("saavn_") }
+                ?.let { providerId ->
+                    val rawId = providerId.substringAfter('_')
+                    val scheme = if (providerId.startsWith("saavn_")) "saavn" else "yt"
+                    Song(
+                        id = providerId,
+                        title = shared.title,
+                        artist = shared.artist.ifBlank { "VYBE Artist" },
+                        artistId = shared.artist.lowercase().hashCode().toLong(),
+                        album = shared.album.ifBlank { "VYBE" },
+                        albumId = shared.album.lowercase().hashCode().toLong(),
+                        path = providerId,
+                        contentUriString = "$scheme://$rawId",
+                        albumArtUriString = shared.artwork,
+                        duration = shared.durationMs,
+                        mimeType = "audio/mp4",
+                        bitrate = 256,
+                        sampleRate = 44_100,
+                        remoteAlbumBrowseId = shared.albumBrowseId,
+                    )
+                }
+            val resolved = providerSong ?: runCatching {
+                onlineMusicRepository.searchMusicStructured("${shared.title} ${shared.artist}".trim())
+                    .songs
+                    .sortedByDescending { candidate ->
+                        (if (candidate.title.equals(shared.title, ignoreCase = true)) 2 else 0) +
+                            (if (candidate.displayArtist.contains(shared.artist, ignoreCase = true)) 1 else 0)
+                    }
+                    .firstOrNull()
+            }.getOrNull()
+            if (resolved == null) {
+                Toast.makeText(context, "This shared song could not be found", Toast.LENGTH_LONG).show()
+            } else {
+                playOnlineSeed(resolved, "Shared with VYBE")
+            }
+        }
+    }
+
     fun removeSongFromQueue(songId: String) {
         queueUndoStateHolder.removeSongFromQueue(
             scope = viewModelScope,
             mediaController = mediaController,
             songId = songId,
             getUiState = { _playerUiState.value },
-            updateUiState = { mutation -> _playerUiState.update(mutation) }
+            updateUiState = { mutation -> _playerUiState.update(mutation) },
+            onQueueItemRemoved = queueStateHolder::onQueueItemRemoved,
         )
     }
 
@@ -2201,7 +2249,8 @@ class PlayerViewModel @Inject constructor(
         queueUndoStateHolder.undoRemoveSongFromQueue(
             mediaController = mediaController,
             getUiState = { _playerUiState.value },
-            updateUiState = { mutation -> _playerUiState.update(mutation) }
+            updateUiState = { mutation -> _playerUiState.update(mutation) },
+            onQueueItemAdded = { song, index -> queueStateHolder.onQueueItemAdded(song, index) }
         )
     }
 
@@ -2223,6 +2272,7 @@ class PlayerViewModel @Inject constructor(
                 // Move the item in the MediaController's timeline.
                 // This is the source of truth for playback.
                 controller.moveMediaItem(fromIndex, toIndex)
+                queueStateHolder.onQueueItemMoved(fromIndex, toIndex)
 
                 // Optimistically mirror the committed move in UI state. The drag preview stays
                 // local while dragging, so this single state update does not add per-frame work.

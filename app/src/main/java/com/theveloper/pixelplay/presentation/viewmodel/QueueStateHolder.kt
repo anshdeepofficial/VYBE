@@ -102,6 +102,32 @@ class QueueStateHolder @Inject constructor(
         _originalQueueOrder = emptyList()
         _originalQueueName = "None"
     }
+
+    /**
+     * Keeps the pre-shuffle restore snapshot in step with mutations committed to Media3.
+     * Without this, disabling shuffle restores an old snapshot and resurrects removed songs.
+     */
+    fun onQueueItemRemoved(index: Int, songId: String) {
+        if (_originalQueueOrder.isEmpty()) return
+        val matchingIndex = index
+            .takeIf { it in _originalQueueOrder.indices && _originalQueueOrder[it].id == songId }
+            ?: _originalQueueOrder.indexOfFirst { it.id == songId }.takeIf { it >= 0 }
+            ?: return
+        _originalQueueOrder = _originalQueueOrder.toMutableList().apply { removeAt(matchingIndex) }
+    }
+
+    fun onQueueItemAdded(song: Song, index: Int? = null) {
+        if (_originalQueueOrder.isEmpty()) return
+        val insertionIndex = (index ?: _originalQueueOrder.size).coerceIn(0, _originalQueueOrder.size)
+        _originalQueueOrder = _originalQueueOrder.toMutableList().apply { add(insertionIndex, song) }
+    }
+
+    fun onQueueItemMoved(fromIndex: Int, toIndex: Int) {
+        if (fromIndex !in _originalQueueOrder.indices || toIndex !in _originalQueueOrder.indices) return
+        _originalQueueOrder = _originalQueueOrder.toMutableList().apply {
+            add(toIndex, removeAt(fromIndex))
+        }
+    }
     
     /**
      * Create a shuffled version of a queue, keeping the current song at the start.
@@ -287,6 +313,18 @@ class QueueStateHolder @Inject constructor(
             } catch (e: Exception) {
                 Timber.e(e, "Error playing artist %s", artist.name)
             }
+        }
+    }
+
+    fun playOnlineSeed(seed: Song, sourceName: String, callbacks: PlaybackSourceCallbacks) {
+        callbacks.scope.launch {
+            val queue = runCatching {
+                withContext(Dispatchers.IO) { onlineMusicRepository.getAutoplayQueue(seed) }
+            }.onFailure { Timber.w(it, "Could not build autoplay queue for %s", seed.title) }
+                .getOrDefault(listOf(seed))
+                .ifEmpty { listOf(seed) }
+            callbacks.playSongs(queue, seed, sourceName, null)
+            callbacks.showSheet()
         }
     }
 }

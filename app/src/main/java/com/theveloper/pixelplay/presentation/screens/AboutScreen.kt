@@ -102,8 +102,12 @@ import coil.compose.AsyncImagePainter
 import coil.request.ImageRequest
 import coil.size.Size
 import com.theveloper.pixelplay.R
+import com.theveloper.pixelplay.BuildConfig
 import com.theveloper.pixelplay.data.github.GitHubContributorService
+import com.theveloper.pixelplay.data.github.GitHubReleaseUpdate
+import com.theveloper.pixelplay.data.github.GitHubUpdateService
 import com.theveloper.pixelplay.presentation.components.CollapsibleCommonTopBar
+import com.theveloper.pixelplay.presentation.components.GitHubUpdateDialog
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
 import com.theveloper.pixelplay.presentation.components.SmartImage
 import com.theveloper.pixelplay.presentation.navigation.Screen
@@ -113,6 +117,7 @@ import kotlinx.coroutines.launch
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 import timber.log.Timber
 import kotlin.math.roundToInt
+import java.io.File
 
 private data class Contributor(
     val id: String,
@@ -172,6 +177,16 @@ fun AboutScreen(
     val density = LocalDensity.current
     val coroutineScope = rememberCoroutineScope()
     val lazyListState = rememberLazyListState()
+    val updateService = remember { GitHubUpdateService() }
+    var updateStatus by remember {
+        mutableStateOf("Current build ${BuildConfig.VERSION_CODE} • Tap to check for a VYBE update")
+    }
+    var isCheckingUpdate by remember { mutableStateOf(false) }
+    var availableUpdate by remember { mutableStateOf<GitHubReleaseUpdate?>(null) }
+    var isUpdateDownloading by remember { mutableStateOf(false) }
+    var updateDownloadProgress by remember { mutableStateOf(0f) }
+    var downloadedUpdateFile by remember { mutableStateOf<File?>(null) }
+    var updateMessage by remember { mutableStateOf<String?>(null) }
 
     val statusBarHeight = WindowInsets.statusBars
         .asPaddingValues()
@@ -284,6 +299,38 @@ fun AboutScreen(
                 )
             }
 
+            item(key = "check_for_updates") {
+                SocialChip(
+                    label = if (isCheckingUpdate) "Checking for updates…" else "Check for Updates",
+                    subtitle = updateStatus,
+                    iconRes = R.drawable.rounded_download_24,
+                    contentDescription = "Check for a VYBE update",
+                    onClick = {
+                        if (!isCheckingUpdate) coroutineScope.launch {
+                            isCheckingUpdate = true
+                            updateStatus = "Contacting the VYBE update service…"
+                            updateService.checkForUpdate(context, respectDismissal = false)
+                                .onSuccess { update ->
+                                    availableUpdate = update
+                                    updateStatus = if (update == null) {
+                                        "VYBE is up to date • Version $versionName (${BuildConfig.VERSION_CODE})"
+                                    } else {
+                                        "VYBE ${update.tagName} is available"
+                                    }
+                                }
+                                .onFailure { error ->
+                                    updateStatus = error.message ?: "Could not check for updates"
+                                }
+                            isCheckingUpdate = false
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 8.dp),
+                )
+            }
+
             item(key = "maintainer_title") {
                 AboutSectionHeader(
                     title = "Developer & Maintainer",
@@ -316,6 +363,45 @@ fun AboutScreen(
             onBackClick = onNavigationIconClick,
             expandedTitleStartPadding = 20.dp,
             collapsedTitleStartPadding = 68.dp
+        )
+    }
+
+    availableUpdate?.let { update ->
+        GitHubUpdateDialog(
+            update = update,
+            isDownloading = isUpdateDownloading,
+            downloadProgress = updateDownloadProgress,
+            downloadedFile = downloadedUpdateFile,
+            message = updateMessage,
+            onDownloadOrInstall = {
+                val downloaded = downloadedUpdateFile
+                if (downloaded != null) {
+                    if (!updateService.launchInstaller(context, downloaded)) {
+                        updateMessage = "Allow VYBE to install apps, then return and tap Install update again."
+                    }
+                } else if (!isUpdateDownloading) {
+                    coroutineScope.launch {
+                        isUpdateDownloading = true
+                        updateMessage = null
+                        updateDownloadProgress = 0f
+                        updateService.download(context, update) { progress ->
+                            coroutineScope.launch { updateDownloadProgress = progress }
+                        }
+                            .onSuccess { file ->
+                                downloadedUpdateFile = file
+                                updateMessage = "Ready to install. Android will ask for confirmation."
+                            }
+                            .onFailure { error ->
+                                updateMessage = error.message ?: "Update download failed"
+                            }
+                        isUpdateDownloading = false
+                    }
+                }
+            },
+            onDismiss = {
+                availableUpdate = null
+                updateMessage = null
+            },
         )
     }
 }

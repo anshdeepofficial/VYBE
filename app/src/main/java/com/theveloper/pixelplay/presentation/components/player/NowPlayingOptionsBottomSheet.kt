@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.data.sharing.VybeSongShareLink
 
 sealed interface OptionIcon {
     data class DrawableRes(val resId: Int) : OptionIcon
@@ -190,16 +191,10 @@ fun NowPlayingOptionsBottomSheet(
             title = "Share",
             subtitle = "Share song info or stream link",
             onClick = {
-                val shareBody = buildString {
-                    append("${song.title} by ${song.artist}")
-                    if (isStreaming) {
-                        append("\nListen here: ${song.path}")
-                    }
-                }
                 val intent = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
-                    putExtra(Intent.EXTRA_SUBJECT, song.title)
-                    putExtra(Intent.EXTRA_TEXT, shareBody)
+                    putExtra(Intent.EXTRA_SUBJECT, "${song.title} on VYBE")
+                    putExtra(Intent.EXTRA_TEXT, VybeSongShareLink.shareText(song))
                 }
                 context.startActivity(Intent.createChooser(intent, "Share via"))
                 onDismiss()

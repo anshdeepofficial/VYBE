@@ -228,7 +228,7 @@ private fun renderDirectAlbumArt(
             Image(
                 bitmap = model,
                 contentDescription = "Album art of $title",
-                contentScale = ContentScale.Crop,
+                contentScale = contentScale,
                 modifier = modifier.fillMaxSize()
             )
             true
@@ -237,7 +237,7 @@ private fun renderDirectAlbumArt(
             Image(
                 bitmap = model.asImageBitmap(),
                 contentDescription = "Album art of $title",
-                contentScale = ContentScale.Crop,
+                contentScale = contentScale,
                 modifier = modifier.fillMaxSize()
             )
             true

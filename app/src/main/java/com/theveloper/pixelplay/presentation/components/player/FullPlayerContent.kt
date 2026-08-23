@@ -39,6 +39,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -88,6 +89,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -1264,7 +1266,31 @@ private fun ImmersiveArtworkBackground(
                 uri = current.albumArtUriString ?: artwork,
                 title = current.title,
                 targetSize = targetSize,
-                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .blur(18.dp),
+            )
+        }
+
+        AnimatedContent(
+            targetState = song,
+            contentKey = { "main_${it.id}" },
+            transitionSpec = {
+                fadeIn(tween(420, easing = FastOutSlowInEasing)) togetherWith
+                    fadeOut(tween(300, easing = FastOutSlowInEasing))
+            },
+            modifier = Modifier.align(Alignment.Center),
+            label = "ImmersiveMainArtworkTransition",
+        ) { current ->
+            OptimizedAlbumArt(
+                uri = current.albumArtUriString ?: artwork,
+                title = current.title,
+                targetSize = targetSize,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f),
             )
         }
 

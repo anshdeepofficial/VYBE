@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.data.sharing.VybeSongShareLink
 
 sealed interface ActionIcon {
     data class Vector(val vector: ImageVector) : ActionIcon
@@ -125,11 +126,10 @@ fun SongContextBottomSheet(
             icon = ActionIcon.Vector(Icons.Default.Share),
             label = "Share",
             onClick = {
-                val shareText = "${song.title} by ${song.artist}" +
-                    if (song.path.startsWith("http")) " — ${song.path}" else ""
                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
-                    putExtra(Intent.EXTRA_TEXT, shareText)
+                    putExtra(Intent.EXTRA_SUBJECT, "${song.title} on VYBE")
+                    putExtra(Intent.EXTRA_TEXT, VybeSongShareLink.shareText(song))
                 }
                 context.startActivity(Intent.createChooser(shareIntent, "Share via"))
                 onDismiss()

@@ -986,7 +986,9 @@ class PlaybackDispatchStateHolder @Inject constructor(
     fun addSongToQueue(song: Song) {
         cb.getController()?.let { controller ->
             val mediaItem = buildPlaybackMediaItem(song)
+            val insertionIndex = controller.mediaItemCount
             controller.addMediaItem(mediaItem)
+            queueStateHolder.onQueueItemAdded(song, insertionIndex)
             // Queue UI is synced via onTimelineChanged listener
         }
     }
@@ -1002,6 +1004,7 @@ class PlaybackDispatchStateHolder @Inject constructor(
             }
 
             controller.addMediaItem(insertionIndex, mediaItem)
+            queueStateHolder.onQueueItemAdded(song, insertionIndex)
             // Queue UI is synced via onTimelineChanged listener
         }
     }

@@ -36,6 +36,7 @@ class YouTubeMusicEngine @Inject constructor(
         private val API_KEY_REGEX = Regex("""\"INNERTUBE_API_KEY\":\"([^\"]+)\"""")
         private val CLIENT_VERSION_REGEX = Regex("""\"INNERTUBE_(?:CONTEXT_)?CLIENT_VERSION\":\"([^\"]+)\"""")
         private val VISITOR_DATA_REGEX = Regex("""\"VISITOR_DATA\":\"([^\"]+)\"""")
+        private val DURATION_TEXT_REGEX = Regex("""^(?:\d{1,2}:)?\d{1,2}:\d{2}$""")
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
 
         private val PIPED_INSTANCES = listOf(
@@ -205,6 +206,41 @@ class YouTubeMusicEngine @Inject constructor(
                 Log.w(TAG, "YouTube Music suggestions failed: ${error.message}")
             }.getOrDefault(emptyList())
         }
+
+    /**
+     * Builds YouTube Music's watch-next/radio continuation for one seed track.
+     * This is intentionally independent from search so a tapped search result does not turn
+     * the remaining keyword matches into the playback queue.
+     */
+    suspend fun getAutoplayTracks(seedVideoId: String, region: String = "IN"): List<YouTubeTrack> =
+        withContext(Dispatchers.IO) {
+            val cleanId = seedVideoId.removePrefix("yt_").trim()
+            if (cleanId.isBlank()) return@withContext emptyList()
+            runCatching {
+                executeWebRemixRequest("next", region) { config ->
+                    JSONObject().apply {
+                        put("context", createWebRemixContext(region, config))
+                        put("videoId", cleanId)
+                        put("playlistId", "RDAMVM$cleanId")
+                        put("isAudioOnly", true)
+                        put("enablePersistentPlaylistPanel", true)
+                        put("tunerSettingValue", "AUTOMIX_SETTING_NORMAL")
+                    }
+                }?.let(::parseSearchResponse).orEmpty()
+                    .filter(::isMusicTrack)
+                    .filterNot { it.videoId == cleanId }
+                    .distinctBy { it.videoId }
+                    .take(50)
+            }.onFailure { error ->
+                Log.w(TAG, "Autoplay continuation failed for $cleanId: ${error.message}")
+            }.getOrDefault(emptyList())
+        }
+
+    private fun isMusicTrack(track: YouTubeTrack): Boolean {
+        val metadata = "${track.title} ${track.artist} ${track.album}".lowercase()
+        return track.title.isNotBlank() && track.artist.isNotBlank() &&
+            NON_MUSIC_KEYWORDS.none(metadata::contains)
+    }
 
     /**
      * Fetch real-time Top Charts and Trending tracks for India / Global.
@@ -1453,12 +1489,34 @@ class YouTubeMusicEngine @Inject constructor(
                 artist.ifBlank { "YouTube Music" }
             },
             album = albumLink?.second ?: "YouTube Music",
+            durationSeconds = extractDurationSeconds(item),
             thumbnailUrl = thumbnail,
             resultType = if (isOfficialMusicVideo) YouTubeMusicEntityType.MUSIC_VIDEO else YouTubeMusicEntityType.SONG,
             isOfficial = isAlbumTrack || isOfficialMusicVideo,
             linkedArtists = linkedArtists,
             albumBrowseId = albumLink?.first,
         )
+    }
+
+    private fun extractDurationSeconds(item: JSONObject): Long {
+        val candidates = mutableListOf<String>()
+        fun visit(node: Any?) {
+            when (node) {
+                is JSONObject -> {
+                    val text = node.optString("text").trim()
+                    val simpleText = node.optString("simpleText").trim()
+                    if (text.isNotBlank()) candidates += text
+                    if (simpleText.isNotBlank()) candidates += simpleText
+                    node.keys().forEach { key -> visit(node.opt(key)) }
+                }
+                is org.json.JSONArray -> for (index in 0 until node.length()) visit(node.opt(index))
+            }
+        }
+        visit(item.optJSONArray("fixedColumns"))
+        visit(item.optJSONArray("flexColumns"))
+        visit(item.optJSONObject("lengthText"))
+        val duration = candidates.lastOrNull { DURATION_TEXT_REGEX.matches(it) } ?: return 0L
+        return duration.split(':').fold(0L) { total, part -> total * 60L + (part.toLongOrNull() ?: 0L) }
     }
 
     private fun extractLinkedArtists(item: JSONObject): List<YouTubeArtist> {

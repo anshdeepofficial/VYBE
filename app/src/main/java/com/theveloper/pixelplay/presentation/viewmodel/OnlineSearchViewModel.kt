@@ -402,12 +402,13 @@ class OnlineSearchViewModel @Inject constructor(
                     )
                 }
                 if (currentQuery != trimmed) return@launch
-                if (result.songs.isNotEmpty() || result.albums.isNotEmpty() || result.artists.isNotEmpty()) {
-                    structuredSearchCache[trimmed.lowercase()] = result
+                val rankedResult = result.copy(albums = rankSearchAlbums(trimmed, result.albums))
+                if (rankedResult.songs.isNotEmpty() || rankedResult.albums.isNotEmpty() || rankedResult.artists.isNotEmpty()) {
+                    structuredSearchCache[trimmed.lowercase()] = rankedResult
                 }
-                _searchResultsSongs.value = result.songs
-                _searchResultsAlbums.value = result.albums
-                _searchResultsArtists.value = result.artists
+                _searchResultsSongs.value = rankedResult.songs
+                _searchResultsAlbums.value = rankedResult.albums
+                _searchResultsArtists.value = rankedResult.artists
                 loadSuggestions(trimmed)
             } catch (cancelled: CancellationException) {
                 // A newer query superseded this request. Cancellation is expected and
@@ -466,6 +467,35 @@ class OnlineSearchViewModel @Inject constructor(
                 song to score
             }
             .filter { (_, score) -> retainRelated || score > 0 }
+            .sortedByDescending { it.second }
+            .map { it.first }
+    }
+
+    private fun rankSearchAlbums(query: String, albums: List<YouTubeAlbum>): List<YouTubeAlbum> {
+        val normalizedQuery = query.trim().lowercase()
+        val tokens = normalizedQuery.split(Regex("\\s+")).filter { it.length > 1 }
+        return albums
+            .filter { album ->
+                album.browseId.isNotBlank() && album.title.isNotBlank() &&
+                    album.type.lowercase() in setOf("album", "single", "ep", "soundtrack")
+            }
+            .distinctBy { it.browseId }
+            .map { album ->
+                val title = album.title.lowercase()
+                val artist = album.artist.lowercase()
+                val score = when {
+                    title == normalizedQuery -> 300
+                    "$artist $title".contains(normalizedQuery) -> 220
+                    title.startsWith(normalizedQuery) -> 180
+                    title.contains(normalizedQuery) -> 140
+                    artist == normalizedQuery -> 120
+                    else -> tokens.sumOf { token ->
+                        (if (title.contains(token)) 24 else 0) + (if (artist.contains(token)) 12 else 0)
+                    }
+                }
+                album to score
+            }
+            .filter { (_, score) -> score > 0 }
             .sortedByDescending { it.second }
             .map { it.first }
     }

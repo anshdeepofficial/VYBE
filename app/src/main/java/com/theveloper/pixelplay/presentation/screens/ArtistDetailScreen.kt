@@ -308,6 +308,27 @@ fun ArtistDetailScreen(
                             bottom = MiniPlayerHeight + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 8.dp
                         )
                     ) {
+                        uiState.error?.let { message ->
+                            item(key = "artist_profile_error", contentType = "artist_error") {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.errorContainer,
+                                    shape = RoundedCornerShape(18.dp),
+                                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(14.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Text(
+                                            text = message,
+                                            color = MaterialTheme.colorScheme.onErrorContainer,
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                        TextButton(onClick = viewModel::retry) { Text("Retry") }
+                                    }
+                                }
+                            }
+                        }
                         albumSections.forEachIndexed { index, section ->
                             if (section.songs.isEmpty()) return@forEachIndexed
 
@@ -490,21 +511,30 @@ fun ArtistDetailScreen(
                 onDeleteFromDevice = playerViewModel::deleteFromDevice,
                 onNavigateToAlbum = {
                     navController.navigateSafelyReplacing(
-                        route = Screen.AlbumDetail.createRoute(currentSong.albumId),
+                        route = currentSong.remoteAlbumBrowseId
+                            ?.takeIf(String::isNotBlank)
+                            ?.let(Screen.AlbumDetail::createRoute)
+                            ?: Screen.AlbumDetail.createRoute(currentSong.albumId),
                         patternToPop = Screen.AlbumDetail.route
                     )
                     showSongInfoBottomSheet = false
                 },
                 onNavigateToArtist = {
                     navController.navigateSafelyReplacing(
-                        route = Screen.ArtistDetail.createRoute(currentSong.artistId),
+                        route = currentSong.artists.firstNotNullOfOrNull { it.remoteBrowseId?.takeIf(String::isNotBlank) }
+                            ?.let(Screen.ArtistDetail::createRoute)
+                            ?: Screen.ArtistDetail.createRoute(currentSong.artistId),
                         patternToPop = Screen.ArtistDetail.route
                     )
                     showSongInfoBottomSheet = false
                 },
                 onNavigateToArtistById = { artistId ->
                     navController.navigateSafelyReplacing(
-                        route = Screen.ArtistDetail.createRoute(artistId),
+                        route = currentSong.artists.firstOrNull { it.id == artistId }
+                            ?.remoteBrowseId
+                            ?.takeIf(String::isNotBlank)
+                            ?.let(Screen.ArtistDetail::createRoute)
+                            ?: Screen.ArtistDetail.createRoute(artistId),
                         patternToPop = Screen.ArtistDetail.route
                     )
                     showSongInfoBottomSheet = false
@@ -715,6 +745,7 @@ private fun ArtistAlbumSectionSongItem(
                 showAlbumArt = false,
                 customShape = songItemShape,
                 onMoreOptionsClick = { onMoreOptionsClick() },
+                onLongPress = onMoreOptionsClick,
                 onClick = onSongClick
             )
 

@@ -47,3 +47,15 @@ fun OnlineSongCacheEntity.toSong(): Song = Song(
     bitrate = null,
     sampleRate = null,
 )
+
+fun Song.toOnlineSongCacheEntity(): OnlineSongCacheEntity = OnlineSongCacheEntity(
+    id = id,
+    title = title,
+    artist = artist,
+    album = album,
+    albumArtUrl = albumArtUriString,
+    duration = duration,
+    path = path,
+    contentUri = contentUriString,
+    mimeType = mimeType,
+)

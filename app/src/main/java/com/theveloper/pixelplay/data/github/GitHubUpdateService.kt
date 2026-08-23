@@ -4,8 +4,11 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.content.pm.PackageInfo
+import android.content.pm.PackageManager
 import android.provider.Settings
 import androidx.core.content.FileProvider
+import androidx.core.content.pm.PackageInfoCompat
 import com.theveloper.pixelplay.BuildConfig
 import java.io.File
 import java.net.HttpURLConnection
@@ -13,6 +16,7 @@ import java.net.URL
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import java.security.MessageDigest
 
 data class GitHubReleaseUpdate(
     val tagName: String,
@@ -25,7 +29,10 @@ data class GitHubReleaseUpdate(
 
 class GitHubUpdateService {
 
-    suspend fun checkForUpdate(context: Context): Result<GitHubReleaseUpdate?> =
+    suspend fun checkForUpdate(
+        context: Context,
+        respectDismissal: Boolean = true,
+    ): Result<GitHubReleaseUpdate?> =
         withContext(Dispatchers.IO) {
             runCatching {
                 val owner = BuildConfig.VYBE_GITHUB_OWNER.trim()
@@ -38,7 +45,7 @@ class GitHubUpdateService {
                 )
                 val response = connection.useResponse()
                 if (response.code == HttpURLConnection.HTTP_NOT_FOUND) return@runCatching null
-                check(response.code in 200..299) { "GitHub update check failed (${response.code})" }
+                check(response.code in 200..299) { "VYBE update check failed (${response.code})" }
 
                 val release = JSONObject(response.body)
                 if (release.optBoolean("draft") || release.optBoolean("prerelease")) return@runCatching null
@@ -59,7 +66,7 @@ class GitHubUpdateService {
                 val selected = candidates.maxByOrNull { apkScore(it.first) } ?: return@runCatching null
                 val dismissedTag = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                     .getString(KEY_DISMISSED_TAG, null)
-                if (dismissedTag == tag) return@runCatching null
+                if (respectDismissal && dismissedTag == tag) return@runCatching null
 
                 GitHubReleaseUpdate(
                     tagName = tag,
@@ -77,10 +84,10 @@ class GitHubUpdateService {
         update: GitHubReleaseUpdate,
         onProgress: (Float) -> Unit,
     ): Result<File> = withContext(Dispatchers.IO) {
+        val directory = File(context.cacheDir, "app_updates").apply { mkdirs() }
+        val target = File(directory, safeFileName(update.apkName))
+        val partial = File(directory, "${target.name}.partial")
         runCatching {
-            val directory = File(context.cacheDir, "app_updates").apply { mkdirs() }
-            val target = File(directory, safeFileName(update.apkName))
-            val partial = File(directory, "${target.name}.partial")
             if (partial.exists()) partial.delete()
 
             val connection = openConnection(update.apkUrl, accept = "application/octet-stream")
@@ -102,14 +109,63 @@ class GitHubUpdateService {
             }
             connection.disconnect()
             check(partial.length() > 4L) { "Downloaded APK is empty" }
+            if (update.apkSizeBytes > 0L) {
+                check(partial.length() == update.apkSizeBytes) { "Downloaded update size does not match" }
+            }
             partial.inputStream().use { stream ->
                 check(stream.read() == 'P'.code && stream.read() == 'K'.code) { "Downloaded file is not a valid APK" }
             }
             if (target.exists()) target.delete()
             check(partial.renameTo(target)) { "Could not finalize the downloaded APK" }
+            validateDownloadedApk(context, target).getOrThrow()
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                .putLong(KEY_DOWNLOADED_BASE_VERSION, installedVersionCode(context))
+                .apply()
             onProgress(1f)
             target
+        }.onFailure {
+            partial.delete()
+            target.delete()
         }
+    }
+
+    fun validateDownloadedApk(context: Context, apk: File): Result<Unit> = runCatching {
+        check(apk.isFile && apk.length() > 4L && apk.extension.equals("apk", ignoreCase = true)) {
+            "Downloaded update is not a valid APK file"
+        }
+        @Suppress("DEPRECATION")
+        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            PackageManager.GET_SIGNING_CERTIFICATES
+        } else PackageManager.GET_SIGNATURES
+        @Suppress("DEPRECATION")
+        val archive = context.packageManager.getPackageArchiveInfo(apk.absolutePath, flags)
+            ?: error("Android could not read the downloaded update")
+        check(archive.packageName == context.packageName) { "Update package does not match VYBE" }
+        check(PackageInfoCompat.getLongVersionCode(archive) > installedVersionCode(context)) {
+            "Downloaded update is not newer than the installed VYBE version"
+        }
+        @Suppress("DEPRECATION")
+        val installed = context.packageManager.getPackageInfo(context.packageName, flags)
+        val installedSigners = signerDigests(installed)
+        val archiveSigners = signerDigests(archive)
+        check(installedSigners.isNotEmpty() && installedSigners == archiveSigners) {
+            "Update signature does not match the installed VYBE app"
+        }
+    }
+
+    /** Cleans completed/obsolete installer files without touching offline music. */
+    fun cleanupTemporaryUpdates(context: Context) {
+        val directory = File(context.cacheDir, "app_updates")
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val baseVersion = prefs.getLong(KEY_DOWNLOADED_BASE_VERSION, -1L)
+        val updateCompleted = baseVersion >= 0L && installedVersionCode(context) > baseVersion
+        val expiry = System.currentTimeMillis() - UPDATE_FILE_MAX_AGE_MS
+        directory.listFiles()?.forEach { file ->
+            if (file.name.endsWith(".partial") || updateCompleted || file.lastModified() < expiry) {
+                file.delete()
+            }
+        }
+        if (updateCompleted) prefs.edit().remove(KEY_DOWNLOADED_BASE_VERSION).apply()
     }
 
     fun dismiss(context: Context, update: GitHubReleaseUpdate) {
@@ -197,9 +253,28 @@ class GitHubUpdateService {
         .takeIf { it.endsWith(".apk", ignoreCase = true) }
         ?: "VYBE-update.apk"
 
+    private fun installedVersionCode(context: Context): Long {
+        @Suppress("DEPRECATION")
+        val info = context.packageManager.getPackageInfo(context.packageName, 0)
+        return PackageInfoCompat.getLongVersionCode(info)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun signerDigests(info: PackageInfo): Set<String> {
+        val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            info.signingInfo?.apkContentsSigners.orEmpty()
+        } else info.signatures.orEmpty()
+        return signatures.map { signature ->
+            MessageDigest.getInstance("SHA-256").digest(signature.toByteArray())
+                .joinToString("") { byte -> "%02x".format(byte) }
+        }.toSet()
+    }
+
     private companion object {
         const val PREFS_NAME = "vybe_app_updates"
         const val KEY_DISMISSED_TAG = "dismissed_release_tag"
+        const val KEY_DOWNLOADED_BASE_VERSION = "downloaded_base_version"
         const val MAX_NOTES_LENGTH = 1_200
+        const val UPDATE_FILE_MAX_AGE_MS = 7L * 24L * 60L * 60L * 1_000L
     }
 }

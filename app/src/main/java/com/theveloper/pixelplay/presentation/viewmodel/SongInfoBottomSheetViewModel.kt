@@ -17,6 +17,7 @@ import com.theveloper.pixelplay.data.database.MusicDao
 import com.theveloper.pixelplay.data.database.toArtist
 import com.theveloper.pixelplay.data.model.Artist
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.data.repository.OnlineMusicRepository
 import com.theveloper.pixelplay.data.service.wear.PhoneWatchTransferState
 import com.theveloper.pixelplay.data.service.wear.PhoneWatchTransferStateStore
 import com.theveloper.pixelplay.data.service.wear.WearPhoneTransferSender
@@ -40,6 +41,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
 
 @HiltViewModel
@@ -47,6 +49,7 @@ class SongInfoBottomSheetViewModel @Inject constructor(
     private val wearPhoneTransferSender: WearPhoneTransferSender,
     private val transferStateStore: PhoneWatchTransferStateStore,
     private val musicDao: MusicDao,
+    private val onlineMusicRepository: OnlineMusicRepository,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
@@ -69,6 +72,8 @@ class SongInfoBottomSheetViewModel @Inject constructor(
     }
 
     private val _audioMeta = MutableStateFlow<AudioMeta?>(null)
+    private val _resolvedDurationMs = MutableStateFlow(0L)
+    val resolvedDurationMs: StateFlow<Long> = _resolvedDurationMs.asStateFlow()
     private val _resolvedArtists = MutableStateFlow<List<Artist>>(emptyList())
     val resolvedArtists: StateFlow<List<Artist>> = _resolvedArtists.asStateFlow()
     private val _isPixelPlayWatchAvailable = MutableStateFlow(false)
@@ -123,7 +128,12 @@ class SongInfoBottomSheetViewModel @Inject constructor(
             }
             val resolved = refs.map { ref ->
                 entitiesById[ref.id]?.toArtist()
-                    ?: Artist(id = ref.id, name = ref.name, songCount = 0)
+                    ?: Artist(
+                        id = ref.id,
+                        name = ref.name,
+                        songCount = 0,
+                        remoteBrowseId = ref.remoteBrowseId,
+                    )
             }
             _resolvedArtists.value = resolved
         }
@@ -131,6 +141,7 @@ class SongInfoBottomSheetViewModel @Inject constructor(
 
     fun loadAudioMeta(song: Song) {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            _resolvedDurationMs.value = song.duration
             val meta = AudioMetaUtils.getAudioMetadata(
                 musicDao = musicDao,
                 id = song.id.toLongOrNull() ?: -1L,
@@ -138,6 +149,17 @@ class SongInfoBottomSheetViewModel @Inject constructor(
                 deepScan = false
             )
             _audioMeta.value = meta
+            if (song.duration <= 0L && getCloudProviderLabel(song.contentUriString) != null) {
+                val resolved = withTimeoutOrNull(8_000L) {
+                    onlineMusicRepository.searchMusicStructured("${song.title} ${song.artist}".trim())
+                        .songs
+                        .firstOrNull { candidate ->
+                            candidate.duration > 0L && candidate.title.equals(song.title, ignoreCase = true)
+                        }
+                        ?.duration
+                }
+                if (resolved != null && resolved > 0L) _resolvedDurationMs.value = resolved
+            }
         }
     }
 
@@ -149,6 +171,12 @@ class SongInfoBottomSheetViewModel @Inject constructor(
                 value = provider,
                 isCloud = true,
             )
+        } else if (isPrivateInAppDownload(song.path)) {
+            SongLocationInfo(
+                label = "Storage",
+                value = "Available offline in VYBE",
+                isCloud = false,
+            )
         } else {
             SongLocationInfo(
                 label = "Path",
@@ -156,6 +184,16 @@ class SongInfoBottomSheetViewModel @Inject constructor(
                 isCloud = false,
             )
         }
+    }
+
+    private fun isPrivateInAppDownload(path: String): Boolean {
+        if (path.isBlank()) return false
+        val downloadRoot = File(appContext.filesDir, "pixel_downloads")
+        return runCatching {
+            val file = File(path).canonicalFile
+            val root = downloadRoot.canonicalFile
+            file.path == root.path || file.path.startsWith(root.path + File.separator)
+        }.getOrDefault(false)
     }
 
     fun refreshWatchAvailability() {
@@ -269,6 +307,9 @@ class SongInfoBottomSheetViewModel @Inject constructor(
     private fun getCloudProviderLabel(contentUriString: String): String? {
         val normalized = contentUriString.lowercase().trim()
         return when {
+            normalized.startsWith("yt://") || normalized.startsWith("yt:") -> "YouTube Music"
+            normalized.startsWith("saavn://") || normalized.startsWith("saavn:") -> "JioSaavn"
+            normalized.startsWith("audius://") || normalized.startsWith("audius:") -> "Audius"
             normalized.startsWith("telegram://") || normalized.startsWith("telegram:") -> "Telegram"
             normalized.startsWith("netease://") || normalized.startsWith("netease:") -> "Netease Music"
             normalized.startsWith("qqmusic://") || normalized.startsWith("qqmusic:") -> "QQ Music"
