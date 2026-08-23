@@ -59,13 +59,30 @@ class SpotifyAccountRepository @Inject constructor(
     @ApplicationContext context: Context,
     private val httpClient: OkHttpClient,
 ) {
-    private val preferences = EncryptedSharedPreferences.create(
-        context,
-        PREFS_NAME,
-        MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
-    )
+    private val preferences: SharedPreferences = try {
+        val masterKey = MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build()
+        EncryptedSharedPreferences.create(
+            context,
+            PREFS_NAME,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+        )
+    } catch (e: Exception) {
+        timber.log.Timber.e(e, "SpotifyAccountRepository: Failed to create EncryptedSharedPreferences. Clearing corrupted file.")
+        val dir = java.io.File(context.applicationInfo.dataDir, "shared_prefs")
+        val file = java.io.File(dir, "$PREFS_NAME.xml")
+        if (file.exists()) file.delete()
+        
+        val masterKey = MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build()
+        EncryptedSharedPreferences.create(
+            context,
+            PREFS_NAME,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+        )
+    }
 
     private val _isLoggedIn = MutableStateFlow(hasUsableSession())
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()

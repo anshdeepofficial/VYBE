@@ -17,13 +17,28 @@ object YouTubeAuthPreferences {
         val masterKey = MasterKey.Builder(context)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
             .build()
-        val secure = EncryptedSharedPreferences.create(
-            context,
-            SECURE_PREFS_NAME,
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
-        )
+        val secure = try {
+            EncryptedSharedPreferences.create(
+                context,
+                SECURE_PREFS_NAME,
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+            )
+        } catch (e: Exception) {
+            timber.log.Timber.e(e, "YouTubeAuthPreferences: Failed to create EncryptedSharedPreferences. Clearing corrupted file.")
+            val dir = java.io.File(context.applicationInfo.dataDir, "shared_prefs")
+            val file = java.io.File(dir, "$SECURE_PREFS_NAME.xml")
+            if (file.exists()) file.delete()
+            
+            EncryptedSharedPreferences.create(
+                context,
+                SECURE_PREFS_NAME,
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+            )
+        }
         migrateLegacyPreferences(context, secure)
         return secure
     }
