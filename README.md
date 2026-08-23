@@ -61,14 +61,25 @@
 
 ## Download
 
-The current release is **VYBE 0.7.10**.
+The current release is **VYBE 0.7.11**.
 
 | Device architecture | APK |
 | --- | --- |
-| Most modern Android phones (ARM64) | [Download VYBE 0.7.10 ARM64](https://github.com/anshdeepofficial/VYBE/releases/download/v0.7.10/VYBE-v0.7.10-arm64-v8a-release.apk) |
-| Older 32-bit ARM devices | [Download VYBE 0.7.10 ARMv7](https://github.com/anshdeepofficial/VYBE/releases/download/v0.7.10/VYBE-v0.7.10-armeabi-v7a-release.apk) |
+| Most modern Android phones (ARM64) | [Download VYBE 0.7.11 ARM64](https://github.com/anshdeepofficial/VYBE/releases/download/v0.7.11/VYBE-v0.7.11-arm64-v8a-release.apk) |
+| Older 32-bit ARM devices | [Download VYBE 0.7.11 ARMv7](https://github.com/anshdeepofficial/VYBE/releases/download/v0.7.11/VYBE-v0.7.11-armeabi-v7a-release.apk) |
 
 If you are unsure, choose the ARM64 build. Android may ask to allow installation from your browser or file manager when installing outside Google Play.
+
+### Keep VYBE updated with Obtainium
+
+<p align="center">
+  <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium%3A%2F%2Fadd%2Fhttps%3A%2F%2Fgithub.com%2Fanshdeepofficial%2FVYBE">
+    <img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/icon_small.png" alt="Obtainium icon" width="34" />
+    <img src="https://img.shields.io/badge/Add_to_Obtainium-6750A4?style=for-the-badge" alt="Add VYBE to Obtainium" />
+  </a>
+</p>
+
+Tap the button to add this GitHub repository to Obtainium. If Obtainium is not installed, the official redirect page provides its download link; after installing it, return here and tap the button again.
 
 ## Build from source
 
@@ -110,7 +121,7 @@ Keep all private credentials outside version control.
 - Minimum supported Android version: Android 8.0 (API 26)
 - UI: Jetpack Compose and Material 3
 - Playback: AndroidX Media3
-- Latest published version: 0.7.10 (version code 15)
+- Latest published version: 0.7.11 (version code 16)
 
 ## Feedback and issues
 
