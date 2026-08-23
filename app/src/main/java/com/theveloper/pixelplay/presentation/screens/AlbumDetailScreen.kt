@@ -333,7 +333,7 @@ fun AlbumDetailScreen(
                                     song = song,
                                     isCurrentSong = stablePlayerState.currentSong?.id == song.id,
                                     isPlaying = stablePlayerState.isPlaying,
-                                    showAlbumArt = false,
+                                    showAlbumArt = true,
                                     onMoreOptionsClick = {
                                         playerViewModel.selectSongForInfo(song)
                                         showSongInfoBottomSheet = true

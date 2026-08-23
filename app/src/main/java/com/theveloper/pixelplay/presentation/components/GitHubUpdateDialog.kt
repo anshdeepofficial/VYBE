@@ -2,6 +2,7 @@ package com.theveloper.pixelplay.presentation.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -25,6 +26,8 @@ fun GitHubUpdateDialog(
     message: String?,
     onDownloadOrInstall: () -> Unit,
     onDismiss: () -> Unit,
+    onRemindLater: (Long) -> Unit = { onDismiss() },
+    onSkipVersion: () -> Unit = onDismiss,
 ) {
     AlertDialog(
         onDismissRequest = { if (!isDownloading) onDismiss() },
@@ -70,8 +73,16 @@ fun GitHubUpdateDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !isDownloading) {
-                Text("Not now")
+            Row {
+                TextButton(onClick = { onRemindLater(60L * 60L * 1_000L) }, enabled = !isDownloading) {
+                    Text("Remind in 1h")
+                }
+                TextButton(onClick = { onRemindLater(24L * 60L * 60L * 1_000L) }, enabled = !isDownloading) {
+                    Text("Tomorrow")
+                }
+                TextButton(onClick = onSkipVersion, enabled = !isDownloading) {
+                    Text("Skip")
+                }
             }
         },
     )

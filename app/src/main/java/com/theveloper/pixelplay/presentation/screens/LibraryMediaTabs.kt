@@ -635,7 +635,11 @@ fun LibraryArtistsTab(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        items(listeningHistoryArtists, key = { "history_artist_grid_${it.id}" }) { artist ->
+                        items(
+                            count = listeningHistoryArtists.size,
+                            key = { index -> historyArtistItemKey("grid", index, listeningHistoryArtists[index]) },
+                        ) { index ->
+                            val artist = listeningHistoryArtists[index]
                             LibraryArtistGridCard(artist = artist, onClick = { onArtistClick(artist) })
                         }
                     }
@@ -645,7 +649,11 @@ fun LibraryArtistsTab(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         contentPadding = PaddingValues(bottom = bottomBarHeight + MiniPlayerHeight + 24.dp),
                     ) {
-                        items(listeningHistoryArtists, key = { "history_artist_${it.id}" }) { artist ->
+                        items(
+                            count = listeningHistoryArtists.size,
+                            key = { index -> historyArtistItemKey("list", index, listeningHistoryArtists[index]) },
+                        ) { index ->
+                            val artist = listeningHistoryArtists[index]
                             ArtistListItem(artist = artist, onClick = { onArtistClick(artist) })
                         }
                     }
@@ -727,6 +735,9 @@ fun LibraryArtistsTab(
         }
     }
 }
+
+internal fun historyArtistItemKey(layout: String, index: Int, artist: Artist): String =
+    "history_artist_${layout}_${index}_${artist.id}_${artist.name.hashCode()}"
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable

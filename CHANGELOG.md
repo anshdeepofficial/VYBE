@@ -275,3 +275,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Built-in tag editor for song metadata.
 - AI-powered features using Gemini.
 - Smooth in-app permission handling.
+# VYBE 0.7.12 — 23 August 2026
+
+- Fixed the duplicate artist-history key crash.
+- Preserved square artwork and centered landscape thumbnails over a blurred fill.
+- Restored original album title, artist, header artwork, and track thumbnails.
+- Added automatic GitHub update alerts with 1-hour, tomorrow, and skip-version controls.

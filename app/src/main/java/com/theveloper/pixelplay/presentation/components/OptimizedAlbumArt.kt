@@ -47,6 +47,7 @@ fun OptimizedAlbumArt(
     targetSize: Size = SafeOriginalAlbumArtSize,
     placeholderModel: Any? = null,
     contentScale: ContentScale = ContentScale.Crop,
+    onAspectRatioResolved: ((Float) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val requestTargetSize = remember(targetSize) {
@@ -131,6 +132,12 @@ fun OptimizedAlbumArt(
         contentScale = contentScale,
         onSuccess = { state ->
             lastSuccessPainter = state.painter
+            val intrinsicSize = state.painter.intrinsicSize
+            val width = intrinsicSize.width
+            val height = intrinsicSize.height
+            if (width.isFinite() && height.isFinite() && width > 0f && height > 0f) {
+                onAspectRatioResolved?.invoke(width / height)
+            }
         },
         loading = { state ->
             val cachedPainter = state.painter ?: lastSuccessPainter

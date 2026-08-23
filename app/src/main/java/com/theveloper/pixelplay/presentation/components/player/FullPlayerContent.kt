@@ -1251,8 +1251,9 @@ private fun ImmersiveArtworkBackground(
             Size(albumArtQuality.maxSize, albumArtQuality.maxSize)
         }
     }
+    var artworkAspectRatio by remember(artwork) { mutableFloatStateOf(1f) }
+    val isLandscapeArtwork = artworkAspectRatio > 1.12f
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val fullArtworkHeight = maxHeight
         AnimatedContent(
             targetState = song,
             contentKey = { it.id },
@@ -1283,53 +1284,37 @@ private fun ImmersiveArtworkBackground(
             modifier = Modifier.align(Alignment.Center),
             label = "ImmersiveMainArtworkTransition",
         ) { current ->
-            OptimizedAlbumArt(
-                uri = current.albumArtUriString ?: artwork,
-                title = current.title,
-                targetSize = targetSize,
-                contentScale = ContentScale.Fit,
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(1f),
-            )
-        }
-
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .height(fullArtworkHeight * 0.18f)
-                .clipToBounds()
-        ) {
-            OptimizedAlbumArt(
-                uri = artwork,
-                title = song.title,
-                targetSize = targetSize,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .fillMaxWidth()
-                    .height(fullArtworkHeight)
-                    .blur(10.dp),
-            )
-        }
-
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .height(fullArtworkHeight * 0.46f)
-                .clipToBounds()
-        ) {
-            OptimizedAlbumArt(
-                uri = artwork,
-                title = song.title,
-                targetSize = targetSize,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .height(fullArtworkHeight)
-                    .blur(12.dp),
-            )
+                    .aspectRatio(1f)
+                    .clipToBounds(),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (isLandscapeArtwork) {
+                    OptimizedAlbumArt(
+                        uri = current.albumArtUriString ?: artwork,
+                        title = current.title,
+                        targetSize = targetSize,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .blur(18.dp),
+                    )
+                }
+                OptimizedAlbumArt(
+                    uri = current.albumArtUriString ?: artwork,
+                    title = current.title,
+                    targetSize = targetSize,
+                    contentScale = ContentScale.Fit,
+                    onAspectRatioResolved = { ratio -> artworkAspectRatio = ratio },
+                    modifier = if (isLandscapeArtwork) {
+                        Modifier.fillMaxWidth().aspectRatio(artworkAspectRatio)
+                    } else {
+                        Modifier.fillMaxSize()
+                    },
+                )
+            }
         }
         Box(
             modifier = Modifier

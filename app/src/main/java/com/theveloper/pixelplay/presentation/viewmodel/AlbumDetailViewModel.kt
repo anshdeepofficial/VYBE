@@ -57,20 +57,31 @@ class AlbumDetailViewModel @Inject constructor(
             try {
                 val details = onlineMusicRepository.getAlbumDetails(browseId)
                 if (details != null) {
+                    val resolvedCover = details.coverUrl
+                        ?: details.tracks.firstNotNullOfOrNull { it.albumArtUriString?.takeIf(String::isNotBlank) }
+                    val resolvedTitle = details.title.takeUnless { it.equals("Album", ignoreCase = true) }
+                        ?: details.tracks.firstNotNullOfOrNull { track ->
+                            track.album.takeUnless { it.isBlank() || it.equals("YouTube Music", ignoreCase = true) }
+                        }
+                        ?: details.title
+                    val resolvedArtist = details.artist.takeUnless { it.equals("Various Artists", ignoreCase = true) }
+                        ?: details.tracks.firstOrNull()?.artist
+                        ?: details.artist
                     val resolvedTracks = details.tracks.map { track ->
-                        if (track.albumArtUriString.isNullOrBlank() && !details.coverUrl.isNullOrBlank()) {
-                            track.copy(albumArtUriString = details.coverUrl)
-                        } else track
+                        track.copy(
+                            album = resolvedTitle,
+                            albumArtUriString = track.albumArtUriString?.takeIf(String::isNotBlank) ?: resolvedCover,
+                        )
                     }
                     val album = Album(
                         id = browseId.hashCode().toLong(),
-                        title = details.title,
-                        artist = details.artist,
+                        title = resolvedTitle,
+                        artist = resolvedArtist,
                         year = details.year ?: 0,
                         dateAdded = System.currentTimeMillis(),
-                        albumArtUriString = details.coverUrl,
+                        albumArtUriString = resolvedCover,
                         songCount = resolvedTracks.size,
-                        albumArtist = details.artist
+                        albumArtist = resolvedArtist
                     )
                     _uiState.value = AlbumDetailUiState(
                         album = album,

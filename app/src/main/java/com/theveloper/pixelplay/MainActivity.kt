@@ -1095,6 +1095,7 @@ class MainActivity : ComponentActivity() {
                                 downloadedFile = downloadedUpdateFile,
                                 message = updateMessage,
                                 onDownloadOrInstall = {
+                                    updateService.clearDeferral(this@MainActivity)
                                     val downloaded = downloadedUpdateFile
                                     if (downloaded != null) {
                                         val installerOpened = updateService.launchInstaller(this@MainActivity, downloaded)
@@ -1121,6 +1122,15 @@ class MainActivity : ComponentActivity() {
                                     }
                                 },
                                 onDismiss = {
+                                    availableUpdate = null
+                                    updateMessage = null
+                                },
+                                onRemindLater = { delayMillis ->
+                                    updateService.remindLater(this@MainActivity, delayMillis)
+                                    availableUpdate = null
+                                    updateMessage = null
+                                },
+                                onSkipVersion = {
                                     updateService.dismiss(this@MainActivity, update)
                                     availableUpdate = null
                                     updateMessage = null

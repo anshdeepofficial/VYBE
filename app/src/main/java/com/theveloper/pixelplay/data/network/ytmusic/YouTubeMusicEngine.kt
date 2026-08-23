@@ -922,24 +922,13 @@ class YouTubeMusicEngine @Inject constructor(
     suspend fun getAlbumDetails(browseId: String): YouTubeAlbumDetails? = withContext(Dispatchers.IO) {
         val cleanBrowseId = if (browseId.startsWith("yt_album_")) browseId.removePrefix("yt_album_") else browseId
         try {
-            val jsonPayload = JSONObject().apply {
-                put("context", createWebRemixContext("IN"))
-                put("browseId", cleanBrowseId)
+            val bodyString = executeWebRemixRequest("browse", "IN") { config ->
+                JSONObject().apply {
+                    put("context", createWebRemixContext("IN", config))
+                    put("browseId", cleanBrowseId)
+                }
             }
-
-            val request = Request.Builder()
-                .url("$INNERTUBE_MUSIC_BASE/browse?prettyPrint=false")
-                .post(jsonPayload.toString().toRequestBody(JSON_MEDIA_TYPE))
-                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36")
-                .header("Origin", "https://music.youtube.com")
-                .header("Referer", "https://music.youtube.com/")
-                .build()
-
-            val response = okHttpClient.newCall(request).execute()
-            if (response.isSuccessful) {
-                val bodyString = response.body?.string().orEmpty()
-                return@withContext parseAlbumDetailsResponse(cleanBrowseId, bodyString)
-            }
+            if (!bodyString.isNullOrBlank()) return@withContext parseAlbumDetailsResponse(cleanBrowseId, bodyString)
         } catch (e: Exception) {
             Log.e(TAG, "getAlbumDetails failed: ${e.message}")
         }
@@ -1181,14 +1170,20 @@ class YouTubeMusicEngine @Inject constructor(
     private fun parseAlbumDetailsResponse(browseId: String, jsonString: String): YouTubeAlbumDetails? {
         try {
             val root = JSONObject(jsonString)
-            val header = root.optJSONObject("header")?.optJSONObject("musicDetailHeaderRenderer")
-                ?: root.optJSONObject("header")?.optJSONObject("musicResponsiveHeaderRenderer")
+            val header = findFirstObjectForKeys(
+                root,
+                setOf(
+                    "musicDetailHeaderRenderer",
+                    "musicResponsiveHeaderRenderer",
+                    "musicImmersiveHeaderRenderer",
+                    "musicVisualHeaderRenderer",
+                ),
+            )
 
             val title = extractRunsText(header?.optJSONObject("title"))
             val subtitle = extractRunsText(header?.optJSONObject("subtitle"))
-            val artist = extractRunsText(header?.optJSONObject("straplineTextOne"))
-                .ifBlank { subtitle.substringBefore(" • ") }
-                .ifBlank { "Various Artists" }
+            val headerArtist = extractRunsText(header?.optJSONObject("straplineTextOne"))
+                .ifBlank { subtitle.substringBefore("•").trim() }
 
             val year = Regex("\\b(19|20)\\d{2}\\b").find(subtitle)?.value?.toIntOrNull()
             val albumType = when {
@@ -1196,15 +1191,28 @@ class YouTubeMusicEngine @Inject constructor(
                 Regex("\\bEP\\b", RegexOption.IGNORE_CASE).containsMatchIn(subtitle) -> "EP"
                 else -> "Album"
             }
-            val coverUrl = extractThumbnail(header?.optJSONObject("thumbnail"))
+            val headerCoverUrl = extractBestThumbnail(header)
 
             val tracks = mutableListOf<Song>()
             val rawTracks = mutableListOf<YouTubeTrack>()
             collectTracksRecursively(root, rawTracks)
 
+            val resolvedTitle = title.ifBlank {
+                rawTracks.firstNotNullOfOrNull { track ->
+                    track.album.takeUnless { it.isBlank() || it.equals("YouTube Music", ignoreCase = true) }
+                }.orEmpty()
+            }.ifBlank { "Album" }
+            val resolvedArtist = headerArtist.ifBlank {
+                rawTracks.map { it.artist.trim() }.filter(String::isNotBlank)
+                    .groupingBy { it }.eachCount().maxByOrNull { it.value }?.key.orEmpty()
+            }.ifBlank { "Various Artists" }
+            val coverUrl = headerCoverUrl
+                ?: rawTracks.firstNotNullOfOrNull { it.thumbnailUrl?.takeIf(String::isNotBlank) }
+
             rawTracks.forEachIndexed { index, track ->
                 val song = track.toSong().copy(
-                    album = title.ifBlank { "Album" },
+                    album = resolvedTitle,
+                    albumArtUriString = track.thumbnailUrl?.takeIf(String::isNotBlank) ?: coverUrl,
                     trackNumber = index + 1
                 )
                 tracks.add(song)
@@ -1212,8 +1220,8 @@ class YouTubeMusicEngine @Inject constructor(
 
             return YouTubeAlbumDetails(
                 browseId = browseId,
-                title = title.ifBlank { "Album" },
-                artist = artist,
+                title = resolvedTitle,
+                artist = resolvedArtist,
                 year = year,
                 coverUrl = coverUrl,
                 albumType = albumType,
@@ -1224,6 +1232,50 @@ class YouTubeMusicEngine @Inject constructor(
             Log.e(TAG, "parseAlbumDetailsResponse error: ${e.message}")
         }
         return null
+    }
+
+    private fun findFirstObjectForKeys(root: Any?, keys: Set<String>): JSONObject? {
+        when (root) {
+            is JSONObject -> {
+                for (key in keys) root.optJSONObject(key)?.let { return it }
+                val iterator = root.keys()
+                while (iterator.hasNext()) {
+                    findFirstObjectForKeys(root.opt(iterator.next()), keys)?.let { return it }
+                }
+            }
+            is JSONArray -> for (index in 0 until root.length()) {
+                findFirstObjectForKeys(root.opt(index), keys)?.let { return it }
+            }
+        }
+        return null
+    }
+
+    private fun extractBestThumbnail(root: Any?): String? {
+        var bestUrl: String? = null
+        var bestArea = -1L
+        fun visit(node: Any?) {
+            when (node) {
+                is JSONObject -> {
+                    val url = node.optString("url").takeIf {
+                        it.contains("googleusercontent.com", true) ||
+                            it.contains("ggpht.com", true) ||
+                            it.contains("ytimg.com", true)
+                    }
+                    if (url != null) {
+                        val area = node.optLong("width", 1L) * node.optLong("height", 1L)
+                        if (area >= bestArea) {
+                            bestArea = area
+                            bestUrl = url
+                        }
+                    }
+                    val iterator = node.keys()
+                    while (iterator.hasNext()) visit(node.opt(iterator.next()))
+                }
+                is JSONArray -> for (index in 0 until node.length()) visit(node.opt(index))
+            }
+        }
+        visit(root)
+        return bestUrl?.let(::highQualityArtworkUrl)
     }
 
     /**
@@ -1477,6 +1529,7 @@ class YouTubeMusicEngine @Inject constructor(
         if (!isAlbumTrack && !isOfficialMusicVideo && !isExplicitMusicTrack) return null
 
         val thumbnail = extractThumbnail(item.optJSONObject("thumbnail"))
+            ?: extractBestThumbnail(item)
             ?: "https://i.ytimg.com/vi/$videoId/hqdefault.jpg"
 
         val linkedArtists = extractLinkedArtists(item)

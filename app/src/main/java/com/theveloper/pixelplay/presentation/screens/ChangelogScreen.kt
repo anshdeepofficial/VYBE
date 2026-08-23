@@ -32,6 +32,16 @@ private data class ChangelogRelease(
 
 private val VybeChangelog = listOf(
     ChangelogRelease(
+        version = "0.7.12",
+        date = "23 August 2026",
+        changes = listOf(
+            "Fixed duplicate artist-history keys that could crash Home.",
+            "Preserved square artwork and centered landscape thumbnails over a blurred fill.",
+            "Restored album titles, artists, artwork, and track thumbnails from YouTube Music.",
+            "Added automatic GitHub update notifications with reminder and skip controls.",
+        ),
+    ),
+    ChangelogRelease(
         version = "0.7.11",
         date = "23 August 2026",
         changes = listOf(

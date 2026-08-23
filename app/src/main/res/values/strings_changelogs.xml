@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string-array name="changelog_0712_fixes">
+        <item>Fixed the duplicate artist-history key crash.</item>
+        <item>Fixed square and landscape artwork presentation in the immersive player.</item>
+        <item>Restored original album metadata and track artwork.</item>
+        <item>Added automatic GitHub update alerts with reminder and skip controls.</item>
+    </string-array>
     <string-array name="changelog_0711_fixes">
         <item>Artist pages now open immediately and progressively load original profiles, artwork, and full catalogues.</item>
         <item>Added a Storage &amp; cache dashboard with image cache, downloads, other app data, and total usage.</item>

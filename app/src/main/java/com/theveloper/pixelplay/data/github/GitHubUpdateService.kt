@@ -67,6 +67,9 @@ class GitHubUpdateService {
                 val dismissedTag = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                     .getString(KEY_DISMISSED_TAG, null)
                 if (respectDismissal && dismissedTag == tag) return@runCatching null
+                val remindAfter = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                    .getLong(KEY_REMIND_AFTER, 0L)
+                if (respectDismissal && System.currentTimeMillis() < remindAfter) return@runCatching null
 
                 GitHubReleaseUpdate(
                     tagName = tag,
@@ -175,6 +178,20 @@ class GitHubUpdateService {
             .apply()
     }
 
+    fun remindLater(context: Context, delayMillis: Long) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putLong(KEY_REMIND_AFTER, System.currentTimeMillis() + delayMillis.coerceAtLeast(0L))
+            .apply()
+    }
+
+    fun clearDeferral(context: Context) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .remove(KEY_REMIND_AFTER)
+            .apply()
+    }
+
     fun launchInstaller(context: Context, apk: File): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !context.packageManager.canRequestPackageInstalls()) {
             context.startActivity(
@@ -273,6 +290,7 @@ class GitHubUpdateService {
     private companion object {
         const val PREFS_NAME = "vybe_app_updates"
         const val KEY_DISMISSED_TAG = "dismissed_release_tag"
+        const val KEY_REMIND_AFTER = "remind_after_timestamp"
         const val KEY_DOWNLOADED_BASE_VERSION = "downloaded_base_version"
         const val MAX_NOTES_LENGTH = 1_200
         const val UPDATE_FILE_MAX_AGE_MS = 7L * 24L * 60L * 60L * 1_000L

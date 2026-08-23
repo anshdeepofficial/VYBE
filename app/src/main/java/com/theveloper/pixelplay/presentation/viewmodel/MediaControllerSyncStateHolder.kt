@@ -150,13 +150,23 @@ class MediaControllerSyncStateHolder @Inject constructor(
                     ?.getString(MediaItemBuilder.EXTERNAL_EXTRA_ALBUM_ART)
                     ?.takeIf { it.isNotBlank() }
 
+        val currentArtwork = song.albumArtUriString?.takeIf { it.isNotBlank() }
+        val resolvedArtwork = when {
+            metadataArtwork == null -> currentArtwork
+            currentArtwork == null -> metadataArtwork
+            currentArtwork.isSquareMusicArtwork() && metadataArtwork.isVideoThumbnail() -> currentArtwork
+            else -> metadataArtwork
+        }
         return when {
-            metadataArtwork == null && song.albumArtUriString != null -> song.copy(albumArtUriString = null)
-            metadataArtwork != null && song.albumArtUriString != metadataArtwork ->
-                song.copy(albumArtUriString = metadataArtwork)
+            resolvedArtwork != currentArtwork -> song.copy(albumArtUriString = resolvedArtwork)
             else -> song
         }
     }
+
+    private fun String.isSquareMusicArtwork(): Boolean =
+        contains("googleusercontent.com", ignoreCase = true) || contains("ggpht.com", ignoreCase = true)
+
+    private fun String.isVideoThumbnail(): Boolean = contains("ytimg.com/vi/", ignoreCase = true)
 
     private fun updateCurrentPlaybackQueueFromPlayer(playerCtrl: MediaController?) {
         val currentMediaController = playerCtrl ?: cb.getController() ?: return
