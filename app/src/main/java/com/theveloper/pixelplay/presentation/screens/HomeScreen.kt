@@ -40,7 +40,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeExtendedFloatingActionButton
-import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -615,9 +615,9 @@ private fun YourMixLoadingPlaceholder() {
             .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
-        LoadingIndicator(
-            modifier = Modifier.size(128.dp),
-            color = MaterialTheme.colorScheme.primary
+        CircularProgressIndicator(
+            modifier = Modifier.size(64.dp),
+            color = MaterialTheme.colorScheme.primary,
         )
     }
 }
@@ -940,7 +940,7 @@ private fun YouTubeMusicHomeRow(
                     .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
-                LoadingIndicator(
+                CircularProgressIndicator(
                     modifier = Modifier.size(48.dp),
                     color = MaterialTheme.colorScheme.primary
                 )
