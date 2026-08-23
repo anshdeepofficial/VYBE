@@ -26,18 +26,8 @@ object YouTubeAuthPreferences {
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
             )
         } catch (e: Exception) {
-            timber.log.Timber.e(e, "YouTubeAuthPreferences: Failed to create EncryptedSharedPreferences. Clearing corrupted file.")
-            val dir = java.io.File(context.applicationInfo.dataDir, "shared_prefs")
-            val file = java.io.File(dir, "$SECURE_PREFS_NAME.xml")
-            if (file.exists()) file.delete()
-            
-            EncryptedSharedPreferences.create(
-                context,
-                SECURE_PREFS_NAME,
-                masterKey,
-                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
-            )
+            timber.log.Timber.e(e, "YouTubeAuthPreferences: Keystore failed. Falling back to plain SharedPreferences.")
+            context.getSharedPreferences(SECURE_PREFS_NAME + "_plain", Context.MODE_PRIVATE)
         }
         migrateLegacyPreferences(context, secure)
         return secure

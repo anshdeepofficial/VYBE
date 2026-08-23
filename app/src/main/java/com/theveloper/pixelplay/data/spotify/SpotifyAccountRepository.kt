@@ -70,19 +70,8 @@ class SpotifyAccountRepository @Inject constructor(
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
         )
     } catch (e: Exception) {
-        timber.log.Timber.e(e, "SpotifyAccountRepository: Failed to create EncryptedSharedPreferences. Clearing corrupted file.")
-        val dir = java.io.File(context.applicationInfo.dataDir, "shared_prefs")
-        val file = java.io.File(dir, "$PREFS_NAME.xml")
-        if (file.exists()) file.delete()
-        
-        val masterKey = MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build()
-        EncryptedSharedPreferences.create(
-            context,
-            PREFS_NAME,
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
-        )
+        timber.log.Timber.e(e, "SpotifyAccountRepository: Keystore failed. Falling back to plain SharedPreferences.")
+        context.getSharedPreferences(PREFS_NAME + "_plain", Context.MODE_PRIVATE)
     }
 
     private val _isLoggedIn = MutableStateFlow(hasUsableSession())
