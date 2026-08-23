@@ -29,6 +29,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ContainedLoadingIndicator
@@ -599,9 +601,7 @@ private fun SharedAlbumTopBarProbe(
             syncStatusBarWithContainer = false
         )
 
-        LargeExtendedFloatingActionButton(
-            onClick = onPlayClick,
-            shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
+        Row(
             modifier = Modifier
                 .align(shuffleAlignment)
                 .statusBarsPadding()
@@ -610,9 +610,33 @@ private fun SharedAlbumTopBarProbe(
                     scaleX = expandedContentAlpha
                     scaleY = expandedContentAlpha
                     alpha = expandedContentAlpha
-                }
+                },
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Icon(Icons.Rounded.Shuffle, contentDescription = stringResource(R.string.common_shuffle_play_album))
+            FloatingActionButton(
+                onClick = onPlayClick, // Needs to be changed to play first song
+                shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp)
+            ) {
+                Icon(Icons.Rounded.PlayArrow, contentDescription = "Play")
+            }
+            FloatingActionButton(
+                onClick = onPlayClick, // Needs to be changed to shuffle
+                shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp)
+            ) {
+                Icon(Icons.Rounded.Shuffle, contentDescription = "Shuffle")
+            }
+            FloatingActionButton(
+                onClick = onPlayClick, // Needs to be changed to loop
+                shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp)
+            ) {
+                Icon(Icons.Rounded.Repeat, contentDescription = "Loop")
+            }
         }
     }
 }
@@ -774,9 +798,7 @@ private fun CollapsingAlbumTopBar(
                     }
                 }
 
-                LargeExtendedFloatingActionButton(
-                    onClick = onPlayClick,
-                    shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
+                Row(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(16.dp)
@@ -784,9 +806,33 @@ private fun CollapsingAlbumTopBar(
                             scaleX = fabScale
                             scaleY = fabScale
                             alpha = fabScale
-                        }
+                        },
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(Icons.Rounded.Shuffle, contentDescription = stringResource(R.string.common_shuffle_play_album))
+                    FloatingActionButton(
+                        onClick = onPlayClick,
+                        shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp)
+                    ) {
+                        Icon(Icons.Rounded.PlayArrow, contentDescription = "Play")
+                    }
+                    FloatingActionButton(
+                        onClick = onPlayClick,
+                        shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp)
+                    ) {
+                        Icon(Icons.Rounded.Shuffle, contentDescription = "Shuffle")
+                    }
+                    FloatingActionButton(
+                        onClick = onPlayClick,
+                        shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp)
+                    ) {
+                        Icon(Icons.Rounded.Repeat, contentDescription = "Loop")
+                    }
                 }
             }
         }

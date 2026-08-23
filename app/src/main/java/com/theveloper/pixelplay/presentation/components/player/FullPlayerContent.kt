@@ -1322,12 +1322,12 @@ private fun ImmersiveArtworkBackground(
                 .background(
                     Brush.verticalGradient(
                         colorStops = arrayOf(
-                            0f to Color.Black.copy(alpha = 0.28f),
-                            0.18f to Color.Black.copy(alpha = 0.12f),
-                            0.42f to Color.Transparent,
-                            0.60f to Color.Black.copy(alpha = 0.22f),
-                            0.76f to Color.Black.copy(alpha = 0.66f),
-                            1f to Color.Black.copy(alpha = 0.94f),
+                            0f to Color.Black.copy(alpha = 0.38f),
+                            0.18f to Color.Black.copy(alpha = 0.15f),
+                            0.38f to Color.Black.copy(alpha = 0.25f),
+                            0.48f to Color.Black.copy(alpha = 0.65f),
+                            0.62f to Color.Black.copy(alpha = 0.88f),
+                            1f to Color.Black.copy(alpha = 0.96f),
                         )
                     )
                 )
