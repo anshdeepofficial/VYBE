@@ -128,6 +128,22 @@ fun OnlineSearchScreen(
                             expanded = false,
                             onExpandedChange = {},
                             placeholder = { Text("Search songs, movies, albums, artists") },
+                            trailingIcon = {
+                                if (query.isNotBlank()) {
+                                    IconButton(
+                                        onClick = {
+                                            query = ""
+                                            viewModel.clearSearch()
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Close,
+                                            contentDescription = "Clear search",
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            },
                             colors = SearchBarDefaults.inputFieldColors(
                                 focusedTextColor = MaterialTheme.colorScheme.onSurface,
                                 unfocusedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
