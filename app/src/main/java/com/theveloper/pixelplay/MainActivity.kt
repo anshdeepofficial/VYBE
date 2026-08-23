@@ -15,6 +15,7 @@ import android.graphics.Shader as AndroidShader
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import android.os.Bundle
 import android.os.Trace
+import android.view.WindowManager
 import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -219,7 +220,17 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             window.isNavigationBarContrastEnforced = false
         }
+        // Hilt performs field injection from the generated superclass on super.onCreate().
+        // Never access injected repositories before this point (some OEM builds crash immediately).
         super.onCreate(savedInstanceState)
+        lifecycleScope.launch {
+            userPreferencesRepository.screenshotPrivacyFlow
+                .distinctUntilChanged()
+                .collect { enabled ->
+                    if (enabled) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                    else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                }
+        }
 
         // MD3 Optimization: Release Splash Screen immediately to render UI skeleton.
         // Data loading is handled via optimistic UI and smooth transitions.

@@ -1281,7 +1281,7 @@ private fun ImmersiveArtworkBackground(
                 fadeIn(tween(420, easing = FastOutSlowInEasing)) togetherWith
                     fadeOut(tween(300, easing = FastOutSlowInEasing))
             },
-            modifier = Modifier.align(Alignment.Center),
+            modifier = Modifier.align(Alignment.TopCenter),
             label = "ImmersiveMainArtworkTransition",
         ) { current ->
             Box(
@@ -1322,11 +1322,12 @@ private fun ImmersiveArtworkBackground(
                 .background(
                     Brush.verticalGradient(
                         colorStops = arrayOf(
-                            0f to Color.Black.copy(alpha = 0.46f),
-                            0.16f to Color.Black.copy(alpha = 0.36f),
-                            0.40f to Color.Black.copy(alpha = 0.04f),
-                            0.58f to Color.Black.copy(alpha = 0.18f),
-                            1f to Color.Black.copy(alpha = 0.78f),
+                            0f to Color.Black.copy(alpha = 0.28f),
+                            0.18f to Color.Black.copy(alpha = 0.12f),
+                            0.42f to Color.Transparent,
+                            0.60f to Color.Black.copy(alpha = 0.22f),
+                            0.76f to Color.Black.copy(alpha = 0.66f),
+                            1f to Color.Black.copy(alpha = 0.94f),
                         )
                     )
                 )

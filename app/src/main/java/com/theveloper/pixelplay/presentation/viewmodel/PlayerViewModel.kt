@@ -67,6 +67,7 @@ import com.theveloper.pixelplay.data.repository.LyricsSearchResult
 import com.theveloper.pixelplay.data.repository.MusicRepository
 import com.theveloper.pixelplay.data.repository.OnlineMusicRepository
 import com.theveloper.pixelplay.data.listentogether.ListenTogetherRepository
+import com.theveloper.pixelplay.data.sponsorblock.SponsorBlockRepository
 import com.theveloper.pixelplay.data.listentogether.ListenTogetherState
 import com.theveloper.pixelplay.data.listentogether.SharedPlaybackSnapshot
 import com.theveloper.pixelplay.data.service.MusicNotificationProvider
@@ -105,9 +106,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
@@ -195,6 +198,7 @@ class PlayerViewModel @Inject constructor(
     private val musicRepository: MusicRepository,
     private val onlineMusicRepository: OnlineMusicRepository,
     private val listenTogetherRepository: ListenTogetherRepository,
+    private val sponsorBlockRepository: SponsorBlockRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val aiPreferencesRepository: AiPreferencesRepository,
     private val themePreferencesRepository: ThemePreferencesRepository,
@@ -824,6 +828,7 @@ class PlayerViewModel @Inject constructor(
         playbackDispatchStateHolder.initialize(playbackDispatchCallbacks())
         mediaControllerSyncStateHolder.initialize(controllerSyncCallbacks())
         initializeListenTogether()
+        initializeSponsorBlock()
 
         // On cold start, the MediaController connects asynchronously, leaving stablePlayerState.currentSong
         // null until that happens. Pre-load the palette from the persisted snapshot so the mini player
@@ -997,6 +1002,32 @@ class PlayerViewModel @Inject constructor(
         listenTogetherRepository.incomingSnapshots
             .onEach(::applySharedPlaybackSnapshot)
             .launchIn(viewModelScope)
+    }
+
+    private fun initializeSponsorBlock() {
+        combine(
+            stablePlayerState.map { it.currentSong }.distinctUntilChangedBy { it?.id },
+            userPreferencesRepository.sponsorBlockEnabledFlow.distinctUntilChanged(),
+        ) { song, enabled -> song to enabled }
+            .flatMapLatest { (song, enabled) ->
+                val videoId = song?.sponsorBlockVideoId()
+                if (!enabled || videoId.isNullOrBlank()) return@flatMapLatest emptyFlow()
+                flow {
+                    val segments = sponsorBlockRepository.segments(videoId)
+                    currentPlaybackPosition.collect { position -> emit(position to segments) }
+                }
+            }
+            .onEach { (position, segments) ->
+                segments.firstOrNull { position in it.startMs until (it.endMs - 200L).coerceAtLeast(it.startMs) }
+                    ?.let { segment -> playbackStateHolder.seekTo(segment.endMs + 50L) }
+            }
+            .launchIn(viewModelScope)
+    }
+
+    private fun Song.sponsorBlockVideoId(): String? {
+        val fromContent = contentUriString.substringAfter("yt://", "").substringBefore('?')
+        if (fromContent.isNotBlank()) return fromContent
+        return id.removePrefix("yt_").takeIf { id.startsWith("yt_") && it.isNotBlank() }
     }
 
     private suspend fun applySharedPlaybackSnapshot(snapshot: SharedPlaybackSnapshot) {

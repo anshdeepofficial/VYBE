@@ -241,6 +241,23 @@ class SettingsViewModel @Inject constructor(
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
+    val screenshotPrivacyEnabled: StateFlow<Boolean> =
+        userPreferencesRepository.screenshotPrivacyFlow.stateIn(
+            viewModelScope, SharingStarted.WhileSubscribed(5_000), false
+        )
+    val sponsorBlockEnabled: StateFlow<Boolean> =
+        userPreferencesRepository.sponsorBlockEnabledFlow.stateIn(
+            viewModelScope, SharingStarted.WhileSubscribed(5_000), false
+        )
+
+    fun setScreenshotPrivacy(enabled: Boolean) = viewModelScope.launch {
+        userPreferencesRepository.setScreenshotPrivacy(enabled)
+    }
+
+    fun setSponsorBlockEnabled(enabled: Boolean) = viewModelScope.launch {
+        userPreferencesRepository.setSponsorBlockEnabled(enabled)
+    }
+
     val searchHistoryEnabled: StateFlow<Boolean> =
         userPreferencesRepository.searchHistoryEnabledFlow.stateIn(
             viewModelScope,

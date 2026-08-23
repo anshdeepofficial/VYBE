@@ -225,6 +225,8 @@ fun SettingsCategoryScreen(
     val notificationActionOne by settingsViewModel.notificationActionOne.collectAsStateWithLifecycle()
     val notificationActionTwo by settingsViewModel.notificationActionTwo.collectAsStateWithLifecycle()
     val listenTogetherState by playerViewModel.listenTogetherState.collectAsStateWithLifecycle()
+    val screenshotPrivacyEnabled by settingsViewModel.screenshotPrivacyEnabled.collectAsStateWithLifecycle()
+    val sponsorBlockEnabled by settingsViewModel.sponsorBlockEnabled.collectAsStateWithLifecycle()
     val currentAiApiKey by settingsViewModel.currentAiApiKey.collectAsStateWithLifecycle()
     val currentAiModel by settingsViewModel.currentAiModel.collectAsStateWithLifecycle()
     val currentAiSystemPrompt by settingsViewModel.currentAiSystemPrompt.collectAsStateWithLifecycle()
@@ -642,6 +644,13 @@ fun SettingsCategoryScreen(
                                     onCheckedChange = { settingsViewModel.setShowScrollbar(it) },
                                     leadingIcon = { Icon(Icons.Rounded.UnfoldMore, null, tint = MaterialTheme.colorScheme.secondary) }
                                 )
+                                SwitchSettingItem(
+                                    title = "Screenshot privacy",
+                                    subtitle = "Block screenshots and screen recording inside VYBE",
+                                    checked = screenshotPrivacyEnabled,
+                                    onCheckedChange = settingsViewModel::setScreenshotPrivacy,
+                                    leadingIcon = { Icon(Icons.Outlined.Info, null, tint = MaterialTheme.colorScheme.secondary) }
+                                )
                             }
 
                             SettingsSubsection(title = stringResource(R.string.settings_now_playing_section)) {
@@ -806,6 +815,15 @@ fun SettingsCategoryScreen(
                             }
                         }
                         SettingsCategory.PLAYBACK -> {
+                            SettingsSubsection(title = "Smart playback") {
+                                SwitchSettingItem(
+                                    title = "SponsorBlock",
+                                    subtitle = "Automatically skip known sponsor and non-music sections in YouTube videos",
+                                    checked = sponsorBlockEnabled,
+                                    onCheckedChange = settingsViewModel::setSponsorBlockEnabled,
+                                    leadingIcon = { Icon(Icons.Rounded.MusicNote, null, tint = MaterialTheme.colorScheme.secondary) }
+                                )
+                            }
                             SettingsSubsection(title = "Notification player controls") {
                                 val notificationOptions = NotificationPlayerAction.entries.associate {
                                     it.name to it.displayName

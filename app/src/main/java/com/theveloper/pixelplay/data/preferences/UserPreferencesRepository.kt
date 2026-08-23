@@ -288,6 +288,8 @@ class UserPreferencesRepository @Inject constructor(
         val REPLAYGAIN_USE_ALBUM_GAIN = booleanPreferencesKey("replaygain_use_album_gain")
         val PAUSE_ON_VOLUME_ZERO = booleanPreferencesKey("pause_on_volume_zero")
         val SHOW_SCROLLBAR = booleanPreferencesKey("show_scrollbar")
+        val SCREENSHOT_PRIVACY = booleanPreferencesKey("screenshot_privacy")
+        val SPONSOR_BLOCK_ENABLED = booleanPreferencesKey("sponsor_block_enabled")
     }
 
     // â”€â”€â”€ Private helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -911,6 +913,20 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.SHOW_SCROLLBAR] = enabled
         }
+    }
+
+    val screenshotPrivacyFlow: Flow<Boolean> =
+        dataStore.data.map { it[PreferencesKeys.SCREENSHOT_PRIVACY] ?: false }
+
+    suspend fun setScreenshotPrivacy(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.SCREENSHOT_PRIVACY] = enabled }
+    }
+
+    val sponsorBlockEnabledFlow: Flow<Boolean> =
+        dataStore.data.map { it[PreferencesKeys.SPONSOR_BLOCK_ENABLED] ?: false }
+
+    suspend fun setSponsorBlockEnabled(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.SPONSOR_BLOCK_ENABLED] = enabled }
     }
 
     // â”€â”€â”€ Sort options â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
