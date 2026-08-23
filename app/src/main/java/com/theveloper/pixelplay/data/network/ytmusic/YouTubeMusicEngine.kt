@@ -1168,7 +1168,7 @@ class YouTubeMusicEngine @Inject constructor(
             videos.addAll(rawTracks.filter { it.resultType == YouTubeMusicEntityType.MUSIC_VIDEO }.map { it.toSong() })
 
             // Collect release sections
-            parseStructuredRecursive(root, mutableListOf(), albums, relatedArtists)
+            parseStructuredRecursive(root, mutableListOf(), albums, relatedArtists, mutableListOf())
 
             return YouTubeArtistProfile(
                 browseId = browseId,
