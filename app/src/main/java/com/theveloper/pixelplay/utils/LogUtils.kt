@@ -7,7 +7,13 @@ object LogUtils {
     private const val MAX_TAG_LENGTH = 23
 
     private fun getTag(instance: Any): String {
-        val className = (instance as? String) ?: instance.javaClass.simpleName
+        val className = (instance as? String) ?: try {
+            instance.javaClass.simpleName
+        } catch (e: Exception) {
+            "VYBELog"
+        } catch (e: Error) {
+            "VYBELog"
+        }
         return className.take(MAX_TAG_LENGTH)
     }
 

@@ -536,6 +536,7 @@ fun SongInfoBottomSheet(
 
                                         Row3Actions(
                                             onAddToPlaylist = onAddToPlayList,
+                                            showDelete = (song.id.toLongOrNull() != null),
                                             onDelete = {
                                                 (context as? Activity)?.let { activity ->
                                                     onDeleteFromDevice(activity, song) { result ->
@@ -1459,7 +1460,7 @@ private fun Row2Actions(
             TightWrapText(
                 text = stringResource(R.string.song_info_action_queue_next),
                 modifier = Modifier.padding(end = 4.dp),
-                overflow = TextOverflow.Ellipsis,
+overflow = TextOverflow.Ellipsis,
                 maxLines = 2,
                 lineHeight = 20.sp
             )
@@ -1470,6 +1471,7 @@ private fun Row2Actions(
 @Composable
 private fun Row3Actions(
     onAddToPlaylist: () -> Unit,
+    showDelete: Boolean,
     onDelete: () -> Unit
 ) {
     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
@@ -1500,8 +1502,8 @@ private fun Row3Actions(
     }
 
     val pressSpec = spring<Float>(
-        dampingRatio = 0.8f,
-        stiffness = 300f
+        dampingRatio = 0.6f,
+        stiffness = 500f
     )
 
     val pressFractionPlaylist by animateFloatAsState(
@@ -1527,7 +1529,7 @@ private fun Row3Actions(
     ) {
         FilledTonalButton(
             modifier = Modifier
-                .weight(weightPlaylist)
+                .weight(if (showDelete) weightPlaylist else 1f)
                 .heightIn(min = 66.dp),
             colors = ButtonDefaults.filledTonalButtonColors(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -1563,42 +1565,44 @@ private fun Row3Actions(
             )
         }
 
-        FilledTonalButton(
-            modifier = Modifier
-                .weight(weightDelete)
-                .heightIn(min = 66.dp),
-            colors = ButtonDefaults.filledTonalButtonColors(
-                containerColor = MaterialTheme.colorScheme.errorContainer,
-                contentColor = MaterialTheme.colorScheme.onErrorContainer
-            ),
-            contentPadding = PaddingValues(horizontal = 10.dp),
-            shape = CircleShape,
-            interactionSource = deleteInteractionSource,
-            onClick = {
-                if (clickPending) return@FilledTonalButton
-                clickPending = true
-                deleteVisualPressed = true
-                android.util.Log.d("VYBEDebug", "Row3Actions: Delete clicked")
-                coroutineScope.launch {
-                    kotlinx.coroutines.delay(180)
-                    deleteVisualPressed = false
-                    clickPending = false
-                    onDelete()
+        if (showDelete) {
+            FilledTonalButton(
+                modifier = Modifier
+                    .weight(weightDelete)
+                    .heightIn(min = 66.dp),
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer
+                ),
+                contentPadding = PaddingValues(horizontal = 10.dp),
+                shape = CircleShape,
+                interactionSource = deleteInteractionSource,
+                onClick = {
+                    if (clickPending) return@FilledTonalButton
+                    clickPending = true
+                    deleteVisualPressed = true
+                    android.util.Log.d("VYBEDebug", "Row3Actions: Delete clicked")
+                    coroutineScope.launch {
+                        kotlinx.coroutines.delay(180)
+                        deleteVisualPressed = false
+                        clickPending = false
+                        onDelete()
+                    }
                 }
+            ) {
+                Icon(
+                    Icons.Default.DeleteForever,
+                    contentDescription = stringResource(R.string.song_info_action_delete)
+                )
+                Spacer(Modifier.width(6.dp))
+                TightWrapText(
+                    text = stringResource(R.string.song_info_action_delete),
+                    modifier = Modifier.padding(end = 4.dp),
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 2,
+                    lineHeight = 20.sp
+                )
             }
-        ) {
-            Icon(
-                Icons.Default.DeleteForever,
-                contentDescription = stringResource(R.string.song_info_action_delete)
-            )
-            Spacer(Modifier.width(6.dp))
-            TightWrapText(
-                text = stringResource(R.string.song_info_action_delete),
-                modifier = Modifier.padding(end = 4.dp),
-                overflow = TextOverflow.Ellipsis,
-                maxLines = 2,
-                lineHeight = 20.sp
-            )
         }
     }
 }

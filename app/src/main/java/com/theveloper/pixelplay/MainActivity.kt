@@ -290,7 +290,7 @@ class MainActivity : ComponentActivity() {
             // Sync Trigger: When we are NOT showing setup (meaning permissions are good and setup is done)
             LaunchedEffect(showSetupScreen) {
                 if (showSetupScreen == false) {
-                     LogUtils.i(this, "Setup complete/skipped and permissions valid. Starting sync.")
+                     LogUtils.i("MainActivity", "Setup complete/skipped and permissions valid. Starting sync.")
                      mainViewModel.startSync()
                 }
             }
