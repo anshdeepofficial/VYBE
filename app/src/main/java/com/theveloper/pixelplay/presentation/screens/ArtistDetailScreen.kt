@@ -282,6 +282,8 @@ fun ArtistDetailScreen(
                             .filterNot { it in currentKeys }
                             .forEach { staleKey -> expandedSections.remove(staleKey) }
                     }
+                    var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
+                    val tabs = listOf("Songs", "Videos", "Albums")
 
                     val isScrollbarEnabled = LocalShowScrollbar.current
                     val showScrollBar by remember(isScrollbarEnabled) {
@@ -329,85 +331,170 @@ fun ArtistDetailScreen(
                                 }
                             }
                         }
-                        albumSections.forEachIndexed { index, section ->
-                            if (section.songs.isEmpty()) return@forEachIndexed
-
-                            val sectionKey = section.collapseKey()
-                            val isExpanded = expandedSections[sectionKey] ?: true
-                            val sectionSongs = if (isTransitionFinished) section.songs else section.songs.take(5)
-
-                            item(
-                                key = "${sectionKey}_header",
-                                contentType = "artist_section_header"
+                        item(key = "artist_tabs", contentType = "artist_tabs") {
+                            SecondaryTabRow(
+                                selectedTabIndex = selectedTabIndex,
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                                containerColor = Color.Transparent,
                             ) {
-                                CollapsibleAlbumSectionHeader(
-                                    section = section,
-                                    isExpanded = isExpanded,
-                                    onToggleExpanded = {
-                                        expandedSections[sectionKey] = !isExpanded
-                                    },
-                                    onPlayAlbum = {
-                                        section.songs.firstOrNull()?.let { firstSong ->
-                                            playerViewModel.showAndPlaySong(firstSong, section.songs)
+                                tabs.forEachIndexed { index, title ->
+                                    Tab(
+                                        selected = selectedTabIndex == index,
+                                        onClick = { selectedTabIndex = index },
+                                        text = { Text(title, style = MaterialTheme.typography.titleSmall) }
+                                    )
+                                }
+                            }
+                        }
+
+                        when (selectedTabIndex) {
+                            0 -> {
+                                if (uiState.songs.isEmpty()) {
+                                    item { Text("No digital songs found.", modifier = Modifier.padding(16.dp)) }
+                                } else {
+                                    itemsIndexed(
+                                        items = if (isTransitionFinished) uiState.songs else uiState.songs.take(15),
+                                        key = { songIndex, song -> "song_${song.id}_$songIndex" },
+                                        contentType = { _, _ -> "artist_section_song" }
+                                    ) { songIndex, song ->
+                                        ArtistAlbumSectionSongItem(
+                                            modifier = Modifier.animateItem(
+                                                fadeInSpec = tween(durationMillis = 180),
+                                                fadeOutSpec = tween(durationMillis = 120),
+                                                placementSpec = tween(durationMillis = 200)
+                                            ),
+                                            song = song,
+                                            songIndex = songIndex,
+                                            songCount = uiState.songs.size,
+                                            isCurrentSong = stablePlayerState.currentSong?.id == song.id,
+                                            isPlaying = stablePlayerState.isPlaying,
+                                            onSongClick = {
+                                                playerViewModel.showAndPlaySong(song, uiState.songs)
+                                            },
+                                            onMoreOptionsClick = {
+                                                playerViewModel.selectSongForInfo(song)
+                                                showSongInfoBottomSheet = true
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                            1 -> {
+                                if (uiState.videos.isEmpty()) {
+                                    item { Text("No videos found.", modifier = Modifier.padding(16.dp)) }
+                                } else {
+                                    itemsIndexed(
+                                        items = if (isTransitionFinished) uiState.videos else uiState.videos.take(15),
+                                        key = { songIndex, song -> "video_${song.id}_$songIndex" },
+                                        contentType = { _, _ -> "artist_section_song" }
+                                    ) { songIndex, song ->
+                                        ArtistAlbumSectionSongItem(
+                                            modifier = Modifier.animateItem(
+                                                fadeInSpec = tween(durationMillis = 180),
+                                                fadeOutSpec = tween(durationMillis = 120),
+                                                placementSpec = tween(durationMillis = 200)
+                                            ),
+                                            song = song,
+                                            songIndex = songIndex,
+                                            songCount = uiState.videos.size,
+                                            isCurrentSong = stablePlayerState.currentSong?.id == song.id,
+                                            isPlaying = stablePlayerState.isPlaying,
+                                            onSongClick = {
+                                                playerViewModel.showAndPlaySong(song, uiState.videos)
+                                            },
+                                            onMoreOptionsClick = {
+                                                playerViewModel.selectSongForInfo(song)
+                                                showSongInfoBottomSheet = true
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                            2 -> {
+                                if (albumSections.isEmpty()) {
+                                    item { Text("No albums found.", modifier = Modifier.padding(16.dp)) }
+                                }
+                                albumSections.forEachIndexed { index, section ->
+                                    if (section.songs.isEmpty()) return@forEachIndexed
+
+                                    val sectionKey = section.collapseKey()
+                                    val isExpanded = expandedSections[sectionKey] ?: true
+                                    val sectionSongs = if (isTransitionFinished) section.songs else section.songs.take(5)
+
+                                    item(
+                                        key = "${sectionKey}_header",
+                                        contentType = "artist_section_header"
+                                    ) {
+                                        CollapsibleAlbumSectionHeader(
+                                            section = section,
+                                            isExpanded = isExpanded,
+                                            onToggleExpanded = {
+                                                expandedSections[sectionKey] = !isExpanded
+                                            },
+                                            onPlayAlbum = {
+                                                section.songs.firstOrNull()?.let { firstSong ->
+                                                    playerViewModel.showAndPlaySong(firstSong, section.songs)
+                                                }
+                                            }
+                                        )
+                                    }
+
+                                    if (isExpanded) {
+                                        item(
+                                            key = "${sectionKey}_song_group_spacer",
+                                            contentType = "artist_section_spacer"
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .animateItem(
+                                                        fadeInSpec = tween(durationMillis = 160),
+                                                        fadeOutSpec = tween(durationMillis = 120),
+                                                        placementSpec = tween(durationMillis = 180)
+                                                    )
+                                                    .fillMaxWidth()
+                                                    .height(10.dp)
+                                                    .background(MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f))
+                                            )
+                                        }
+
+                                        itemsIndexed(
+                                            items = sectionSongs,
+                                            key = { songIndex, song -> "${sectionKey}_song_${song.id}_$songIndex" },
+                                            contentType = { _, _ -> "artist_section_song" }
+                                        ) { songIndex, song ->
+                                            ArtistAlbumSectionSongItem(
+                                                modifier = Modifier.animateItem(
+                                                    fadeInSpec = tween(durationMillis = 180),
+                                                    fadeOutSpec = tween(durationMillis = 120),
+                                                    placementSpec = tween(durationMillis = 200)
+                                                ),
+                                                song = song,
+                                                songIndex = songIndex,
+                                                songCount = section.songs.size,
+                                                isCurrentSong = stablePlayerState.currentSong?.id == song.id,
+                                                isPlaying = stablePlayerState.isPlaying,
+                                                onSongClick = {
+                                                    playerViewModel.showAndPlaySong(song, section.songs)
+                                                },
+                                                onMoreOptionsClick = {
+                                                    playerViewModel.selectSongForInfo(song)
+                                                    showSongInfoBottomSheet = true
+                                                }
+                                            )
                                         }
                                     }
-                                )
-                            }
 
-                            if (isExpanded) {
-                                item(
-                                    key = "${sectionKey}_song_group_spacer",
-                                    contentType = "artist_section_spacer"
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .animateItem(
-                                                fadeInSpec = tween(durationMillis = 160),
-                                                fadeOutSpec = tween(durationMillis = 120),
-                                                placementSpec = tween(durationMillis = 180)
+                                    item(
+                                        key = "${sectionKey}_footer",
+                                        contentType = "artist_section_footer"
+                                    ) {
+                                        Spacer(
+                                            modifier = Modifier.height(
+                                                if (index == albumSections.lastIndex) 24.dp else 16.dp
                                             )
-                                            .fillMaxWidth()
-                                            .height(10.dp)
-                                            .background(MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f))
-                                    )
+                                        )
+                                    }
                                 }
-
-                                itemsIndexed(
-                                    items = sectionSongs,
-                                    key = { songIndex, song -> "${sectionKey}_song_${song.id}_$songIndex" },
-                                    contentType = { _, _ -> "artist_section_song" }
-                                ) { songIndex, song ->
-                                    ArtistAlbumSectionSongItem(
-                                        modifier = Modifier.animateItem(
-                                            fadeInSpec = tween(durationMillis = 180),
-                                            fadeOutSpec = tween(durationMillis = 120),
-                                            placementSpec = tween(durationMillis = 200)
-                                        ),
-                                        song = song,
-                                        songIndex = songIndex,
-                                        songCount = section.songs.size,
-                                        isCurrentSong = stablePlayerState.currentSong?.id == song.id,
-                                        isPlaying = stablePlayerState.isPlaying,
-                                        onSongClick = {
-                                            playerViewModel.showAndPlaySong(song, section.songs)
-                                        },
-                                        onMoreOptionsClick = {
-                                            playerViewModel.selectSongForInfo(song)
-                                            showSongInfoBottomSheet = true
-                                        }
-                                    )
-                                }
-                            }
-
-                            item(
-                                key = "${sectionKey}_footer",
-                                contentType = "artist_section_footer"
-                            ) {
-                                Spacer(
-                                    modifier = Modifier.height(
-                                        if (index == albumSections.lastIndex) 24.dp else 16.dp
-                                    )
-                                )
                             }
                         }
 

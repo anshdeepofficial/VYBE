@@ -417,18 +417,16 @@ fun HomeScreen(
             ) {
                 // YouTube Trending — always rendered prominently on Home
                 // Keep discovery immediately accessible, before the large Your Mix hero.
-                if (quickPickSongs.isNotEmpty()) {
-                    item(
-                        key = "quick_picks_section",
-                        contentType = "youtube_music_row"
-                    ) {
-                        YouTubeMusicHomeRow(
-                            title = "Quick Picks",
-                            songs = quickPickSongs,
-                            queueName = "Quick Picks",
-                            playerViewModel = playerViewModel,
-                        )
-                    }
+                item(
+                    key = "quick_picks_section",
+                    contentType = "youtube_music_row"
+                ) {
+                    YouTubeMusicHomeRow(
+                        title = "Quick Picks",
+                        songs = quickPickSongs,
+                        queueName = "Quick Picks",
+                        playerViewModel = playerViewModel,
+                    )
                 }
 
                 if (yourMixSongs.isEmpty()) {
@@ -925,8 +923,6 @@ private fun YouTubeMusicHomeRow(
     var contextMenuSong by remember { mutableStateOf<Song?>(null) }
     val context = LocalContext.current
 
-    if (songs.isEmpty()) return
-
     Column(modifier = Modifier.padding(bottom = 8.dp)) {
         Text(
             text = title,
@@ -935,6 +931,23 @@ private fun YouTubeMusicHomeRow(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
         )
         Spacer(modifier = Modifier.height(8.dp))
+        
+        if (songs.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    .padding(horizontal = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                LoadingIndicator(
+                    modifier = Modifier.size(48.dp),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            return@Column
+        }
+
         androidx.compose.foundation.lazy.LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)

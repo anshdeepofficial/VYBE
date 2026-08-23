@@ -39,6 +39,7 @@ import javax.inject.Inject
 data class ArtistDetailUiState(
     val artist: Artist? = null,
     val songs: List<Song> = emptyList(),
+    val videos: List<Song> = emptyList(),
     val albumSections: List<ArtistAlbumSection> = emptyList(),
     val effectiveImageUrl: String? = null,
     val isLoading: Boolean = false,
@@ -121,6 +122,7 @@ class ArtistDetailViewModel @Inject constructor(
                     _uiState.value = ArtistDetailUiState(
                         artist = artist,
                         songs = profile.topSongs,
+                        videos = profile.videos,
                         albumSections = topSongsSection(browseId, profile.topSongs),
                         effectiveImageUrl = effectiveUrl,
                         isLoading = false,
@@ -312,6 +314,7 @@ class ArtistDetailViewModel @Inject constructor(
                 state.copy(
                     artist = state.artist?.copy(songCount = completeSongs.size, remoteBrowseId = browseId),
                     songs = completeSongs,
+                    videos = profile.videos,
                     albumSections = mergeSections(
                         buildAlbumSections(localSongs),
                         topSongsSection(browseId, profile.topSongs),

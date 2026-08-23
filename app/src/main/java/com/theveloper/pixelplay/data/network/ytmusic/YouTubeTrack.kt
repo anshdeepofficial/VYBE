@@ -119,6 +119,7 @@ data class YouTubeArtistProfile(
     val description: String? = null,
     val subscribers: String? = null,
     val topSongs: List<Song> = emptyList(),
+    val videos: List<Song> = emptyList(),
     val albums: List<YouTubeAlbum> = emptyList(),
     val singles: List<YouTubeAlbum> = emptyList(),
     val relatedArtists: List<YouTubeArtist> = emptyList()

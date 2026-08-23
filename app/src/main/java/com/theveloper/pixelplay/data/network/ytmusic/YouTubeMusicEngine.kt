@@ -825,10 +825,14 @@ class YouTubeMusicEngine @Inject constructor(
                     extraArtists,
                 )
             }
+            val extraSongs = extraTracks.filter { it.resultType != YouTubeMusicEntityType.MUSIC_VIDEO }.map { it.toSong() }
+            val extraVideos = extraTracks.filter { it.resultType == YouTubeMusicEntityType.MUSIC_VIDEO }.map { it.toSong() }
+
             return@withContext baseProfile.copy(
-                topSongs = (baseProfile.topSongs + extraTracks.map { it.toSong() })
+                topSongs = (baseProfile.topSongs + extraSongs)
                     .filter(::isMusicOnlySong)
                     .distinctBy { it.id },
+                videos = (baseProfile.videos + extraVideos).distinctBy { it.id },
                 albums = (baseProfile.albums + extraAlbums).distinctBy { it.browseId },
                 relatedArtists = (baseProfile.relatedArtists + extraArtists)
                     .filter { it.browseId != cleanBrowseId }
@@ -1138,13 +1142,16 @@ class YouTubeMusicEngine @Inject constructor(
             val bannerUrl = extractThumbnail(header?.optJSONObject("foregroundThumbnail")) ?: avatarUrl
 
             val topSongs = mutableListOf<Song>()
+            val videos = mutableListOf<Song>()
             val albums = mutableListOf<YouTubeAlbum>()
             val singles = mutableListOf<YouTubeAlbum>()
             val relatedArtists = mutableListOf<YouTubeArtist>()
 
             val rawTracks = mutableListOf<YouTubeTrack>()
             collectTracksRecursively(root, rawTracks)
-            topSongs.addAll(rawTracks.take(30).map { it.toSong() })
+            
+            topSongs.addAll(rawTracks.filter { it.resultType != YouTubeMusicEntityType.MUSIC_VIDEO }.map { it.toSong() })
+            videos.addAll(rawTracks.filter { it.resultType == YouTubeMusicEntityType.MUSIC_VIDEO }.map { it.toSong() })
 
             // Collect release sections
             parseStructuredRecursive(root, mutableListOf(), albums, relatedArtists)
@@ -1157,6 +1164,7 @@ class YouTubeMusicEngine @Inject constructor(
                 description = description.takeIf { it.isNotBlank() },
                 subscribers = subscribers.takeIf { it.isNotBlank() },
                 topSongs = topSongs.distinctBy { it.id },
+                videos = videos.distinctBy { it.id },
                 albums = albums.distinctBy { it.browseId },
                 singles = singles.distinctBy { it.browseId },
                 relatedArtists = relatedArtists.filter { it.browseId != browseId }.distinctBy { it.browseId }
