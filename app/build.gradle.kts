@@ -218,7 +218,7 @@ android {
         language.enableSplit = true
     }
 }
-setProperty("archivesBaseName", "VYBE-v${(project.findProperty("APP_VERSION_NAME") as? String) ?: "1.0.0"}")
+base.archivesName.set("VYBE-v${(project.findProperty("APP_VERSION_NAME") as? String) ?: "1.0.0"}")
 
 androidComponents {
     onVariants(selector().all()) { variant ->
