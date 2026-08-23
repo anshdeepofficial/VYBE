@@ -87,7 +87,7 @@ class AiWorker @AssistedInject constructor(
 
             notificationManager.showCompletion("AI Task Complete", "Successfully processed your request.")
             Result.success(workDataOf(OUTPUT_RESULT to result))
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.e(e, "AiWorker failed")
             notificationManager.showCompletion("AI Task Failed", e.message ?: "Unknown error")
             Result.failure()

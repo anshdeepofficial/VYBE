@@ -1,4 +1,4 @@
-﻿package com.theveloper.pixelplay.data.repository
+package com.theveloper.pixelplay.data.repository
 
 import android.net.Uri
 import androidx.paging.PagingData
@@ -134,7 +134,7 @@ interface MusicRepository {
     suspend fun getFirstPlayableSong(): Song?
 
     /**
-     * Obtiene la lista de Ã¡lbumes filtrada.
+     * Obtiene la lista de álbumes filtrada.
      * @return Flow que emite una lista completa de objetos Album.
      */
     fun getAlbums(
@@ -168,7 +168,7 @@ interface MusicRepository {
     fun getHomeMixPreviewSongs(limit: Int): Flow<List<Song>>
 
     /**
-     * Obtiene la lista completa de Ã¡lbumes una sola vez.
+     * Obtiene la lista completa de álbumes una sola vez.
      * @return Lista de objetos Album.
      */
     suspend fun getAllAlbumsOnce(
@@ -183,8 +183,8 @@ interface MusicRepository {
     suspend fun getAllArtistsOnce(): List<Artist>
 
     /**
-     * Obtiene un Ã¡lbum especÃ­fico por su ID.
-     * @param id El ID del Ã¡lbum.
+     * Obtiene un álbum específico por su ID.
+     * @param id El ID del álbum.
      * @return Flow que emite el objeto Album o null si no se encuentra.
      */
     fun getAlbumById(id: Long): Flow<Album?>
@@ -196,14 +196,14 @@ interface MusicRepository {
     //fun getArtists(): Flow<List<Artist>>
 
     /**
-     * Obtiene la lista de canciones para un Ã¡lbum especÃ­fico (NO paginada para la cola de reproducciÃ³n).
-     * @param albumId El ID del Ã¡lbum.
-     * @return Flow que emite una lista de objetos Song pertenecientes al Ã¡lbum.
+     * Obtiene la lista de canciones para un álbum específico (NO paginada para la cola de reproducción).
+     * @param albumId El ID del álbum.
+     * @return Flow que emite una lista de objetos Song pertenecientes al álbum.
      */
     fun getSongsForAlbum(albumId: Long): Flow<List<Song>>
 
     /**
-     * Obtiene la lista de canciones para un artista especÃ­fico (NO paginada para la cola de reproducciÃ³n).
+     * Obtiene la lista de canciones para un artista específico (NO paginada para la cola de reproducción).
      * @param artistId El ID del artista.
      * @return Flow que emite una lista de objetos Song pertenecientes al artista.
      */
@@ -217,17 +217,17 @@ interface MusicRepository {
     fun getSongsByIds(songIds: List<String>): Flow<List<Song>>
 
     /**
-     * Obtiene una canciÃ³n por su ruta de archivo.
+     * Obtiene una canción por su ruta de archivo.
      * @param path Ruta del archivo.
      * @return El objeto Song o null si no se encuentra.
      */
     suspend fun getSongByPath(path: String): Song?
 
     /**
-     * Obtiene todos los directorios Ãºnicos que contienen archivos de audio.
-     * Esto se usa principalmente para la configuraciÃ³n inicial de directorios.
-     * TambiÃ©n gestiona el guardado inicial de directorios permitidos si es la primera vez.
-     * @return Conjunto de rutas de directorios Ãºnicas.
+     * Obtiene todos los directorios únicos que contienen archivos de audio.
+     * Esto se usa principalmente para la configuración inicial de directorios.
+     * También gestiona el guardado inicial de directorios permitidos si es la primera vez.
+     * @return Conjunto de rutas de directorios únicas.
      */
     suspend fun getAllUniqueAudioDirectories(): Set<String>
 
@@ -238,7 +238,7 @@ interface MusicRepository {
     fun searchSongs(query: String, titleOnly: Boolean = false): Flow<List<Song>>
     fun searchAlbums(query: String, minTracks: Int = 1): Flow<List<Album>>
     fun searchArtists(query: String): Flow<List<Artist>>
-    suspend fun searchPlaylists(query: String): List<Playlist> // Mantener suspend, ya que no hay Flow aÃºn
+    suspend fun searchPlaylists(query: String): List<Playlist> // Mantener suspend, ya que no hay Flow aún
     fun searchAll(query: String, filterType: SearchFilterType): Flow<List<SearchResultItem>>
 
     // Search History
@@ -248,22 +248,22 @@ interface MusicRepository {
     suspend fun clearSearchHistory()
 
     /**
-     * Obtiene la lista de canciones para un gÃ©nero especÃ­fico (placeholder implementation).
-     * @param genreId El ID del gÃ©nero (e.g., "pop", "rock").
-     * @return Flow que emite una lista de objetos Song (simulada para este gÃ©nero).
+     * Obtiene la lista de canciones para un género específico (placeholder implementation).
+     * @param genreId El ID del género (e.g., "pop", "rock").
+     * @return Flow que emite una lista de objetos Song (simulada para este género).
      */
     fun getMusicByGenre(genreId: String): Flow<List<Song>> // Changed to Flow
 
     /**
-     * Cambia el estado de favorito de una canciÃ³n.
-     * @param songId El ID de la canciÃ³n.
+     * Cambia el estado de favorito de una canción.
+     * @param songId El ID de la canción.
      * @return El nuevo estado de favorito (true si es favorito, false si no).
      */
     suspend fun toggleFavoriteStatus(songId: String): Boolean
 
     /**
-     * Setea explÃ­citamente el estado favorito de una canciÃ³n.
-     * @param songId El ID de la canciÃ³n.
+     * Setea explícitamente el estado favorito de una canción.
+     * @param songId El ID de la canción.
      * @param isFavorite Estado objetivo.
      */
     suspend fun setFavoriteStatus(songId: String, isFavorite: Boolean)
@@ -282,8 +282,8 @@ interface MusicRepository {
     fun getOnlineFavoriteSongsFlow(): Flow<List<Song>>
 
     /**
-     * Obtiene una canciÃ³n especÃ­fica por su ID.
-     * @param songId El ID de la canciÃ³n.
+     * Obtiene una canción específica por su ID.
+     * @param songId El ID de la canción.
      * @return Flow que emite el objeto Song o null si no se encuentra.
      */
     fun getSong(songId: String): Flow<Song?>
@@ -292,7 +292,7 @@ interface MusicRepository {
     fun getArtistsForSong(songId: Long): Flow<List<Artist>>
 
     /**
-     * Obtiene la lista de gÃ©neros, ya sea mockeados o leÃ­dos de los metadatos.
+     * Obtiene la lista de géneros, ya sea mockeados o leídos de los metadatos.
      * @return Flow que emite una lista de objetos Genre.
      */
     fun getGenres(): Flow<List<com.theveloper.pixelplay.data.model.Genre>>

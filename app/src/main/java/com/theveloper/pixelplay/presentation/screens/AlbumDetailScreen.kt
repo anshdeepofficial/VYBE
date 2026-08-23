@@ -620,7 +620,7 @@ private fun SharedAlbumTopBarProbe(
                 onClick = onPlayClick, // Needs to be changed to play first song
                 shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
-                elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp)
+
             ) {
                 Icon(Icons.Rounded.PlayArrow, contentDescription = "Play")
             }
@@ -628,7 +628,7 @@ private fun SharedAlbumTopBarProbe(
                 onClick = onPlayClick, // Needs to be changed to shuffle
                 shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp)
+
             ) {
                 Icon(Icons.Rounded.Shuffle, contentDescription = "Shuffle")
             }
@@ -636,7 +636,7 @@ private fun SharedAlbumTopBarProbe(
                 onClick = onPlayClick, // Needs to be changed to loop
                 shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp)
+
             ) {
                 Icon(Icons.Rounded.Repeat, contentDescription = "Loop")
             }
@@ -816,7 +816,7 @@ private fun CollapsingAlbumTopBar(
                         onClick = onPlayClick,
                         shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp)
+
                     ) {
                         Icon(Icons.Rounded.PlayArrow, contentDescription = "Play")
                     }
@@ -824,7 +824,7 @@ private fun CollapsingAlbumTopBar(
                         onClick = onPlayClick,
                         shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp)
+
                     ) {
                         Icon(Icons.Rounded.Shuffle, contentDescription = "Shuffle")
                     }
@@ -832,7 +832,7 @@ private fun CollapsingAlbumTopBar(
                         onClick = onPlayClick,
                         shape = RoundedStarShape(sides = 8, curve = 0.05, rotation = 0f),
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp)
+
                     ) {
                         Icon(Icons.Rounded.Repeat, contentDescription = "Loop")
                     }

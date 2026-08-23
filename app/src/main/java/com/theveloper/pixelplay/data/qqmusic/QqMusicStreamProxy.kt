@@ -55,7 +55,7 @@ class QqMusicStreamProxy @Inject constructor(
         if (!CloudStreamSecurity.validateQqMusicSongMid(songMid)) return
         try {
             getOrFetchStreamUrl(songMid)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.w(e, "warmUpStreamUrl failed for $songMid")
         }
     }

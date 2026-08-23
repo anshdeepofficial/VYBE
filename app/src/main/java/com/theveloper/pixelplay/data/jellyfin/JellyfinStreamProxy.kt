@@ -37,7 +37,7 @@ class JellyfinStreamProxy @Inject constructor(
     override suspend fun resolveStreamUrl(id: String): String? {
         return try {
             repository.getStreamUrl(id)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.w(e, "JellyfinStreamProxy: Failed to resolve stream URL for item $id")
             null
         }
@@ -55,7 +55,7 @@ class JellyfinStreamProxy @Inject constructor(
         if (!CloudStreamSecurity.validateJellyfinItemId(itemId)) return
         try {
             getOrFetchStreamUrl(itemId)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.w(e, "warmUpStreamUrl failed for $itemId")
         }
     }

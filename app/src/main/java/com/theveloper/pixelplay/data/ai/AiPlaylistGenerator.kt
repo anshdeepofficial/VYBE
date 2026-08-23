@@ -1,4 +1,4 @@
-﻿package com.theveloper.pixelplay.data.ai
+package com.theveloper.pixelplay.data.ai
 
 
 import com.theveloper.pixelplay.data.DailyMixManager
@@ -102,7 +102,7 @@ class AiPlaylistGenerator @Inject constructor(
 
         } catch (e: IllegalArgumentException) {
             Result.failure(Exception(e.message ?: "AI response did not contain a valid playlist."))
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             val errorDetails = buildDetailedErrorMessage(e)
             Result.failure(Exception(errorDetails, e))
         }
@@ -118,7 +118,7 @@ class AiPlaylistGenerator @Inject constructor(
         val className = e::class.simpleName ?: "Unknown"
 
         // Check for common error patterns
-        val combinedMessages = listOfNotNull(rootMessage, causeMessage).joinToString(" → ")
+        val combinedMessages = listOfNotNull(rootMessage, causeMessage).joinToString(" ? ")
         
         return when {
             combinedMessages.contains("timeout", ignoreCase = true) ||

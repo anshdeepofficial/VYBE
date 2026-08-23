@@ -67,7 +67,7 @@ class PlaylistsModuleHandler @Inject constructor(
             Log.i(TAG, "Found pending playlist restore file, attempting resolution...")
             val payload = try {
                 pendingFile.readText()
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Log.e(TAG, "Failed to read pending playlist restore file", e)
                 return@launch
             }
@@ -222,7 +222,7 @@ class PlaylistsModuleHandler @Inject constructor(
             try {
                 pendingFile.writeText(payload)
                 Log.i(TAG, "Saved pending playlist restore file: ${pendingFile.absolutePath}")
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Log.e(TAG, "Failed to save pending playlist restore file", e)
             }
         } else {
@@ -256,7 +256,7 @@ class PlaylistsModuleHandler @Inject constructor(
             if (!file.exists() || file.length() == 0L) return null
             val bytes = file.readBytes()
             Base64.encodeToString(bytes, Base64.NO_WRAP)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.w(TAG, "Failed to read cover image: $path", e)
             null
         }
@@ -274,7 +274,7 @@ class PlaylistsModuleHandler @Inject constructor(
                 val file = File(context.filesDir, fileName)
                 file.writeBytes(bytes)
                 playlist.copy(coverImageUri = file.absolutePath)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Log.w(TAG, "Failed to restore cover image for playlist ${playlist.id}", e)
                 playlist.copy(coverImageUri = null)
             }

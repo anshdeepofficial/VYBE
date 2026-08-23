@@ -81,7 +81,7 @@ class WearStatePublisher @Inject constructor(
         scope.launch {
             try {
                 publishStateInternal(songId, playerInfo)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.tag(TAG).w(e, "Failed to publish state to Wear Data Layer")
             }
         }
@@ -101,7 +101,7 @@ class WearStatePublisher @Inject constructor(
 
                 dataClient.putDataItem(request)
                 Timber.tag(TAG).d("Cleared Wear player state")
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.tag(TAG).w(e, "Failed to clear Wear state")
             }
         }
@@ -178,7 +178,7 @@ class WearStatePublisher @Inject constructor(
         val asset = if (sanitizedBytes != null) {
             try {
                 Asset.createFromBytes(sanitizedBytes)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.tag(TAG).w(e, "Failed to create album art asset")
                 null
             }
@@ -244,7 +244,7 @@ class WearStatePublisher @Inject constructor(
                         )
                     }
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).w(e, "Failed to download remote artwork for Wear: %s", uriString)
             null
         } finally {

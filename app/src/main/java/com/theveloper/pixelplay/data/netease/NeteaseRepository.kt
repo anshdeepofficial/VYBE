@@ -74,7 +74,7 @@ class NeteaseRepository @Inject constructor(
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
-    } catch (e: Exception) {
+    } catch (e: Throwable) {
         Timber.e(e, "NeteaseRepository: Failed to create EncryptedSharedPreferences, falling back to plain")
         context.getSharedPreferences("netease_prefs_plain", Context.MODE_PRIVATE)
     }
@@ -123,7 +123,7 @@ class NeteaseRepository @Inject constructor(
             if (map.isNotEmpty()) {
                 api.setPersistedCookies(map)
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.w(e, "Failed to restore Netease cookies")
         }
     }
@@ -167,7 +167,7 @@ class NeteaseRepository @Inject constructor(
                     Timber.w("loginWithCookies: No profile in response (code=$code)")
                     Result.failure(Exception("Failed to fetch user profile (code=$code)"))
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.e(e, "loginWithCookies: failed")
                 Result.failure(e)
             }
@@ -284,7 +284,7 @@ class NeteaseRepository @Inject constructor(
                     syncUnifiedLibrarySongsFromNetease()
                 }
                 Result.success(entities)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.e(e, "Failed to sync user playlists")
                 Result.failure(e)
             }
@@ -390,7 +390,7 @@ class NeteaseRepository @Inject constructor(
 
                 Timber.d("Synced ${entities.size} songs for playlist $playlistId")
                 Result.success(entities.size)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.e(e, "Failed to sync playlist $playlistId")
                 Result.failure(e)
             }
@@ -480,7 +480,7 @@ class NeteaseRepository @Inject constructor(
                 } else {
                     Result.success(emptyList())
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.e(e, "Online search failed for: $keywords")
                 Result.failure(e)
             }
@@ -572,7 +572,7 @@ class NeteaseRepository @Inject constructor(
                 } else {
                     Result.failure(Exception("No lyrics for song $songId"))
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.e(e, "Failed to get lyrics for song $songId")
                 Result.failure(e)
             }
@@ -836,7 +836,7 @@ class NeteaseRepository @Inject constructor(
                 )
                 Timber.d("Created new app playlist for Netease playlist $neteasePlaylistId: $playlistName with ID: $appPlaylistId")
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.e(e, "Failed to update/create app playlist for Netease playlist $neteasePlaylistId")
         }
     }
@@ -846,7 +846,7 @@ class NeteaseRepository @Inject constructor(
             val appPlaylistId = getAppPlaylistIdForNetease(neteasePlaylistId)
             playlistPreferencesRepository.deletePlaylist(appPlaylistId)
             Timber.d("Deleted app playlist for Netease playlist $neteasePlaylistId")
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.w(e, "Failed to delete app playlist for Netease playlist $neteasePlaylistId")
         }
     }

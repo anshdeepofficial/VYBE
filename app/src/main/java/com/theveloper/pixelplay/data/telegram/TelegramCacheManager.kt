@@ -140,7 +140,7 @@ class TelegramCacheManager @Inject constructor(
                 @Suppress("UNUSED_VARIABLE")
                 val result: TdApi.Ok = telegramClientManager.sendRequest(TdApi.DeleteFile(fileId))
                 Timber.d("TelegramCacheManager: Deleted evicted audio file $fileId")
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.w("TelegramCacheManager: Could not delete file $fileId: ${e.message}")
             }
         }
@@ -163,7 +163,7 @@ class TelegramCacheManager @Inject constructor(
                     if (file.delete()) deletedCount++
                 }
                 Timber.d("TelegramCacheManager: Cleared $deletedCount embedded art files")
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.e(e, "TelegramCacheManager: Error clearing embedded art cache")
             }
         }
@@ -209,7 +209,7 @@ class TelegramCacheManager @Inject constructor(
                     }
                 }
                 Timber.d("TelegramCacheManager: Trimmed $deletedCount old embedded art files")
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.e(e, "TelegramCacheManager: Error trimming embedded art cache")
             }
         }
@@ -246,7 +246,7 @@ class TelegramCacheManager @Inject constructor(
                 )
             )
             Timber.d("TelegramCacheManager: Cleared TDLib cache. Stats: ${result.size} bytes in ${result.count} files")
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.e(e, "TelegramCacheManager: Error clearing TDLib cache")
         }
     }

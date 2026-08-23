@@ -250,7 +250,7 @@ class TelegramStreamProxy @Inject constructor(
                                     delay(10)
                                 }
                             }
-                        } catch (e: Exception) {
+                        } catch (e: Throwable) {
                             // Check for common specific errors to avoid noise
                             val msg = e.toString()
                             if (msg.contains("ChannelWriteException") || 
@@ -293,7 +293,7 @@ class TelegramStreamProxy @Inject constructor(
                 LogUtils.d("StreamProxy", "Started on port $actualPort")
             } catch (e: CancellationException) {
                 LogUtils.d("StreamProxy", "Start cancelled")
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 LogUtils.e("StreamProxy", e, "Failed to start server")
             }
         }

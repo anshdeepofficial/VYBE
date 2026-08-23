@@ -13,7 +13,7 @@ class SleepTimerReceiver : BroadcastReceiver() {
         }
         try {
             context.startService(serviceIntent)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag("SleepTimerReceiver").e(e, "Failed to start service for sleep timer")
         }
     }

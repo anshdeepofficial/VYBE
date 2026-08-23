@@ -96,7 +96,7 @@ class EqualizerManager @Inject constructor() {
             isBassBoostSupportedGlobal = effects.any { it.type == android.media.audiofx.AudioEffect.EFFECT_TYPE_BASS_BOOST }
             isVirtualizerSupportedGlobal = effects.any { it.type == android.media.audiofx.AudioEffect.EFFECT_TYPE_VIRTUALIZER }
             Timber.tag(TAG).d("Global Support Check - BassBoost: $isBassBoostSupportedGlobal, Virtualizer: $isVirtualizerSupportedGlobal")
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).e(e, "Failed to query global audio effects")
             // Fallback to assuming false until proven otherwise? Or true? 
             // Better false to avoid broken UI, but unlikely to fail.
@@ -207,7 +207,7 @@ class EqualizerManager @Inject constructor() {
                     maxEqLevel = bandLevelRange[1]
                     enabled = _isEnabled.value
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 // Some OEM/route combinations do not expose an effect engine for this session.
                 // Disable effects for this process to avoid repeated hard failures and log spam.
                 effectsDisabledForProcess = true
@@ -248,7 +248,7 @@ class EqualizerManager @Inject constructor() {
                         }
                     }
                     if (bassBoost != null) Timber.tag(TAG).d("BassBoost initialized on attempt ${retryCount + 1}")
-                } catch (e: Exception) {
+                } catch (e: Throwable) {
                     Timber.tag(TAG).w("BassBoost init failed (attempt ${retryCount + 1}): ${e.message}")
                     AdvancedPerformanceDiagnostics.recordEventIfEnabled(
                         type = AdvancedPerformanceDiagnostics.EventTypes.AUDIO_EFFECT,
@@ -278,7 +278,7 @@ class EqualizerManager @Inject constructor() {
                         }
                     }
                     if (virtualizer != null) Timber.tag(TAG).d("Virtualizer initialized on attempt ${retryCount + 1}")
-                } catch (e: Exception) {
+                } catch (e: Throwable) {
                     Timber.tag(TAG).w("Virtualizer init failed (attempt ${retryCount + 1}): ${e.message}")
                     AdvancedPerformanceDiagnostics.recordEventIfEnabled(
                         type = AdvancedPerformanceDiagnostics.EventTypes.AUDIO_EFFECT,
@@ -304,7 +304,7 @@ class EqualizerManager @Inject constructor() {
                     setTargetGain(_loudnessEnhancerStrength.value.coerceIn(0, MAX_LOUDNESS_GAIN_MB))
                     enabled = _loudnessEnhancerEnabled.value
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.tag(TAG).w(e, "LoudnessEnhancer not supported on this device")
                 AdvancedPerformanceDiagnostics.recordEventIfEnabled(
                     type = AdvancedPerformanceDiagnostics.EventTypes.AUDIO_EFFECT,
@@ -341,7 +341,7 @@ class EqualizerManager @Inject constructor() {
                 )
             }
             
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).e(e, "Failed to initialize audio effects")
             AdvancedPerformanceDiagnostics.recordEventIfEnabled(
                 type = AdvancedPerformanceDiagnostics.EventTypes.AUDIO_EFFECT,
@@ -377,7 +377,7 @@ class EqualizerManager @Inject constructor() {
         try {
             equalizer?.enabled = enabled
             Timber.tag(TAG).d("Equalizer enabled: $enabled")
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).e(e, "Failed to set equalizer enabled state")
         }
         releaseIfUnused()
@@ -424,7 +424,7 @@ class EqualizerManager @Inject constructor() {
         _bassBoostEnabled.value = enabled
         try {
             bassBoost?.enabled = enabled
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).e(e, "Failed to set bass boost enabled")
         }
         releaseIfUnused()
@@ -446,7 +446,7 @@ class EqualizerManager @Inject constructor() {
                 }
             }
             Timber.tag(TAG).d("Bass boost strength: $clampedStrength")
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).e(e, "Failed to set bass boost")
         }
     }
@@ -463,7 +463,7 @@ class EqualizerManager @Inject constructor() {
         _virtualizerEnabled.value = enabled
         try {
             virtualizer?.enabled = enabled
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).e(e, "Failed to set virtualizer enabled")
         }
         releaseIfUnused()
@@ -485,7 +485,7 @@ class EqualizerManager @Inject constructor() {
                 }
             }
             Timber.tag(TAG).d("Virtualizer strength: $clampedStrength")
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).e(e, "Failed to set virtualizer")
         }
     }
@@ -497,7 +497,7 @@ class EqualizerManager @Inject constructor() {
         _loudnessEnhancerEnabled.value = enabled
         try {
             loudnessEnhancer?.enabled = enabled
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).e(e, "Failed to set loudness enhancer enabled")
         }
         releaseIfUnused()
@@ -514,7 +514,7 @@ class EqualizerManager @Inject constructor() {
         try {
             loudnessEnhancer?.setTargetGain(clampedStrength)
             Timber.tag(TAG).d("Loudness enhancer strength: $clampedStrength")
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).e(e, "Failed to set loudness enhancer")
         }
     }
@@ -577,7 +577,7 @@ class EqualizerManager @Inject constructor() {
                     setStrength(_bassBoostStrength.value.coerceIn(0, 1000).toShort())
                 }
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).e(e, "Failed applying bass boost state")
         }
 
@@ -588,7 +588,7 @@ class EqualizerManager @Inject constructor() {
                     setStrength(_virtualizerStrength.value.coerceIn(0, 1000).toShort())
                 }
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).e(e, "Failed applying virtualizer state")
         }
 
@@ -597,7 +597,7 @@ class EqualizerManager @Inject constructor() {
                 setTargetGain(_loudnessEnhancerStrength.value.coerceIn(0, MAX_LOUDNESS_GAIN_MB))
                 enabled = _loudnessEnhancerEnabled.value
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).e(e, "Failed applying loudness state")
         }
     }
@@ -654,7 +654,7 @@ class EqualizerManager @Inject constructor() {
         try {
             eq.setBandLevel(bandIndex.toShort(), millibelLevel)
             Timber.tag(TAG).v("Set band $bandIndex to $millibelLevel mB (normalized: $normalizedLevel)")
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).e(e, "Failed to set band $bandIndex level")
         }
     }
@@ -702,7 +702,7 @@ class EqualizerManager @Inject constructor() {
             bassBoost?.release()
             virtualizer?.release()
             loudnessEnhancer?.release()
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).e(e, "Error releasing audio effects")
         }
         equalizer = null

@@ -153,7 +153,7 @@ class QQSignGenerator(private val context: Context) {
                 }
                 resultRef.get()
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.e(e, "WebView Sign error")
             null
         }
@@ -204,7 +204,7 @@ class QQSignGenerator(private val context: Context) {
                 }
                 resultRef.get()
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.e(e, "WebView vm_new decrypt error")
             null
         }
@@ -264,7 +264,7 @@ class QQSignGenerator(private val context: Context) {
                 val value = resultRef.get()
                 if (value.isNullOrBlank()) null else value
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.e(e, "WebView vm_new encrypt error")
             null
         } finally {

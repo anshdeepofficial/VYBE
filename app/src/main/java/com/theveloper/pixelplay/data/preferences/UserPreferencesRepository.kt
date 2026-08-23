@@ -1,4 +1,4 @@
-﻿package com.theveloper.pixelplay.data.preferences
+package com.theveloper.pixelplay.data.preferences
 
 import android.content.Context
 import androidx.datastore.core.DataStore
@@ -118,7 +118,7 @@ class UserPreferencesRepository @Inject constructor(
         PreferencesKeys.INITIAL_SETUP_DONE.name
     )
 
-    // â”€â”€â”€ Preference keys â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Preference keys ────────────────────────────────────────────────────
 
     private object PreferencesKeys {
         val APP_REBRAND_DIALOG_SHOWN = booleanPreferencesKey("app_rebrand_dialog_shown")
@@ -292,7 +292,7 @@ class UserPreferencesRepository @Inject constructor(
         val SPONSOR_BLOCK_ENABLED = booleanPreferencesKey("sponsor_block_enabled")
     }
 
-    // â”€â”€â”€ Private helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Private helpers ─────────────────────────────────────────────────────
 
     /** Shorthand to map a single value out of the DataStore. */
     private fun <T> pref(transform: (Preferences) -> T): Flow<T> =
@@ -319,7 +319,7 @@ class UserPreferencesRepository @Inject constructor(
         }
     }
 
-    // â”€â”€â”€ Onboarding / dialogs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Onboarding / dialogs ─────────────────────────────────────────────────
 
     val appRebrandDialogShownFlow: Flow<Boolean> =
         pref { it[PreferencesKeys.APP_REBRAND_DIALOG_SHOWN] ?: false }
@@ -380,7 +380,7 @@ class UserPreferencesRepository @Inject constructor(
         dataStore.edit { it[PreferencesKeys.YOUTUBE_MUSIC_SIGN_IN_PROMPT_SHOWN] = shown }
     }
 
-    // â”€â”€â”€ Playback â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Playback ─────────────────────────────────────────────────────────────
 
     val repeatModeFlow: Flow<Int> =
         pref { it[PreferencesKeys.REPEAT_MODE] ?: Player.REPEAT_MODE_OFF }
@@ -530,7 +530,7 @@ class UserPreferencesRepository @Inject constructor(
         }
     }
 
-    // â”€â”€â”€ Full player loading tweaks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Full player loading tweaks ───────────────────────────────────────────
 
     val showPlayerFileInfoFlow: Flow<Boolean> =
         pref { it[PreferencesKeys.FULL_PLAYER_SHOW_FILE_INFO] ?: true }
@@ -627,7 +627,7 @@ class UserPreferencesRepository @Inject constructor(
         dataStore.edit { it.remove(PreferencesKeys.USE_PLAYER_SHEET_V2) }
     }
 
-    // â”€â”€â”€ Transitions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Transitions ──────────────────────────────────────────────────────────
 
     val globalTransitionSettingsFlow: Flow<TransitionSettings> =
         pref { preferences ->
@@ -640,7 +640,7 @@ class UserPreferencesRepository @Inject constructor(
         dataStore.edit { it[PreferencesKeys.GLOBAL_TRANSITION_SETTINGS] = json.encodeToString(settings) }
     }
 
-    // â”€â”€â”€ Favorites â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Favorites ────────────────────────────────────────────────────────────
 
     val favoriteSongIdsFlow: Flow<Set<String>> =
         pref { it[PreferencesKeys.FAVORITE_SONG_IDS] ?: emptySet() }
@@ -670,7 +670,7 @@ class UserPreferencesRepository @Inject constructor(
         dataStore.edit { it[PreferencesKeys.FAVORITE_SONG_IDS] = emptySet() }
     }
 
-    // â”€â”€â”€ Playlists â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Playlists ────────────────────────────────────────────────────────────
 
     val playlistSongOrderModesFlow: Flow<Map<String, String>> =
         pref { preferences ->
@@ -707,7 +707,7 @@ class UserPreferencesRepository @Inject constructor(
         dataStore.edit { it.remove(PreferencesKeys.USER_PLAYLISTS) }
     }
 
-    // â”€â”€â”€ Directories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Directories ──────────────────────────────────────────────────────────
 
     val allowedDirectoriesFlow: Flow<Set<String>> =
         pref { it[PreferencesKeys.ALLOWED_DIRECTORIES] ?: emptySet() }.distinctUntilChanged()
@@ -734,7 +734,7 @@ class UserPreferencesRepository @Inject constructor(
         }
     }
 
-    // â”€â”€â”€ Library sync â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Library sync ─────────────────────────────────────────────────────────
 
     val lastSyncTimestampFlow: Flow<Long> =
         pref { it[PreferencesKeys.LAST_SYNC_TIMESTAMP] ?: 0L }
@@ -764,7 +764,7 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
                 if (jsonString != null) {
                     try {
                         json.decodeFromString<List<String>>(jsonString)
-                    } catch (e: Exception) {
+                    } catch (e: Throwable) {
                         emptyList()
                     }
                 } else {
@@ -784,7 +784,7 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
                 if (jsonString != null) {
                     try {
                         json.decodeFromString<List<String>>(jsonString)
-                    } catch (e: Exception) {
+                    } catch (e: Throwable) {
                         emptyList()
                     }
                 } else {
@@ -891,7 +891,7 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
         }
     }
 
-    // â”€â”€â”€ Pause on volume zero â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Pause on volume zero ─────────────────────────────────────────────────
 
     val pauseOnVolumeZeroFlow: Flow<Boolean> =
         dataStore.data.map { preferences ->
@@ -929,7 +929,7 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
         dataStore.edit { it[PreferencesKeys.SPONSOR_BLOCK_ENABLED] = enabled }
     }
 
-    // â”€â”€â”€ Sort options â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Sort options ─────────────────────────────────────────────────────────
 
     val songsSortOptionFlow: Flow<String> =
         pref { SortOption.fromStorageKey(it[PreferencesKeys.SONGS_SORT_OPTION], SortOption.SONGS, SortOption.SongTitleAZ).storageKey }
@@ -1010,7 +1010,7 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
         if (preferences[key] != resolved.storageKey) preferences[key] = resolved.storageKey
     }
 
-    // â”€â”€â”€ Library UI state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Library UI state ─────────────────────────────────────────────────────
 
     val lastLibraryTabIndexFlow: Flow<Int> =
         pref { it[PreferencesKeys.LAST_LIBRARY_TAB_INDEX] ?: 0 }
@@ -1114,7 +1114,7 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
         dataStore.edit { it[PreferencesKeys.FOLDER_BACK_GESTURE_NAVIGATION] = enabled }
     }
 
-    // â”€â”€â”€ Navigation bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Navigation bar ───────────────────────────────────────────────────────
 
     val navBarCornerRadiusFlow: Flow<Int> =
         pref { sanitizeNavBarCornerRadius(it[PreferencesKeys.NAV_BAR_CORNER_RADIUS] ?: 32) }
@@ -1172,7 +1172,7 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
         dataStore.edit { it[PreferencesKeys.USE_SMOOTH_CORNERS] = enabled }
     }
 
-    // â”€â”€â”€ Multi-artist settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Multi-artist settings ────────────────────────────────────────────────
 
     val artistDelimitersFlow: Flow<List<String>> =
         pref {
@@ -1230,7 +1230,7 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
         dataStore.edit { it[PreferencesKeys.ARTIST_SETTINGS_RESCAN_REQUIRED] = false }
     }
 
-    // â”€â”€â”€ Lyrics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Lyrics ───────────────────────────────────────────────────────────────
 
     /**
      * Per-song lyrics sync offsets in milliseconds, stored as a JSON map.
@@ -1300,7 +1300,7 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
         dataStore.edit { it[PreferencesKeys.ANIMATED_LYRICS_BLUR_STRENGTH] = strength }
     }
 
-    // â”€â”€â”€ Custom genres â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Custom genres ────────────────────────────────────────────────────────
 
     val customGenresFlow: Flow<Set<String>> =
         pref { it[PreferencesKeys.CUSTOM_GENRES] ?: emptySet() }
@@ -1333,7 +1333,7 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
         }
     }
 
-    // â”€â”€â”€ Collage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Collage ──────────────────────────────────────────────────────────────
 
     val collagePatternFlow: Flow<CollagePattern> =
         pref { CollagePattern.fromStorageKey(it[PreferencesKeys.COLLAGE_PATTERN]) }
@@ -1349,7 +1349,7 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
         dataStore.edit { it[PreferencesKeys.COLLAGE_AUTO_ROTATE] = enabled }
     }
 
-    // â”€â”€â”€ Quick settings / last playlist â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Quick settings / last playlist ──────────────────────────────────────
 
     val lastPlaylistIdFlow: Flow<String?> =
         pref { it[PreferencesKeys.LAST_PLAYLIST_ID]?.takeIf { id -> id.isNotBlank() } }
@@ -1371,7 +1371,7 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
         }
     }
 
-    // â”€â”€â”€ Developer options â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Developer options ────────────────────────────────────────────────────
 
     /**
      * Album art quality for player view.
@@ -1410,7 +1410,7 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
         dataStore.edit { it[PreferencesKeys.HAPTICS_ENABLED] = enabled }
     }
 
-    // â”€â”€â”€ Backup / restore â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Backup / restore ─────────────────────────────────────────────────────
 
     val advancedPerformanceDiagnosticsSettingsFlow: Flow<AdvancedPerformanceDiagnosticsSettings> =
         pref { preferences ->
@@ -1531,7 +1531,7 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
         }
     }
 
-    // â”€â”€â”€ Companion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Companion ────────────────────────────────────────────────────────────
 
     companion object {
         /** Default character delimiters for splitting multi-artist tags. */
@@ -1549,7 +1549,7 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
         const val MAX_SAVED_PLAYBACK_QUEUES = 20
     }
 
-    // â”€â”€â”€ Private utilities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Private utilities ────────────────────────────────────────────────────
 
     private fun normalizeLegacyDefaultArtistDelimiters(delimiters: List<String>): List<String> =
         if (delimiters == LEGACY_DEFAULT_ARTIST_DELIMITERS) DEFAULT_ARTIST_DELIMITERS else delimiters

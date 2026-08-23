@@ -38,7 +38,7 @@ class GeminiModelService @Inject constructor(
                 }
                 val response = makeModelsListRequest(apiKey)
                 Result.success(response)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.e(e, "Error fetching Gemini models")
                 Result.failure(e)
             }
@@ -68,7 +68,7 @@ class GeminiModelService @Inject constructor(
                         preferred.indexOf(model.name).takeIf { it >= 0 } ?: Int.MAX_VALUE
                     }.thenBy { it.displayName.lowercase() }
                 )
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 getDefaultModels()
             }
         }
@@ -96,7 +96,7 @@ class GeminiModelService @Inject constructor(
                 }
             }
             return models
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             return emptyList()
         }
     }

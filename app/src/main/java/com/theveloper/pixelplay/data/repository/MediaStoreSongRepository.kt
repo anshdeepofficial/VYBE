@@ -269,7 +269,7 @@ class MediaStoreSongRepository @Inject constructor(
                     songs.add(song)
                 }
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e("MediaStoreSongRepository", "Error querying MediaStore", e)
         }
         songs
@@ -308,13 +308,13 @@ class MediaStoreSongRepository @Inject constructor(
                                     }
                                 }
                             }
-                        } catch (e: Exception) {
+                        } catch (e: Throwable) {
                             Log.w("MediaStoreSongRepository", "Error querying members for genreId=$genreId", e)
                         }
                     }
                 }
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e("MediaStoreSongRepository", "Error querying Genres", e)
         }
         return genreMap
@@ -435,7 +435,7 @@ class MediaStoreSongRepository @Inject constructor(
                     ids.add(cursor.getLong(idCol))
                 }
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e("MediaStoreSongRepository", "Error getting IDs", e)
         }
         ids

@@ -70,7 +70,7 @@ object JellyfinResponseParser {
         return jsonArray.mapNotNull { json ->
             try {
                 parseSong(json)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.w(e, "$TAG: Failed to parse song")
                 null
             }
@@ -149,7 +149,7 @@ object JellyfinResponseParser {
         if (timestamp.isNullOrBlank()) return 0L
         return try {
             java.time.OffsetDateTime.parse(timestamp).toInstant().toEpochMilli()
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             try {
                 java.time.LocalDateTime.parse(timestamp.substringBefore('.'))
                     .atZone(java.time.ZoneId.systemDefault())

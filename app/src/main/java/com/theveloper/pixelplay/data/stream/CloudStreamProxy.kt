@@ -135,7 +135,7 @@ abstract class CloudStreamProxy<K : Any>(
                 Timber.d("$proxyTag started on port $actualPort")
             } catch (_: CancellationException) {
                 Timber.d("$proxyTag start cancelled")
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.e(e, "Failed to start $proxyTag")
             }
         }
@@ -277,7 +277,7 @@ abstract class CloudStreamProxy<K : Any>(
                                 }
                             }
                         }
-                    } catch (e: Exception) {
+                    } catch (e: Throwable) {
                         val msg = e.toString()
                         if (msg.contains("ChannelWriteException") ||
                             msg.contains("ClosedChannelException") ||

@@ -66,7 +66,7 @@ class GDriveRepository @Inject constructor(
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
-    } catch (e: Exception) {
+    } catch (e: Throwable) {
         Timber.e(e, "GDriveRepository: Failed to create EncryptedSharedPreferences, falling back to plain")
         context.getSharedPreferences("gdrive_prefs_plain", Context.MODE_PRIVATE)
     }
@@ -150,7 +150,7 @@ class GDriveRepository @Inject constructor(
 
                 _isLoggedInFlow.value = true
                 Result.success(displayName ?: email ?: "User")
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.e(e, "GDrive login failed")
                 Result.failure(e)
             }
@@ -183,7 +183,7 @@ class GDriveRepository @Inject constructor(
                 } else {
                     Result.failure(Exception("Empty access token in refresh response"))
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.e(e, "GDrive token refresh failed")
                 Result.failure(e)
             }
@@ -252,7 +252,7 @@ class GDriveRepository @Inject constructor(
                 } while (pageToken != null)
 
                 Result.success(allFolders)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.e(e, "Failed to list Drive folders")
                 Result.failure(e)
             }
@@ -270,7 +270,7 @@ class GDriveRepository @Inject constructor(
                     name = json.optString("name")
                 )
                 Result.success(folder)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.e(e, "Failed to create music folder")
                 Result.failure(e)
             }
@@ -334,7 +334,7 @@ class GDriveRepository @Inject constructor(
 
                 Timber.d("Synced ${allEntities.size} songs for folder $folderId")
                 Result.success(allEntities.size)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.e(e, "Failed to sync folder $folderId")
                 Result.failure(e)
             }
@@ -505,7 +505,7 @@ class GDriveRepository @Inject constructor(
             java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US)
                 .apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
                 .parse(modifiedTime)?.time ?: System.currentTimeMillis()
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             System.currentTimeMillis()
         }
 

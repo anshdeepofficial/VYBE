@@ -75,7 +75,7 @@ class JellyfinRepository @Inject constructor(
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
-    } catch (e: Exception) {
+    } catch (e: Throwable) {
         Timber.e(e, "$TAG: Failed to create EncryptedSharedPreferences, falling back to plain")
         context.getSharedPreferences("${PREFS_NAME}_plain", Context.MODE_PRIVATE)
     }
@@ -160,7 +160,7 @@ class JellyfinRepository @Inject constructor(
                 _isLoggedInFlow.value = true
                 Timber.d("$TAG: Login successful for $username@$serverUrl")
                 Result.success(username)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.e(e, "$TAG: Login failed")
                 api.clearCredentials()
                 _isLoggedInFlow.value = false
@@ -251,7 +251,7 @@ class JellyfinRepository @Inject constructor(
 
                 Timber.d("$TAG: Synced ${entities.size} playlists")
                 Result.success(entities)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.e(e, "$TAG: Failed to sync playlists")
                 Result.failure(e)
             }
@@ -294,7 +294,7 @@ class JellyfinRepository @Inject constructor(
 
                 Timber.d("$TAG: Synced ${entities.size} songs for playlist $playlistId")
                 Result.success(entities.size)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.e(e, "$TAG: Failed to sync playlist songs")
                 Result.failure(e)
             }
@@ -335,7 +335,7 @@ class JellyfinRepository @Inject constructor(
 
                 Timber.d("$TAG: Synced ${entities.size} library songs")
                 Result.success(entities.size)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.e(e, "$TAG: Failed to sync library songs")
                 Result.failure(e)
             }
@@ -356,7 +356,7 @@ class JellyfinRepository @Inject constructor(
             val playlistResult = syncPlaylists().getOrElse {
                 try {
                     syncUnifiedLibrarySongsFromJellyfin()
-                } catch (e: Exception) {
+                } catch (e: Throwable) {
                     Timber.e(e, "$TAG: Failed to sync unified library after playlist fetch failure")
                 }
                 return@withContext Result.success(
@@ -377,7 +377,7 @@ class JellyfinRepository @Inject constructor(
 
             try {
                 syncUnifiedLibrarySongsFromJellyfin()
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.e(e, "$TAG: Failed to sync unified library")
             }
 
@@ -426,7 +426,7 @@ class JellyfinRepository @Inject constructor(
                 }
                 val jellyfinSongs = JellyfinResponseParser.parseSongs(result.getOrThrow())
                 Result.success(jellyfinSongs.map { it.toDisplaySong() })
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.e(e, "$TAG: Search failed")
                 Result.failure(e)
             }
@@ -460,7 +460,7 @@ class JellyfinRepository @Inject constructor(
                     return@withContext result
                 }
                 Result.failure(Exception("No lyrics found"))
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.e(e, "$TAG: Failed to get lyrics for song $songId")
                 Result.failure(e)
             }

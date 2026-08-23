@@ -159,7 +159,7 @@ class GeminiAiClient(private val apiKey: String) : AiClient {
                         requestedModel = resolvedModel
                     )
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 throw AiProviderSupport.wrapThrowable("Gemini", e, resolvedModel)
             }
         }
@@ -197,7 +197,7 @@ class GeminiAiClient(private val apiKey: String) : AiClient {
                         ?.toIntOrNull()
                     totalTokens ?: ((prompt.length / 4) + (systemPrompt.length / 4))
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 (prompt.length / 4) + (systemPrompt.length / 4)
             }
         }
@@ -219,7 +219,7 @@ class GeminiAiClient(private val apiKey: String) : AiClient {
                         getDefaultModels()
                     }
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 getDefaultModels()
             }
         }
@@ -234,7 +234,7 @@ class GeminiAiClient(private val apiKey: String) : AiClient {
                     .get()
                     .build()
                 httpClient.newCall(request).execute().use { it.isSuccessful }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 false
             }
         }
@@ -263,7 +263,7 @@ class GeminiAiClient(private val apiKey: String) : AiClient {
 
             val defaults = getDefaultModels()
             return (models + defaults).distinct().sorted()
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             return getDefaultModels()
         }
     }

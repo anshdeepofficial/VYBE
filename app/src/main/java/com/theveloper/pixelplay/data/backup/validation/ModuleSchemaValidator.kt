@@ -29,7 +29,7 @@ class ModuleSchemaValidator @Inject constructor(
         // Basic JSON structure check
         val jsonElement = try {
             JsonParser.parseString(payload)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             errors.add(ValidationError("INVALID_JSON", "Module '${section.key}' contains invalid JSON.", module = section.key))
             return BackupValidationResult.Invalid(errors)
         }

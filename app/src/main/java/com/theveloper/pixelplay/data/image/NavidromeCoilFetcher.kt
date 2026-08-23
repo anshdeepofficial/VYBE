@@ -96,7 +96,7 @@ class NavidromeCoilFetcher(
         // Download the image
         return try {
             downloadImage(coverArtUrl, cachedFile)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             if (shouldLogFailure("download_$coverArtId")) {
                 Timber.w(e, "$TAG: Failed to download cover art for $coverArtId")
             }
@@ -140,7 +140,7 @@ class NavidromeCoilFetcher(
                     dataSource = coil.decode.DataSource.NETWORK
                 )
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.w(e, "$TAG: Failed to download image from $url")
             null
         }

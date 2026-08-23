@@ -14,10 +14,10 @@ object YouTubeAuthPreferences {
     private const val LEGACY_PREFS_NAME = "ytmusic_auth_prefs"
 
     fun create(context: Context): SharedPreferences {
-        val masterKey = MasterKey.Builder(context)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
         val secure = try {
+            val masterKey = MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
             EncryptedSharedPreferences.create(
                 context,
                 SECURE_PREFS_NAME,
@@ -25,7 +25,7 @@ object YouTubeAuthPreferences {
                 EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
             )
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             timber.log.Timber.e(e, "YouTubeAuthPreferences: Keystore failed. Falling back to plain SharedPreferences.")
             context.getSharedPreferences(SECURE_PREFS_NAME + "_plain", Context.MODE_PRIVATE)
         }

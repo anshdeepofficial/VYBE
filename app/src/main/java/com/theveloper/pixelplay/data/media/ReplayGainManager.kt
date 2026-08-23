@@ -99,7 +99,7 @@ class ReplayGainManager @Inject constructor() {
                     synchronized(cache) { cache[filePath] = it }
                 }
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).w(e, "Failed to read ReplayGain from: $filePath")
             null
         }

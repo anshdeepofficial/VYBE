@@ -93,7 +93,7 @@ object NeteaseEncryption {
                 bytes = bytes.copyOfRange(1, bytes.size)
             }
             bytes.joinToString("") { "%02x".format(it) }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             throw RuntimeException("RSA encryption failed", e)
         }
     }

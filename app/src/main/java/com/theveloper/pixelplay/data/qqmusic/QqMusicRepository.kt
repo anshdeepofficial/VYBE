@@ -78,7 +78,7 @@ class QqMusicRepository @Inject constructor(
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
-    } catch (e: Exception) {
+    } catch (e: Throwable) {
         Timber.e(e, "QqMusicRepository: Failed to create EncryptedSharedPreferences, falling back to plain")
         context.getSharedPreferences("qqmusic_prefs_plain", Context.MODE_PRIVATE)
     }
@@ -154,7 +154,7 @@ class QqMusicRepository @Inject constructor(
                             }
                         }
                     }
-                } catch (e: Exception) {
+                } catch (e: Throwable) {
                     Timber.w(e, "Failed to fetch QQ Music user info, using default nickname")
                 }
 
@@ -789,7 +789,7 @@ class QqMusicRepository @Inject constructor(
                 )
                 Timber.d("Created new app playlist for QQ Music playlist $qqPlaylistId: $playlistName")
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.e(e, "Failed to update/create app playlist for QQ Music playlist $qqPlaylistId")
         }
     }
@@ -799,7 +799,7 @@ class QqMusicRepository @Inject constructor(
             val appPlaylistId = getAppPlaylistIdForQqMusic(qqPlaylistId)
             playlistPreferencesRepository.deletePlaylist(appPlaylistId)
             Timber.d("Deleted app playlist for QQ Music playlist $qqPlaylistId")
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.w(e, "Failed to delete app playlist for QQ Music playlist $qqPlaylistId")
         }
     }

@@ -32,6 +32,30 @@ private data class ChangelogRelease(
 
 private val VybeChangelog = listOf(
     ChangelogRelease(
+        version = "0.7.15",
+        date = "23 August 2026",
+        changes = listOf(
+            "Completely abandoned broken hardware Keystore on specific devices, eliminating startup crashes.",
+            "Added Play, Shuffle, and Loop playback buttons directly to Album, Playlist, and Artist profile headers.",
+            "Fixed Immersive Artwork layout where title/artist text was invisible over bright covers.",
+        ),
+    ),
+    ChangelogRelease(
+        version = "0.7.14",
+        date = "23 August 2026",
+        changes = listOf(
+            "Attempted to fix AEADBadTagException startup crash on some Android 13/14 devices.",
+        ),
+    ),
+    ChangelogRelease(
+        version = "0.7.13",
+        date = "23 August 2026",
+        changes = listOf(
+            "Fixed a search bug where the UI had to be fully cleared with backspace before searching again.",
+            "Prepared settings skeleton for Screenshot Privacy toggle.",
+        ),
+    ),
+    ChangelogRelease(
         version = "0.7.12",
         date = "23 August 2026",
         changes = listOf(

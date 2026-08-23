@@ -105,7 +105,7 @@ class WearCommandReceiver : WearableListenerService() {
         val commandJson = String(messageEvent.data, Charsets.UTF_8)
         val command = try {
             json.decodeFromString<WearPlaybackCommand>(commandJson)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).e(e, "Failed to parse playback command")
             return
         }
@@ -218,7 +218,7 @@ class WearCommandReceiver : WearableListenerService() {
                             "queue size=${songs.size}"
                     )
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.tag(TAG).e(e, "Failed to handle PLAY_FROM_CONTEXT")
             }
         }
@@ -265,7 +265,7 @@ class WearCommandReceiver : WearableListenerService() {
         val requestJson = String(messageEvent.data, Charsets.UTF_8)
         val request = try {
             json.decodeFromString<WearBrowseRequest>(requestJson)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).e(e, "Failed to parse browse request")
             return
         }
@@ -276,7 +276,7 @@ class WearCommandReceiver : WearableListenerService() {
             val response = try {
                 val items = getBrowseItems(request.browseType, request.contextId)
                 WearBrowseResponse(requestId = request.requestId, items = items)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.tag(TAG).e(e, "Failed to process browse request")
                 WearBrowseResponse(
                     requestId = request.requestId,
@@ -296,7 +296,7 @@ class WearCommandReceiver : WearableListenerService() {
                 Timber.tag(TAG).d(
                     "Sent browse response: ${response.items.size} items for ${request.browseType}"
                 )
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.tag(TAG).e(e, "Failed to send browse response")
             }
         }
@@ -471,7 +471,7 @@ class WearCommandReceiver : WearableListenerService() {
         val commandJson = String(messageEvent.data, Charsets.UTF_8)
         val command = try {
             json.decodeFromString<WearVolumeCommand>(commandJson)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).e(e, "Failed to parse volume command")
             return
         }
@@ -508,7 +508,7 @@ class WearCommandReceiver : WearableListenerService() {
         val requestJson = String(messageEvent.data, Charsets.UTF_8)
         val request = try {
             json.decodeFromString<WearTransferRequest>(requestJson)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).e(e, "Failed to parse transfer request")
             return
         }
@@ -528,7 +528,7 @@ class WearCommandReceiver : WearableListenerService() {
         val requestJson = String(messageEvent.data, Charsets.UTF_8)
         val request = try {
             json.decodeFromString<WearTransferRequest>(requestJson)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).e(e, "Failed to parse transfer cancel")
             return
         }
@@ -550,7 +550,7 @@ class WearCommandReceiver : WearableListenerService() {
             } else {
                 contentResolver.openInputStream(song.contentUriString.toUri())
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).w(e, "Failed to open song file: ${song.path}")
             try {
                 contentResolver.openInputStream(song.contentUriString.toUri())
@@ -574,7 +574,7 @@ class WearCommandReceiver : WearableListenerService() {
             contentResolver.openAssetFileDescriptor(song.contentUriString.toUri(), "r")?.use {
                 it.length
             } ?: 0L
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             0L
         }
     }
@@ -644,7 +644,7 @@ class WearCommandReceiver : WearableListenerService() {
             )
             Timber.tag(TAG).d("Transfer complete: songId=$songId, $totalSent bytes sent")
 
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).e(e, "Failed to stream file to watch")
             sendTransferProgress(
                 nodeId, requestId, songId, 0, fileSize,
@@ -653,7 +653,7 @@ class WearCommandReceiver : WearableListenerService() {
         } finally {
             try {
                 channelClient.close(channel).await()
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.tag(TAG).w(e, "Failed to close channel")
             }
         }
@@ -683,7 +683,7 @@ class WearCommandReceiver : WearableListenerService() {
             val metadataBytes = json.encodeToString(metadata).toByteArray(Charsets.UTF_8)
             val msgClient = Wearable.getMessageClient(this@WearCommandReceiver)
             msgClient.sendMessage(nodeId, WearDataPaths.TRANSFER_METADATA, metadataBytes).await()
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).e(e, "Failed to send transfer error metadata")
         }
     }
@@ -709,7 +709,7 @@ class WearCommandReceiver : WearableListenerService() {
             val progressBytes = json.encodeToString(progress).toByteArray(Charsets.UTF_8)
             val msgClient = Wearable.getMessageClient(this@WearCommandReceiver)
             msgClient.sendMessage(nodeId, WearDataPaths.TRANSFER_PROGRESS, progressBytes).await()
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).w(e, "Failed to send transfer progress")
         }
     }
@@ -733,7 +733,7 @@ class WearCommandReceiver : WearableListenerService() {
                     {
                         try {
                             action(inFlight.get())
-                        } catch (e: Exception) {
+                        } catch (e: Throwable) {
                             Timber.tag(TAG).e(e, "Failed to reuse pending MediaController")
                         }
                     },
@@ -756,7 +756,7 @@ class WearCommandReceiver : WearableListenerService() {
                         val controller = future.get()
                         mediaController = controller
                         action(controller)
-                    } catch (e: Exception) {
+                    } catch (e: Throwable) {
                         Timber.tag(TAG).e(e, "Failed to build MediaController")
                     }
                 },
@@ -780,7 +780,7 @@ class WearCommandReceiver : WearableListenerService() {
         if (controller != null) {
             try {
                 controller.release()
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.tag(TAG).w(e, "Failed to release MediaController")
             }
         }

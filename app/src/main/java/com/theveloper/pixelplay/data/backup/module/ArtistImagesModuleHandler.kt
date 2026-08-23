@@ -69,7 +69,7 @@ class ArtistImagesModuleHandler @Inject constructor(
                     val file = File(context.filesDir, "artist_art_${artistId}.jpg")
                     file.writeBytes(bytes)
                     musicDao.updateArtistCustomImage(artistId, file.absolutePath)
-                } catch (e: Exception) {
+                } catch (e: Throwable) {
                     Log.w(TAG, "Failed to restore custom image for artist: ${entry.artistName}", e)
                 }
             }
@@ -84,7 +84,7 @@ class ArtistImagesModuleHandler @Inject constructor(
             if (!file.exists() || file.length() == 0L) return null
             val bytes = file.readBytes()
             Base64.encodeToString(bytes, Base64.NO_WRAP)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.w(TAG, "Failed to read artist image: $path", e)
             null
         }

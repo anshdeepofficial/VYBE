@@ -59,7 +59,7 @@ object AudioMetadataReader {
         } finally {
             try {
                 tempFile.delete()
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.tag(TAG).w(e, "Failed to delete temp file")
             }
         }
@@ -233,7 +233,7 @@ object AudioMetadataReader {
                 sampleRate = sampleRate,
                 artwork = artwork
             )
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e(TAG, "JAudioTagger fallback FAILED for: ${file.name}", e)
             null
         }

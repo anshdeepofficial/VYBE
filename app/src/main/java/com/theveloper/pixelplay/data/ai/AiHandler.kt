@@ -122,7 +122,7 @@ class AiHandler @Inject constructor(
         return try {
             val response = callWithModel(requestedModel)
             GenerationResult(response, requestedModel)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             val failure = com.theveloper.pixelplay.data.ai.provider.AiProviderSupport.wrapThrowable(
                 provider.displayName, e, requestedModel
             )
@@ -255,7 +255,7 @@ class AiHandler @Inject constructor(
 
                 cacheDao.insert(AiCacheEntity(promptHash = hash, responseJson = result.response, timestamp = System.currentTimeMillis()))
                 return result.response
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 // AI Optimization: Robust failover logic—if one provider fails, we log and try the next in the chain
                 val failure = com.theveloper.pixelplay.data.ai.provider.AiProviderSupport.wrapThrowable(provider.displayName, e)
                 Timber.tag("AiHandler").w(e, "Provider ${provider.name} failed: ${failure.message}")

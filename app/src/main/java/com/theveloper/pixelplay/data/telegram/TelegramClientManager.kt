@@ -75,7 +75,7 @@ class TelegramClientManager @Inject constructor(
         // Set log verbosity to 1 (Errors only) to prevent heavy logging
         try {
             Client.execute(TdApi.SetLogVerbosityLevel(1))
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.e(e, "Failed to set TDLib log verbosity")
         }
 
@@ -226,7 +226,7 @@ class TelegramClientManager @Inject constructor(
                     state is TdApi.AuthorizationStateClosed
                 }
             } is TdApi.AuthorizationStateReady
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.w("awaitReady failed: ${e.message}")
             false
         }

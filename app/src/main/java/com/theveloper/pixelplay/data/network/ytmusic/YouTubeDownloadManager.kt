@@ -98,7 +98,7 @@ class YouTubeDownloadManager @Inject constructor(
         if (!noMedia.exists()) {
             try {
                 noMedia.createNewFile()
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Log.w(TAG, "Failed to create .nomedia file: ${e.message}")
             }
         }
@@ -343,7 +343,7 @@ class YouTubeDownloadManager @Inject constructor(
             true
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e(TAG, "Download failed: ${e.message}", e)
             withContext(Dispatchers.Main) {
                 Toast.makeText(context, "Download failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
@@ -401,7 +401,7 @@ class YouTubeDownloadManager @Inject constructor(
                 downloadedSongDao.delete(songId)
             }
             true
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e(TAG, "Delete download error: ${e.message}")
             false
         }

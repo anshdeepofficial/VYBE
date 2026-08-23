@@ -157,7 +157,7 @@ class YouTubeMusicEngine @Inject constructor(
                 }
             } ?: return
             parseStructuredSearchResponse(responseBody, songs, albums, artists)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.w(TAG, "Structured search failed for '$query': ${e.message}")
         }
     }
@@ -179,7 +179,7 @@ class YouTubeMusicEngine @Inject constructor(
                     put("query", cleanQuery)
                 }
             }?.let { bodyString -> tracks.addAll(parseSearchResponse(bodyString)) }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.w(TAG, "Tier 1 search failed: ${e.message}")
         }
 
@@ -269,7 +269,7 @@ class YouTubeMusicEngine @Inject constructor(
                 val bodyString = response.body?.string().orEmpty()
                 tracks.addAll(parseBrowseResponse(bodyString))
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.w(TAG, "Browse charts failed: ${e.message}")
         }
 
@@ -494,7 +494,7 @@ class YouTubeMusicEngine @Inject constructor(
                 val json = JSONObject(response.body?.string().orEmpty())
                 extractAudioUrlFromStreamingData(json.optJSONObject("streamingData"))
             } else null
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             null
         }
     }
@@ -529,7 +529,7 @@ class YouTubeMusicEngine @Inject constructor(
                 val json = JSONObject(response.body?.string().orEmpty())
                 extractAudioUrlFromStreamingData(json.optJSONObject("streamingData"))
             } else null
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             null
         }
     }
@@ -566,7 +566,7 @@ class YouTubeMusicEngine @Inject constructor(
                 val json = JSONObject(response.body?.string().orEmpty())
                 extractAudioUrlFromStreamingData(json.optJSONObject("streamingData"))
             } else null
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             null
         }
     }
@@ -605,7 +605,7 @@ class YouTubeMusicEngine @Inject constructor(
                 val json = JSONObject(response.body?.string().orEmpty())
                 extractAudioUrlFromStreamingData(json.optJSONObject("streamingData"))
             } else null
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             null
         }
     }
@@ -643,7 +643,7 @@ class YouTubeMusicEngine @Inject constructor(
                 val json = JSONObject(response.body?.string().orEmpty())
                 extractAudioUrlFromStreamingData(json.optJSONObject("streamingData"))
             } else null
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             null
         }
     }
@@ -672,7 +672,7 @@ class YouTubeMusicEngine @Inject constructor(
                 }
                 bestUrl
             } else null
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             null
         }
     }
@@ -704,7 +704,7 @@ class YouTubeMusicEngine @Inject constructor(
                 }
                 bestUrl
             } else null
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             null
         }
     }
@@ -749,7 +749,7 @@ class YouTubeMusicEngine @Inject constructor(
             } else {
                 rawUrl
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             ""
         }
     }
@@ -767,7 +767,7 @@ class YouTubeMusicEngine @Inject constructor(
             val code = response.code
             response.close()
             code in 200..399
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             true // Don't block if HEAD isn't supported by the server
         }
     }
@@ -838,7 +838,7 @@ class YouTubeMusicEngine @Inject constructor(
                     .filter { it.browseId != cleanBrowseId }
                     .distinctBy { it.browseId },
             )
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e(TAG, "getArtistProfile failed: ${e.message}")
         }
         null
@@ -933,7 +933,7 @@ class YouTubeMusicEngine @Inject constructor(
                 }
             }
             if (!bodyString.isNullOrBlank()) return@withContext parseAlbumDetailsResponse(cleanBrowseId, bodyString)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e(TAG, "getAlbumDetails failed: ${e.message}")
         }
         null
@@ -948,7 +948,7 @@ class YouTubeMusicEngine @Inject constructor(
         try {
             val root = JSONObject(jsonString)
             parseStructuredRecursive(root, songs, albums, artists)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e(TAG, "parseStructuredSearchResponse error: ${e.message}")
         }
     }
@@ -1169,7 +1169,7 @@ class YouTubeMusicEngine @Inject constructor(
                 singles = singles.distinctBy { it.browseId },
                 relatedArtists = relatedArtists.filter { it.browseId != browseId }.distinctBy { it.browseId }
             )
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e(TAG, "parseArtistProfileResponse error: ${e.message}")
         }
         return null
@@ -1236,7 +1236,7 @@ class YouTubeMusicEngine @Inject constructor(
                 trackCount = tracks.size,
                 tracks = tracks.distinctBy { it.id }
             )
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e(TAG, "parseAlbumDetailsResponse error: ${e.message}")
         }
         return null
@@ -1406,7 +1406,7 @@ class YouTubeMusicEngine @Inject constructor(
         try {
             val root = JSONObject(jsonString)
             collectTracksRecursively(root, list)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e(TAG, "parseSearchResponse error: ${e.message}")
         }
         return list
@@ -1417,7 +1417,7 @@ class YouTubeMusicEngine @Inject constructor(
         try {
             val root = JSONObject(jsonString)
             collectTracksRecursively(root, list)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e(TAG, "parseBrowseResponse error: ${e.message}")
         }
         return list

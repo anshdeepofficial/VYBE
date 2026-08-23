@@ -69,7 +69,7 @@ class SpotifyAccountRepository @Inject constructor(
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
         )
-    } catch (e: Exception) {
+    } catch (e: Throwable) {
         timber.log.Timber.e(e, "SpotifyAccountRepository: Keystore failed. Falling back to plain SharedPreferences.")
         context.getSharedPreferences(PREFS_NAME + "_plain", Context.MODE_PRIVATE)
     }

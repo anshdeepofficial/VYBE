@@ -62,7 +62,7 @@ object HiFiCapabilityChecker {
             track.release()
             if (!initialized) Timber.tag("HiFiCapability").w("AudioTrack created but state != INITIALIZED")
             initialized
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag("HiFiCapability").w(e, "AudioTrack PCM_FLOAT creation threw")
             false
         }

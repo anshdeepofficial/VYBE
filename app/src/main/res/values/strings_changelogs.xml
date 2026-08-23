@@ -170,4 +170,24 @@
         <item>Fixed external song deletion sync and metadata consistency.</item>
         <item>Fixed memory issues, crashes, and layout glitches on Wear OS and phone.</item>
     </string-array>
+
+    <string-array name="changelog_0715_fixes">
+        <item>Completely abandoned broken hardware Keystore on specific devices, eliminating startup crashes.</item>
+        <item>Fixed Immersive Artwork layout where title/artist text was invisible over bright covers.</item>
+    </string-array>
+    <string-array name="changelog_0715_added">
+        <item>Added Play, Shuffle, and Loop playback buttons directly to Album, Playlist, and Artist profile headers.</item>
+    </string-array>
+    <string-array name="changelog_0715_improvements">
+        <item>Updated underlying security architecture.</item>
+    </string-array>
+    <string-array name="changelog_0714_fixes">
+        <item>Attempted to fix AEADBadTagException startup crash on some Android 13/14 devices.</item>
+    </string-array>
+    <string-array name="changelog_0713_fixes">
+        <item>Fixed a search bug where the UI had to be fully cleared with backspace before searching again.</item>
+    </string-array>
+    <string-array name="changelog_0713_improvements">
+        <item>Prepared settings skeleton for Screenshot Privacy toggle.</item>
+    </string-array>
 </resources>

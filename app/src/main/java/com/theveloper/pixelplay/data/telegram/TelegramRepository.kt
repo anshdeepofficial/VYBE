@@ -116,7 +116,7 @@ class TelegramRepository @Inject constructor(
     suspend fun searchPublicChat(username: String): TdApi.Chat? {
         return try {
             clientManager.sendRequest(TdApi.SearchPublicChat(username))
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.e(e, "Error searching public chat: $username")
             null
         }
@@ -137,7 +137,7 @@ class TelegramRepository @Inject constructor(
                 TdApi.GetSupergroup(type.supergroupId)
             )
             supergroup.isForum
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.w(e, "isForum check failed for chatId=$chatId")
             false
         }
@@ -261,7 +261,7 @@ class TelegramRepository @Inject constructor(
             }
 
             Timber.d("Fetched ${topics.size} forum topics for chat $chatId")
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.e(e, "Error fetching forum topics for chat $chatId")
         }
         return topics
@@ -271,7 +271,7 @@ class TelegramRepository @Inject constructor(
         Timber.d("Fetching audio for topic threadId=$threadId in chat=$chatId")
         try {
             clientManager.sendRequest<TdApi.Ok>(TdApi.OpenChat(chatId))
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.w("Failed to open chat: $chatId")
         }
 
@@ -336,7 +336,7 @@ class TelegramRepository @Inject constructor(
                 if (nextFromMessageId == 0L) break
             }
             Timber.d("Topic $threadId: fetched ${allSongs.size} songs")
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.e(e, "Error fetching audio for topic $threadId in chat $chatId")
         }
         return allSongs
@@ -349,7 +349,7 @@ class TelegramRepository @Inject constructor(
         Timber.d("Fetching chat history for chat: $chatId")
         try {
             clientManager.sendRequest<TdApi.Ok>(TdApi.OpenChat(chatId))
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.w("Failed to open chat: $chatId")
         }
 
@@ -382,7 +382,7 @@ class TelegramRepository @Inject constructor(
             }
             Timber.d("Total mapped audio songs: ${allSongs.size}")
             return allSongs
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.e(e, "Error fetching chat history for chat $chatId")
             return allSongs
         }
@@ -481,7 +481,7 @@ class TelegramRepository @Inject constructor(
     suspend fun downloadFile(fileId: Int, priority: Int = 1): TdApi.File? {
         return try {
             clientManager.sendRequest(TdApi.DownloadFile(fileId, priority, 0, 0, false))
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.e(e, "Error evaluating DownloadFile for fileId: $fileId")
             null
         }
@@ -490,7 +490,7 @@ class TelegramRepository @Inject constructor(
     suspend fun getFile(fileId: Int): TdApi.File? {
         return try {
             clientManager.sendRequest(TdApi.GetFile(fileId))
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             null
         }
     }
@@ -498,7 +498,7 @@ class TelegramRepository @Inject constructor(
     suspend fun getMessage(chatId: Long, messageId: Long): TdApi.Message? {
         return try {
             clientManager.sendRequest(TdApi.GetMessage(chatId, messageId))
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.e(e, "Error fetching message: $chatId / $messageId")
             null
         }
@@ -540,7 +540,7 @@ class TelegramRepository @Inject constructor(
     fun preResolveTelegramUri(uriString: String) {
         if (uriResolutionCache.containsKey(uriString)) return
         repositoryScope.launch {
-            try { resolveTelegramUri(uriString) } catch (e: Exception) { /* ignore */ }
+            try { resolveTelegramUri(uriString) } catch (e: Throwable) { /* ignore */ }
         }
     }
 
@@ -551,7 +551,7 @@ class TelegramRepository @Inject constructor(
             )
             history.messages.firstOrNull { it.id == messageId }
                 ?: clientManager.sendRequest(TdApi.GetMessage(chatId, messageId))
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.e(e, "Error refreshing message: $messageId")
             null
         }
@@ -588,7 +588,7 @@ class TelegramRepository @Inject constructor(
                     warmUpArtwork(chatId, messageId)
                 } catch (e: kotlinx.coroutines.CancellationException) {
                     throw e
-                } catch (e: Exception) {
+                } catch (e: Throwable) {
                     Timber.v(e, "Artwork warm-up failed for $chatId/$messageId")
                 }
             }
@@ -666,7 +666,7 @@ class TelegramRepository @Inject constructor(
                             } else null
                         } catch (e: kotlinx.coroutines.CancellationException) {
                             throw e
-                        } catch (e: Exception) {
+                        } catch (e: Throwable) {
                             if (e.message?.contains("canceled") != true && e.message?.contains("has failed") != true) {
                                 Timber.w("Sync download failed for $fileId: ${e.message}")
                             }
@@ -676,7 +676,7 @@ class TelegramRepository @Inject constructor(
 
                     try {
                         clientManager.sendRequest<TdApi.File>(TdApi.DownloadFile(fileId, priority, 0, 0, false))
-                    } catch (e: Exception) {
+                    } catch (e: Throwable) {
                         Timber.w("Async download request failed for $fileId: ${e.message}")
                         return@withPermit null
                     }
@@ -712,7 +712,7 @@ class TelegramRepository @Inject constructor(
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.w("downloadFileAwait error for $fileId: ${e.message}")
                 throw e
             } finally {
@@ -750,7 +750,7 @@ class TelegramRepository @Inject constructor(
         try {
             val unifiedSongIds = telegramEntities.map { toUnifiedTelegramSongId(it.id).toString() }
             upsertPlaylist(getAppPlaylistIdForChannel(chatId), channelTitle, unifiedSongIds, "TELEGRAM")
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.e(e, "Failed to update app playlist for Telegram channel $chatId")
         }
     }
@@ -770,7 +770,7 @@ class TelegramRepository @Inject constructor(
                 unifiedSongIds,
                 "TELEGRAM_TOPIC"
             )
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.e(e, "Failed to update app playlist for topic $threadId in chat $chatId")
         }
     }
@@ -809,7 +809,7 @@ class TelegramRepository @Inject constructor(
     suspend fun deleteAppPlaylistForTelegramChannel(chatId: Long) {
         try {
             playlistPreferencesRepository.deletePlaylist(getAppPlaylistIdForChannel(chatId))
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.w(e, "Failed to delete app playlist for Telegram channel $chatId")
         }
     }
@@ -817,7 +817,7 @@ class TelegramRepository @Inject constructor(
     suspend fun deleteAppPlaylistForTopic(chatId: Long, threadId: Long) {
         try {
             playlistPreferencesRepository.deletePlaylist(getAppPlaylistIdForTopic(chatId, threadId))
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.w(e, "Failed to delete app playlist for topic $threadId in chat $chatId")
         }
     }
@@ -832,7 +832,7 @@ class TelegramRepository @Inject constructor(
             all.filter { it.id.startsWith(prefix) }.forEach {
                 playlistPreferencesRepository.deletePlaylist(it.id)
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.w(e, "Failed to delete topic playlists for channel $chatId")
         }
     }

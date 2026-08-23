@@ -156,7 +156,7 @@ class NavidromeApiService @Inject constructor(
                     Timber.d("$TAG: <<< HTTP $code for $endpoint, body length: ${body.length}")
                     Result.success(body)
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.e(e, "$TAG: !!! FAILED GET $endpoint")
                 Result.failure(e)
             }
@@ -184,7 +184,7 @@ class NavidromeApiService @Inject constructor(
             }
 
             Result.success(subsonicResponse)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.e(e, "$TAG: Failed to parse response")
             Result.failure(e)
         }

@@ -150,7 +150,7 @@ class ArtistImageRepository @Inject constructor(
                             }
                         } catch (e: CancellationException) {
                             throw e
-                        } catch (e: Exception) {
+                        } catch (e: Throwable) {
                             Timber.tag(TAG).w("Failed to prefetch image for $artistName: ${e.message}")
                         }
                     }
@@ -219,7 +219,7 @@ class ArtistImageRepository @Inject constructor(
             }
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).e("Error fetching artist image for $artistName: ${e.message}")
             // Consider transient errors? For now treating as failed to avoid spam.
             if(e !is java.net.SocketTimeoutException) {
@@ -310,7 +310,7 @@ class ArtistImageRepository @Inject constructor(
                     }
                     scaledBitmap.recycle()
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.tag(TAG)
                     .e("Failed to save custom artist image for id=$artistId: ${e.message}")
                 null
@@ -407,7 +407,7 @@ class ArtistImageRepository @Inject constructor(
                 }
                 // Clear from DB
                 musicDao.updateArtistCustomImage(artistId, null)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.tag(TAG)
                     .e("Failed to clear custom artist image for id=$artistId: ${e.message}")
             }

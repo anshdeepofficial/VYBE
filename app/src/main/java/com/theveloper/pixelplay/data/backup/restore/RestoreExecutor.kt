@@ -46,7 +46,7 @@ class RestoreExecutor @Inject constructor(
                     snapshots[section] = handler.snapshot()
                 }
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e(TAG, "Snapshot phase failed", e)
             return@withContext RestoreResult.TotalFailure("Failed to capture current state: ${e.message}")
         }
@@ -100,7 +100,7 @@ class RestoreExecutor @Inject constructor(
                 handler.restore(payload)
                 restoredModules.add(section)
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e(TAG, "Restore failed while processing backup module, rolling back", e)
             // Roll back in reverse restore order, including the module that failed mid-restore.
             var rollbackSuccess = true

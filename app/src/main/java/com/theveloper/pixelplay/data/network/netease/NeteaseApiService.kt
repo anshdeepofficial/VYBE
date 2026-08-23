@@ -187,7 +187,7 @@ class NeteaseApiService @Inject constructor() {
                 Timber.d("$TAG: <<< body[${body.length}]: ${body.take(500)}")
                 return body
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.e(e, "$TAG: !!! FAILED $method $url")
             throw e
         }
@@ -307,7 +307,7 @@ class NeteaseApiService @Inject constructor() {
             if (code == 301 && hasLogin()) {
                 try {
                     ensureWeapiSession()
-                } catch (e: Exception) {
+                } catch (e: Throwable) {
                     Timber.w(e, "$TAG: session warm-up failed, continuing with original response")
                 }
                 resp = call()

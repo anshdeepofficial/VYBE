@@ -798,7 +798,7 @@ class MusicService : MediaLibraryService() {
                         val children = autoMediaBrowseTree.getChildren(parentId, page, pageSize)
                         grantArtworkUriPermissions(browser.packageName, children)
                         LibraryResult.ofItemList(children, params)
-                    } catch (e: Exception) {
+                    } catch (e: Throwable) {
                         Timber.tag(TAG).e(e, "onGetChildren failed for parentId=$parentId")
                         LibraryResult.ofError(SessionError.ERROR_UNKNOWN)
                     }
@@ -819,7 +819,7 @@ class MusicService : MediaLibraryService() {
                         } else {
                             LibraryResult.ofError(SessionError.ERROR_BAD_VALUE)
                         }
-                    } catch (e: Exception) {
+                    } catch (e: Throwable) {
                         Timber.tag(TAG).e(e, "onGetItem failed for mediaId=$mediaId")
                         LibraryResult.ofError(SessionError.ERROR_UNKNOWN)
                     }
@@ -858,7 +858,7 @@ class MusicService : MediaLibraryService() {
 
                         grantArtworkUriPermissions(browser.packageName, pagedResults)
                         LibraryResult.ofItemList(pagedResults, params)
-                    } catch (e: Exception) {
+                    } catch (e: Throwable) {
                         Timber.tag(TAG).e(e, "onGetSearchResult failed for query=$query")
                         LibraryResult.ofError(SessionError.ERROR_UNKNOWN)
                     }
@@ -1096,7 +1096,7 @@ class MusicService : MediaLibraryService() {
                 notification,
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
             )
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).w(e, "Failed to promote service to foreground for external command")
         }
     }
@@ -2466,7 +2466,7 @@ class MusicService : MediaLibraryService() {
 
         try {
             super.onUpdateNotification(session, shouldStartInForeground)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.tag(TAG).w(e, "onUpdateNotification suppressed: ${e.message}")
         }
     }
@@ -2972,7 +2972,7 @@ class MusicService : MediaLibraryService() {
         launch(Dispatchers.IO) {
             try {
                 future.set(block())
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 future.setException(e)
             }
         }
