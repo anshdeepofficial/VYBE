@@ -20,7 +20,7 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.material.icons.rounded.Cloud\nimport androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LargeTopAppBar
@@ -152,7 +152,7 @@ fun HomeGradientTopBar(
                     modifier = Modifier.padding(end = 4.dp)
                 ) {
                     Icon(
-                        imageVector = androidx.compose.material.icons.rounded.Refresh,
+                        imageVector = Icons.Rounded.Refresh,
                         contentDescription = "Refresh",
                         modifier = Modifier.size(24.dp)
                     )
