@@ -57,7 +57,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.Search
+import Icons.Rounded.Search
 import androidx.compose.material.icons.rounded.AddLink
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -447,7 +447,7 @@ fun SearchScreen(
                 }.padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(imageVector = androidx.compose.material.icons.rounded.Search, contentDescription = null)
+                Icon(imageVector = Icons.Rounded.Search, contentDescription = null)
                 Spacer(modifier = Modifier.width(16.dp))
                 Text(suggestion)
             }
