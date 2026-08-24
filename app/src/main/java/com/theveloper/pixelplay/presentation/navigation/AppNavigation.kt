@@ -449,6 +449,26 @@ fun AppNavigation(
                 }
             }
             composable(
+                Screen.PreferredArtists.route,
+            ) {
+                ScreenWrapper(navController = navController, playerViewModel = playerViewModel, animatedVisibilityScope = this) {
+                    com.theveloper.pixelplay.presentation.screens.OnlineArtistSelectionScreen(
+                        navController = navController,
+                        selectionType = com.theveloper.pixelplay.presentation.viewmodel.ArtistSelectionType.PREFERRED
+                    )
+                }
+            }
+            composable(
+                Screen.BlockedArtists.route,
+            ) {
+                ScreenWrapper(navController = navController, playerViewModel = playerViewModel, animatedVisibilityScope = this) {
+                    com.theveloper.pixelplay.presentation.screens.OnlineArtistSelectionScreen(
+                        navController = navController,
+                        selectionType = com.theveloper.pixelplay.presentation.viewmodel.ArtistSelectionType.BLOCKED
+                    )
+                }
+            }
+            composable(
                 Screen.DelimiterConfig.route,
             ) {
                 ScreenWrapper(navController = navController, playerViewModel = playerViewModel, animatedVisibilityScope = this) {

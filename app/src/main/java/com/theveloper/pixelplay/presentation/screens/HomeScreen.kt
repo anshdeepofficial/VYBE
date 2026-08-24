@@ -380,7 +380,10 @@ fun HomeScreen(
 
     // Drawer state for sidebar
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    Box(
+    val isRefreshing by playerViewModel.isHomeRefreshing.collectAsStateWithLifecycle()
+    androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = { playerViewModel.forceUpdateDailyMix() },
         modifier = Modifier.fillMaxSize()
     ) {
         Scaffold(

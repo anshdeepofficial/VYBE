@@ -1482,8 +1482,10 @@ class LyricsRepositoryImpl @Inject constructor(
             LogUtils.d(this@LyricsRepositoryImpl, "Manual lyrics search: title=$title, artist=$artist")
 
             val strategies = buildList {
-                add(RemoteSearchStrategy("manual_query") { lrcLibApiService.searchLyrics(query = query) })
-                if (!cleanArtist.isNullOrBlank()) {
+                if (query.isNotBlank()) {
+                    add(RemoteSearchStrategy("manual_query") { lrcLibApiService.searchLyrics(query = query) })
+                }
+                if (cleanTitle.isNotBlank() && !cleanArtist.isNullOrBlank()) {
                     add(
                         RemoteSearchStrategy("manual_track+artist") {
                             lrcLibApiService.searchLyrics(trackName = cleanTitle, artistName = cleanArtist)
@@ -1492,28 +1494,34 @@ class LyricsRepositoryImpl @Inject constructor(
                 }
             }
 
+            if (strategies.isEmpty()) {
+                return@withContext Result.failure(LyricsException("No valid query provided"))
+            }
+
             // Run both in parallel and take the first non-empty result set.
             val responses = runSearchStrategiesFast(strategies)
 
             if (responses.isEmpty()) {
                 // Fallback to exact search
-                val exactResponse = runCatching {
-                    withNetworkRetry("lrclib_manual_get_lyrics") {
-                        lrcLibApiService.getLyrics(
-                            trackName = cleanTitle,
-                            artistName = cleanArtist ?: "",
-                            albumName = "",
-                            duration = 0 // duration is not available in manual search
-                        )
-                    }
-                }.getOrNull()
-
-                if (exactResponse != null) {
-                    val rawLyrics = exactResponse.syncedLyrics ?: exactResponse.plainLyrics
-                    if (rawLyrics != null) {
-                        val parsed = LyricsUtils.parseLyrics(rawLyrics).copy(areFromRemote = true)
-                        if (parsed.isValid()) {
-                            return@withContext Result.success(Pair(query, listOf(LyricsSearchResult(exactResponse, parsed, rawLyrics))))
+                if (cleanTitle.isNotBlank()) {
+                    val exactResponse = runCatching {
+                        withNetworkRetry("lrclib_manual_get_lyrics") {
+                            lrcLibApiService.getLyrics(
+                                trackName = cleanTitle,
+                                artistName = cleanArtist ?: "",
+                                albumName = "",
+                                duration = 0
+                            )
+                        }
+                    }.getOrNull()
+                    
+                    if (exactResponse != null) {
+                        val rawLyrics = exactResponse.syncedLyrics ?: exactResponse.plainLyrics
+                        if (rawLyrics != null) {
+                            val parsed = LyricsUtils.parseLyrics(rawLyrics).copy(areFromRemote = true)
+                            if (parsed.isValid()) {
+                                return@withContext Result.success(Pair(query, listOf(LyricsSearchResult(exactResponse, parsed, rawLyrics))))
+                            }
                         }
                     }
                 }

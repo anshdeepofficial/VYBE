@@ -32,6 +32,17 @@ private data class ChangelogRelease(
 
 private val VybeChangelog = listOf(
     ChangelogRelease(
+        version = "0.8.0",
+        date = "24 August 2026",
+        changes = listOf(
+            "Spotify: Added Spotify account integration in Settings.",
+            "Spotify: You can now connect your Spotify account and import playlists directly.",
+            "Privacy: Removed personal developer domains from share links.",
+            "Fix: Resolved Online Track metadata being overwritten during hydration.",
+            "Fix: Fixed 400 Bad Request error when searching lyrics with empty queries."
+        )
+    ),
+    ChangelogRelease(
         version = "0.7.22",
         date = "24 August 2026",
         changes = listOf(

@@ -77,7 +77,13 @@ enum class SettingsCategory(
         id = "device_capabilities",
         titleRes = R.string.settings_category_device_capabilities_title,
         subtitleRes = R.string.settings_category_device_capabilities_subtitle,
-        icon = Icons.Rounded.DeveloperBoard // Placeholder, maybe Memory or SettingsInputComponent
+        icon = Icons.Rounded.DeveloperBoard
+    ),
+    SPOTIFY(
+        id = "spotify",
+        titleRes = R.string.settings_category_spotify_title,
+        subtitleRes = R.string.settings_category_spotify_subtitle,
+        icon = Icons.Rounded.MusicNote
     ),
     ABOUT(
         id = "about",

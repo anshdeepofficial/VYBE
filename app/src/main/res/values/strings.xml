@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name">VYBE</string>
     <string name="app_tagline">Music Player</string>
@@ -6,30 +6,30 @@
     <string name="app_name_change_message">Welcome to VYBE. Keep playing!</string>
     <string name="app_name_change_do_not_show_again">Do not show again</string>
 
-    <!-- Navigation Bar Labels -->
+    
     <string name="nav_bar_home">Home</string>
     <string name="nav_bar_search">Search</string>
     <string name="nav_bar_library">Library</string>
 
-    <!-- All files access dialog-->
+    
     <string name="all_files_access_title">Special Permission Required</string>
     <string name="search_tab_videos">Videos</string>
     <string name="all_files_access_description">To edit song metadata (.mp3 files), VYBE needs special access to all files. This allows us to modify track tags directly. Please grant this permission on the next screen to enable metadata editing.</string>
     <string name="grant_permission_button">Grant Permission</string>
 
-    <!-- External Player -->
+    
     <string name="external_queue_label">Quick play</string>
     <string name="external_playback_error">Unable to open that audio file.</string>
     <string name="external_action_open_full_player">Open full player</string>
 
-    <!-- App Shortcuts -->
+    
     <string name="shortcut_shuffle_short">Shuffle</string>
     <string name="shortcut_shuffle_long">Shuffle all songs</string>
     <string name="tile_shuffle_all">Shuffle All</string>
     <string name="tile_last_playlist">Last Playlist</string>
     <string name="tile_last_playlist_unavailable">No playlist available to open</string>
 
-    <!-- Playstore Announcement -->
+    
     <string name="playstore_dialog_action_open">Open Play Store</string>
     <string name="playstore_dialog_action_continue_beta">Continue here</string>
     <string name="playstore_dialog_action_continue">Continue here</string>
@@ -41,7 +41,7 @@
     <string name="playstore_dialog_release_announcement">Release announcement</string>
     <string name="playstore_dialog_coming_soon">Coming soon</string>
 
-    <!-- Brick breaker -->
+    
     <string name="easter_egg_thank_you">Thank you for using VYBE!</string>
     <string name="brick_high">HIGH %1$d</string>
     <string name="brick_cd_close">Close</string>
@@ -61,12 +61,12 @@
     <string name="brick_play">Play</string>
     <string name="brick_drag_paddle">Drag to move the paddle</string>
 
-    <!-- Music Service -->
+    
     <string name="close_notification_player">Close player</string>
     <string name="service_processing_action">Processing playback action…</string>
     <string name="player_playback_error">Playback error: %1$s</string>
 
-    <!-- Common Text & Labels -->
+    
     <string name="common_back">Back</string>
     <string name="common_ok">OK</string>
     <string name="common_cancel">Cancel</string>
@@ -84,7 +84,7 @@
     <string name="common_clear">Clear</string>
     <string name="common_error_unknown">Unknown error</string>
 
-    <!-- Common Actions & Labels -->
+    
     <string name="common_save">Save</string>
     <string name="common_done">Done</string>
     <string name="common_reset">Reset</string>
@@ -128,4 +128,4 @@
     <string name="common_play_album">Play album</string>
     <string name="common_shuffle_play_album">Shuffle play album</string>
     <string name="common_album_art_for_title">Album art for %1$s</string>
-</resources>
+<string name="settings_category_spotify_title">Spotify</string><string name="settings_category_spotify_subtitle">Connect your account and import playlists</string></resources>

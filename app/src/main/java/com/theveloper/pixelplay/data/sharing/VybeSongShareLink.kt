@@ -15,17 +15,13 @@ data class SharedVybeSong(
 )
 
 object VybeSongShareLink {
-    const val DOWNLOAD_URL = "https://vybe.app/download"
-    const val HTTPS_HOST = "vybe.app"
-    const val HTTPS_PATH_PREFIX = "/play/"
-
     fun build(song: Song): Uri {
         val portableId = song.id.takeIf(::isPortableProviderId)
         if (portableId != null) {
             return Uri.Builder()
-                .scheme("https")
-                .authority(HTTPS_HOST)
-                .path("$HTTPS_PATH_PREFIX$portableId")
+                .scheme("vybe")
+                .authority("play")
+                .appendQueryParameter("id", portableId)
                 .build()
         }
         
@@ -41,25 +37,11 @@ object VybeSongShareLink {
     fun shareText(song: Song): String = buildString {
         append(song.title)
         if (song.displayArtist.isNotBlank()) append(" by ${song.displayArtist}")
-        append("\n\nOpen in VYBE: ${build(song)}")
-        append("\nGet VYBE: $DOWNLOAD_URL")
+        append("\n\nOpen in VYBE:\n${build(song)}")
     }
 
     fun parse(uri: Uri): SharedVybeSong? {
-        // Parse new HTTPS links: https://anshdeepofficial.github.io/VYBE/play/<TRACK_ID>
-        if (uri.scheme == "https" && uri.host == HTTPS_HOST) {
-            val path = uri.path
-            if (path != null && path.startsWith(HTTPS_PATH_PREFIX)) {
-                val trackId = path.substring(HTTPS_PATH_PREFIX.length).take(100)
-                if (isPortableProviderId(trackId)) {
-                    return SharedVybeSong(
-                        providerId = trackId,
-                    )
-                }
-            }
-        }
-        
-        // Parse old legacy vybe://play links
+        // Parse vybe://play links
         if (uri.scheme == "vybe" && uri.host == "play") {
             return SharedVybeSong(
                 providerId = uri.getQueryParameter("id")?.take(100)?.takeIf(::isPortableProviderId),
@@ -71,7 +53,6 @@ object VybeSongShareLink {
                 albumBrowseId = uri.getQueryParameter("albumId")?.take(200),
             )
         }
-        
         return null
     }
 

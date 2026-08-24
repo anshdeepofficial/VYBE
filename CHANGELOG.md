@@ -1,3 +1,14 @@
+## [0.8.0] - 2026-08-24
+
+### Added
+- **Spotify Integration**: Connect your Spotify account to import playlists directly into VYBE.
+- Added dedicated Spotify Account dashboard in Settings.
+
+### Fixed
+- **Privacy**: Removed personal developer domains from share links; reverted to reliable app links fallback.
+- **Metadata**: Resolved issue where Online Track placeholder data was being overwritten over legitimate local metadata during caching.
+- **Lyrics**: Fixed a 400 Bad Request network crash when searching lyrics with empty queries (Suggestions OFF).
+
 # Changelog
 
 All notable changes to this project will be documented in this file.

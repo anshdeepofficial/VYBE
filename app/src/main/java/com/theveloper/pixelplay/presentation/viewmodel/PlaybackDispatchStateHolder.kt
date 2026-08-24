@@ -520,6 +520,7 @@ class PlaybackDispatchStateHolder @Inject constructor(
     }
 
     fun playSongs(songsToPlay: List<Song>, startSong: Song, queueName: String = "None", playlistId: String? = null) {
+        com.theveloper.pixelplay.utils.PerformanceTracker.start()
         cancelPendingFullQueuePlayback()
         val requestToken = beginDirectPlaybackRequest()
         directPlaybackJob = cb.scope.launch {
@@ -604,6 +605,7 @@ class PlaybackDispatchStateHolder @Inject constructor(
         playlistId: String? = null,
         startAtZero: Boolean = false
     ) {
+        com.theveloper.pixelplay.utils.PerformanceTracker.start()
         cancelPendingFullQueuePlayback()
         val requestToken = beginDirectPlaybackRequest()
         directPlaybackJob = cb.scope.launch {
@@ -917,7 +919,9 @@ class PlaybackDispatchStateHolder @Inject constructor(
                     dualPlayerEngine.cancelNext()
                     val enginePlayer = dualPlayerEngine.masterPlayer
 
+                    com.theveloper.pixelplay.utils.PerformanceTracker.markT4()
                     enginePlayer.setMediaItem(startMediaItem, 0L)
+                    com.theveloper.pixelplay.utils.PerformanceTracker.markT5()
                     enginePlayer.prepare()
                     enginePlayer.play()
                     cb.updateUiState { it.copy(isLoadingInitialSongs = false) }
@@ -954,6 +958,7 @@ class PlaybackDispatchStateHolder @Inject constructor(
     }
 
     suspend fun buildResolvedPlaybackMediaItem(song: Song): MediaItem {
+        com.theveloper.pixelplay.utils.PerformanceTracker.markT2()
         val mediaItem = MediaItemBuilder.build(song)
         val originalUri = mediaItem.localConfiguration?.uri ?: return mediaItem
         val scheme = originalUri.scheme
@@ -984,13 +989,16 @@ class PlaybackDispatchStateHolder @Inject constructor(
             originalUri.toString().startsWith("saavn_") ||
             song.id.startsWith("yt_") ||
             song.id.startsWith("saavn_")
+            
+        // We bypass manual resolution for online music, because DualPlayerEngine 
+        // already uses a ResolvingDataSource for yt:// and saavn:// URIs!
         val resolvedUri = if (isOnlineMusic) {
-            // Preserve title/artist for the Saavn-by-query fallback. Resolving only the custom
-            // URI loses that metadata and turns a valid fallback into an empty query.
-            dualPlayerEngine.resolveOnlineSongUri(song)
+            originalUri
         } else {
             dualPlayerEngine.resolveCloudUri(originalUri)
         }
+        
+        com.theveloper.pixelplay.utils.PerformanceTracker.markT3()
         return if (resolvedUri == originalUri) {
             mediaItem
         } else {

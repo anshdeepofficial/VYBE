@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -21,6 +22,7 @@ class OnlineMusicRepository @Inject constructor(
     private val youTubeEngine: YouTubeMusicEngine,
     private val saavnEngine: JioSaavnEngine,
     private val onlineSongCacheDao: OnlineSongCacheDao,
+    private val userPreferencesRepository: com.theveloper.pixelplay.data.preferences.UserPreferencesRepository,
 ) {
     suspend fun searchSongs(query: String, region: String = "IN"): List<Song> = withContext(Dispatchers.IO) {
         var results = youTubeEngine.search(query, region).map { it.toSong() }
@@ -72,37 +74,75 @@ class OnlineMusicRepository @Inject constructor(
         saavnEngine.searchSongs(query)
     }
 
-    suspend fun getFastPersonalizedDiscovery(interestLabels: List<String>): List<Song> = coroutineScope {
-        val queries = interestLabels
+    
+    private suspend fun filterAndPrioritizeRecommendations(songs: List<Song>): List<Song> {
+        val blocked = userPreferencesRepository.blockedArtists.first().map { it.lowercase() }
+        val preferred = userPreferencesRepository.preferredArtists.first().map { it.lowercase() }
+        
+        return songs.filter { song ->
+            val songArtist = song.artist.lowercase()
+            blocked.none { songArtist.contains(it) }
+        }.sortedByDescending { song ->
+            val songArtist = song.artist.lowercase()
+            if (preferred.any { songArtist.contains(it) }) 1 else 0
+        }
+    }
+
+suspend fun getFastPersonalizedDiscovery(interestLabels: List<String>): List<Song> = coroutineScope {
+        val moodToBrowseId = mapOf(
+            "chill" to "FEmusic_moods_and_genres_chill",
+            "happy" to "FEmusic_moods_and_genres_happy",
+            "workout" to "FEmusic_moods_and_genres_workout",
+            "focus" to "FEmusic_moods_and_genres_focus",
+            "romantic" to "FEmusic_moods_and_genres_romance",
+            "sad" to "FEmusic_moods_and_genres_sad",
+            "party" to "FEmusic_moods_and_genres_party",
+            "relax" to "FEmusic_moods_and_genres_relax",
+            "sleep" to "FEmusic_moods_and_genres_sleep"
+        )
+
+        val moods = interestLabels
             .map(String::trim)
             .filter(String::isNotBlank)
             .distinctBy(String::lowercase)
             .take(3)
-            .map { "$it songs" }
-            .ifEmpty { listOf("Trending Punjabi Hindi songs 2026") }
 
-        queries.map { query ->
-            async(Dispatchers.IO) { runCatching { saavnEngine.searchSongs(query) }.getOrDefault(emptyList()) }
-        }.map { it.await() }
-            .flatten()
-            .filter(::isUsefulDiscoverySong)
-            .distinctBy { it.id }
-            .take(30)
+        val region = runCatching { userPreferencesRepository.userRegionFlow.first() }.getOrDefault("IN").ifBlank { "IN" }
+
+        if (moods.isEmpty()) {
+            return@coroutineScope getTrendingTracks(region)
+        }
+
+        val ytTracks = moods.map { mood ->
+            async(Dispatchers.IO) {
+                val browseId = moodToBrowseId[mood.lowercase()]
+                if (browseId != null) {
+                    runCatching { youTubeEngine.getMoodTracks(browseId, region) }.getOrDefault(emptyList())
+                } else {
+                    emptyList<com.theveloper.pixelplay.data.network.ytmusic.YouTubeTrack>()
+                }
+            }
+        }.map { it.await() }.flatten()
+
+        val rawList = if (ytTracks.isNotEmpty()) {
+            ytTracks.map { it.toSong() }.take(50)
+        } else {
+            getTrendingTracks(region)
+        }
+        
+        return@coroutineScope filterAndPrioritizeRecommendations(rawList)
     }
 
     suspend fun getTrendingTracks(region: String = "IN"): List<Song> = withContext(Dispatchers.IO) {
         val tracks = youTubeEngine.getTrendingTracks(normalizedRegion(region))
-        tracks.map { it.toSong() }.ifEmpty {
-            saavnEngine.searchSongs("Trending Punjabi Hindi songs 2026")
-                .filter(::isUsefulDiscoverySong)
-        }
+        val rawList = tracks.map { it.toSong() }
+        filterAndPrioritizeRecommendations(rawList)
     }
 
     suspend fun getLatestReleases(region: String = "IN"): List<Song> = withContext(Dispatchers.IO) {
-        youTubeEngine.getLatestReleases(normalizedRegion(region)).map { it.toSong() }.ifEmpty {
-            saavnEngine.searchSongs("Latest Punjabi Hindi releases 2026")
-                .filter(::isUsefulDiscoverySong)
-        }
+        val tracks = youTubeEngine.getLatestReleases(normalizedRegion(region))
+        val rawList = tracks.map { it.toSong() }
+        filterAndPrioritizeRecommendations(rawList)
     }
 
     /** Returns a seed-first continuation queue, never the raw search-result collection. */
@@ -125,17 +165,16 @@ class OnlineMusicRepository @Inject constructor(
             if (relatedQuery.isBlank()) emptyList() else {
                 val yt = runCatching { youTubeEngine.search(relatedQuery, normalized).map { it.toSong() } }
                     .getOrDefault(emptyList())
-                val fallback = if (yt.isEmpty()) {
-                    runCatching { saavnEngine.searchSongs("${seed.artist} songs") }.getOrDefault(emptyList())
-                } else emptyList()
-                (yt + fallback).filter(::isUsefulDiscoverySong)
+                yt.filter(::isUsefulDiscoverySong)
             }
         }
 
-        listOf(seed) + (providerContinuation + relatedFallback)
+        val rawList = listOf(seed) + (providerContinuation + relatedFallback)
             .filterNot { it.id == seed.id }
             .distinctBy { it.id }
             .take(49)
+            
+        filterAndPrioritizeRecommendations(rawList)
     }
 
     private fun normalizedRegion(region: String): String =

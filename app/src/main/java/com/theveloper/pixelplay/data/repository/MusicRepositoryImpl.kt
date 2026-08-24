@@ -761,7 +761,10 @@ class MusicRepositoryImpl @Inject constructor(
     }
 
     override suspend fun cacheOnlineSongs(songs: List<Song>) {
-        val onlineSongs = songs.filter { it.id.startsWith("yt_") || it.id.startsWith("saavn_") || it.id.startsWith("netease_") || it.id.startsWith("qq_") || it.path.startsWith("http") }
+        val onlineSongs = songs.filter { 
+            (it.id.startsWith("yt_") || it.id.startsWith("saavn_") || it.id.startsWith("netease_") || it.id.startsWith("qq_") || it.path.startsWith("http")) &&
+            !(it.title == "Online Track" && it.artist == "YouTube Music")
+        }
         if (onlineSongs.isNotEmpty()) {
             onlineSongCacheDao.upsertAll(onlineSongs.map { it.toOnlineSongCacheEntity() })
         }

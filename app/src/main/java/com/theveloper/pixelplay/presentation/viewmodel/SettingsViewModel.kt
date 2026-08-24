@@ -474,6 +474,11 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    
+    fun logoutSpotify() {
+        spotifyAccountRepository.logout()
+    }
+
     fun clearSpotifyImportState() {
         if (!_spotifyImportState.value.isImporting) {
             _spotifyImportState.value = SpotifyImportUiState()

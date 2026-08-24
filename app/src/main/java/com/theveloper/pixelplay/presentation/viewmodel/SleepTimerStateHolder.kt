@@ -125,7 +125,24 @@ class SleepTimerStateHolder @Inject constructor(
             durationMinutes
         )
 
+        
+        // Start live countdown coroutine
+        sleepTimerJob = scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+            while (true) {
+                val remaining = _sleepTimerEndTimeMillis.value?.minus(System.currentTimeMillis()) ?: 0L
+                if (remaining <= 0) {
+                    cancelSleepTimer(suppressDefaultToast = true)
+                    break
+                }
+                val minutes = java.util.concurrent.TimeUnit.MILLISECONDS.toMinutes(remaining)
+                val seconds = java.util.concurrent.TimeUnit.MILLISECONDS.toSeconds(remaining) % 60
+                _activeTimerValueDisplay.value = String.format(java.util.Locale.US, "%02d:%02d", minutes, seconds)
+                kotlinx.coroutines.delay(1000)
+            }
+        }
+
         // Schedule alarm for reliable triggering
+
         val pendingIntent = sleepTimerPendingIntent()
 
         try {

@@ -1452,6 +1452,63 @@ class YouTubeMusicEngine @Inject constructor(
         return list
     }
 
+    suspend fun getMoodTracks(moodBrowseId: String, region: String = "IN"): List<YouTubeTrack> = withContext(Dispatchers.IO) {
+        val tracks = mutableListOf<YouTubeTrack>()
+        try {
+            val bodyString = executeWebRemixRequest("browse", region) { config ->
+                JSONObject().apply {
+                    put("context", createWebRemixContext(region, config))
+                    put("browseId", moodBrowseId)
+                }
+            }
+            if (!bodyString.isNullOrBlank()) {
+                // Try to find tracks directly on the mood page
+                tracks.addAll(parseBrowseResponse(bodyString))
+                
+                // If the mood page only contains playlists, let's extract the first playlist browseId
+                if (tracks.isEmpty()) {
+                    val root = JSONObject(bodyString)
+                    val playlistIds = mutableListOf<String>()
+                    fun findPlaylists(d: Any?) {
+                        when (d) {
+                            is JSONObject -> {
+                                val browseId = d.optJSONObject("navigationEndpoint")
+                                    ?.optJSONObject("browseEndpoint")
+                                    ?.optString("browseId")
+                                if (browseId != null && (browseId.startsWith("VL") || browseId.startsWith("PL") || browseId.startsWith("RD"))) {
+                                    playlistIds.add(browseId)
+                                }
+                                d.keys().forEach { findPlaylists(d.opt(it)) }
+                            }
+                            is JSONArray -> {
+                                for (i in 0 until d.length()) findPlaylists(d.opt(i))
+                            }
+                        }
+                    }
+                    findPlaylists(root)
+                    
+                    // Fetch tracks from the first 2 playlists found
+                    for (pid in playlistIds.distinct().take(2)) {
+                        getAlbumDetails(pid)?.tracks?.let { playlistTracks ->
+                            tracks.addAll(playlistTracks.map { YouTubeTrack(
+                                videoId = it.id.removePrefix("yt_"),
+                                title = it.title,
+                                artist = it.artist,
+                                album = it.album.ifBlank { "YouTube Music" },
+                                thumbnailUrl = it.albumArtUriString,
+                                durationSeconds = it.duration / 1000L,
+                                isOfficial = true
+                            )})
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getMoodTracks failed for $moodBrowseId: ${e.message}")
+        }
+        tracks.distinctBy { it.videoId }
+    }
+
     private fun parseSearchSuggestions(jsonString: String, query: String): List<String> {
         val suggestions = mutableListOf<String>()
         fun visit(value: Any?) {

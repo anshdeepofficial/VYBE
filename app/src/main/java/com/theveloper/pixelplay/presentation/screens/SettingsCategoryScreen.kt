@@ -452,9 +452,25 @@ fun SettingsCategoryScreen(
                ) {
                     when (category) {
                         SettingsCategory.LIBRARY -> {
-                            SpotifyMusicManagementSection(settingsViewModel)
                             Spacer(modifier = Modifier.height(10.dp))
 
+                            SettingsSubsection(title = "Artist Preferences") {
+                                SettingsItem(
+                                    title = "Preferred Artists",
+                                    subtitle = "Prioritize these artists in Mixes and Autoplay",
+                                    leadingIcon = { Icon(Icons.Outlined.Person, null, tint = MaterialTheme.colorScheme.secondary) },
+                                    trailingIcon = { Icon(Icons.Rounded.ChevronRight, stringResource(R.string.settings_cd_open), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                    onClick = { navController.navigateSafely(Screen.PreferredArtists.route) }
+                                )
+                                SettingsItem(
+                                    title = "Blocked Artists",
+                                    subtitle = "Exclude these artists from recommendations",
+                                    leadingIcon = { Icon(Icons.Outlined.Person, null, tint = MaterialTheme.colorScheme.secondary) },
+                                    trailingIcon = { Icon(Icons.Rounded.ChevronRight, stringResource(R.string.settings_cd_open), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                    onClick = { navController.navigateSafely(Screen.BlockedArtists.route) }
+                                )
+                            }
+                            
                             SettingsSubsection(title = stringResource(R.string.settings_library_structure_section)) {
                                 SettingsItem(
                                     title = stringResource(R.string.settings_excluded_directories_title),
@@ -1859,6 +1875,9 @@ fun SettingsCategoryScreen(
                         }
                         SettingsCategory.DEVICE_CAPABILITIES -> {
                             // Device Capabilities has its own screen
+                        }
+                        SettingsCategory.SPOTIFY -> {
+                            com.theveloper.pixelplay.presentation.screens.SpotifySettingsSection(settingsViewModel, context)
                         }
 
                     }

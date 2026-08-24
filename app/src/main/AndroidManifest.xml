@@ -84,15 +84,6 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="vybe" android:host="play" />
             </intent-filter>
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="http" />
-                <data android:scheme="https" />
-                <data android:host="anshdeepofficial.github.io" />
-                <data android:pathPrefix="/VYBE/play" />
-            </intent-filter>
             <meta-data
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
@@ -149,6 +140,40 @@
 
 
         <activity
+            android:name=".presentation.links.MusicLinkActivity"
+            android:exported="true"
+            android:theme="@style/Theme.PixelPlay">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="music.youtube.com" />
+                <data android:host="youtube.com" />
+                <data android:host="youtu.be" />
+                <data android:host="www.youtube.com" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".presentation.spotify.auth.SpotifyLoginActivity"
+            android:exported="true"
+            android:theme="@style/Theme.PixelPlay">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="pixelplayer" android:host="spotify-callback" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name=".ExternalPlayerActivity"
             android:exported="true"
             android:label="@string/app_name"
@@ -182,6 +207,7 @@
                 <action android:name="android.media.browse.MediaBrowserService" />
                 <action android:name="androidx.media3.session.MediaLibraryService" />
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
+                <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.APP_MUSIC" />
             </intent-filter>

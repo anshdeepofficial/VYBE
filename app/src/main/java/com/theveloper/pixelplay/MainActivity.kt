@@ -396,6 +396,14 @@ class MainActivity : ComponentActivity() {
                 }
                 intent.action = null
             }
+            
+            // Handle music link router
+            intent.action == MainActivityIntentContract.ACTION_PLAY_MUSIC_LINK -> {
+                intent.getStringExtra(MainActivityIntentContract.EXTRA_TRACK_ID)?.let { trackId ->
+                    playerViewModel.playExternalMusicId(trackId)
+                }
+                intent.action = null
+            }
 
             intent.getBooleanExtra("ACTION_SHOW_PLAYER", false) -> {
                 playerViewModel.showPlayer()
@@ -433,19 +441,6 @@ class MainActivity : ComponentActivity() {
                 clearExternalIntentPayload(intent)
             }
 
-            intent.action == android.content.Intent.ACTION_SEND && intent.type == "text/plain" -> {
-                val text = intent.getStringExtra(android.content.Intent.EXTRA_TEXT)
-                if (!text.isNullOrBlank()) {
-                    val trackId = com.theveloper.pixelplay.data.sharing.MusicLinkParser.parseExternalMusicLink(text)
-                    if (trackId != null) {
-                        playerViewModel.playExternalMusicId(trackId)
-                    } else {
-                        android.widget.Toast.makeText(this, "No supported music link found", android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                }
-                clearExternalIntentPayload(intent)
-            }
-            
             intent.action == "com.theveloper.pixelplay.ACTION_PLAY_SONG" -> {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                      intent.getParcelableExtra("song", com.theveloper.pixelplay.data.model.Song::class.java)?.let { song ->

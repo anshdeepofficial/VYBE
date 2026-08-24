@@ -40,6 +40,9 @@ class DailyMixStateHolder @Inject constructor(
     private var scope: CoroutineScope? = null
     private var updateJob: Job? = null
 
+        private val _isRefreshing = kotlinx.coroutines.flow.MutableStateFlow(false)
+    val isRefreshing: kotlinx.coroutines.flow.StateFlow<Boolean> = _isRefreshing
+
     private val _dailyMixSongs = MutableStateFlow<ImmutableList<Song>>(persistentListOf())
     val dailyMixSongs: StateFlow<ImmutableList<Song>> = _dailyMixSongs.asStateFlow()
 
@@ -71,6 +74,7 @@ class DailyMixStateHolder @Inject constructor(
     fun updateDailyMix(favoriteSongIdsFlow: kotlinx.coroutines.flow.Flow<Set<String>>) {
         updateJob?.cancel()
         updateJob = scope?.launch(Dispatchers.IO) {
+            _isRefreshing.value = true
             val favoriteIds = runCatching { favoriteSongIdsFlow.first() }.getOrDefault(emptySet())
             val region = runCatching { userPreferencesRepository.userRegionFlow.first() }
                 .getOrDefault("IN")
@@ -161,6 +165,7 @@ class DailyMixStateHolder @Inject constructor(
                 _dailyMixSongs.value = persistentListOf()
                 _quickPickSongs.value = persistentListOf()
             }
+            _isRefreshing.value = false
         }
     }
 

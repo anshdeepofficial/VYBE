@@ -155,6 +155,7 @@ import java.util.Locale
 import kotlin.math.roundToLong
 import com.theveloper.pixelplay.presentation.components.WavySliderExpressive
 import com.theveloper.pixelplay.presentation.components.ToggleSegmentButton
+import com.theveloper.pixelplay.presentation.components.ToggleSegmentButtonText
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.withContext
@@ -1361,6 +1362,7 @@ private fun FullPlayerControlsSection(
     onRepeatToggle: () -> Unit,
     onFavoriteToggle: () -> Unit,
     isTimerActiveProvider: () -> Boolean = { false },
+    timerStringProvider: () -> String? = { null },
     onSleepTimerToggle: () -> Unit = {}
 ) {
     val motionScheme = remember { MotionScheme.expressive() }
@@ -1426,6 +1428,7 @@ private fun FullPlayerControlsSection(
                 onRepeatToggle = onRepeatToggle,
                 onFavoriteToggle = onFavoriteToggle,
                 isTimerActiveProvider = isTimerActiveProvider,
+                timerStringProvider = timerStringProvider,
                 onSleepTimerToggle = onSleepTimerToggle
             )
         }
@@ -2832,6 +2835,7 @@ private fun BottomToggleRow(
     onRepeatToggle: () -> Unit,
     onFavoriteToggle: () -> Unit,
     isTimerActiveProvider: () -> Boolean = { false },
+    timerStringProvider: () -> String? = { null },
     onSleepTimerToggle: () -> Unit = {}
 ) {
     val isFavorite = isFavoriteProvider()
@@ -2920,18 +2924,34 @@ private fun BottomToggleRow(
                 iconId = if (isFavorite) R.drawable.round_favorite_24 else R.drawable.rounded_favorite_24,
                 contentDesc = "Favorito"
             )
-            ToggleSegmentButton(
-                modifier = commonModifier,
-                active = isTimerActiveProvider(),
-                activeColor = LocalMaterialTheme.current.primaryFixed,
-                activeCornerRadius = rowCorners,
-                activeContentColor = LocalMaterialTheme.current.onPrimaryFixed,
-                inactiveColor = inactiveBg,
-                inactiveContentColor = inactiveContentColor,
-                onClick = onSleepTimerToggle,
-                iconId = R.drawable.rounded_timer_24,
-                contentDesc = "Timer"
-            )
+            val timerString = timerStringProvider()
+            if (isTimerActiveProvider() && timerString != null) {
+                ToggleSegmentButtonText(
+                    modifier = commonModifier,
+                    active = true,
+                    activeColor = LocalMaterialTheme.current.primaryFixed,
+                    activeCornerRadius = rowCorners,
+                    activeContentColor = LocalMaterialTheme.current.onPrimaryFixed,
+                    inactiveColor = inactiveBg,
+                    inactiveContentColor = inactiveContentColor,
+                    onClick = onSleepTimerToggle,
+                    text = timerString,
+                    contentDesc = "Timer Active"
+                )
+            } else {
+                ToggleSegmentButton(
+                    modifier = commonModifier,
+                    active = isTimerActiveProvider(),
+                    activeColor = LocalMaterialTheme.current.primaryFixed,
+                    activeCornerRadius = rowCorners,
+                    activeContentColor = LocalMaterialTheme.current.onPrimaryFixed,
+                    inactiveColor = inactiveBg,
+                    inactiveContentColor = inactiveContentColor,
+                    onClick = onSleepTimerToggle,
+                    iconId = R.drawable.rounded_timer_24,
+                    contentDesc = "Timer"
+                )
+            }
         }
     }
 }

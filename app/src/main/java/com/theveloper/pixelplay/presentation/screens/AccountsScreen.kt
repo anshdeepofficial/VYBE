@@ -837,11 +837,10 @@ private fun openService(
             )
         }
         ExternalServiceAccount.SPOTIFY -> {
-            Toast.makeText(
-                context,
-                "Import public Spotify playlist links from Music Management",
-                Toast.LENGTH_SHORT,
-            ).show()
+            safeStartActivity(
+                context = context,
+                intent = Intent(context, com.theveloper.pixelplay.presentation.spotify.auth.SpotifyLoginActivity::class.java)
+            )
         }
         ExternalServiceAccount.NETEASE -> {
             if (preferNeteaseDashboard) {
