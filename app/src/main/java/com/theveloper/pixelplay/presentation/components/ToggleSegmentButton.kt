@@ -228,3 +228,34 @@ private fun ToggleSegmentButtonContainer(
         }
     }
 }
+@Composable
+fun ToggleSegmentButtonText(
+    modifier: Modifier,
+    active: Boolean,
+    enabled: Boolean = true,
+    activeColor: Color,
+    inactiveColor: Color = Color.Gray,
+    activeContentColor: Color = LocalMaterialTheme.current.onPrimary,
+    inactiveContentColor: Color = LocalMaterialTheme.current.onSurfaceVariant,
+    activeCornerRadius: Dp = 8.dp,
+    onClick: () -> Unit,
+    text: String,
+    contentDesc: String
+) {
+    ToggleSegmentButtonContainer(
+        modifier = modifier,
+        active = active,
+        enabled = enabled,
+        activeColor = activeColor,
+        inactiveColor = inactiveColor,
+        activeCornerRadius = activeCornerRadius,
+        onClick = onClick
+    ) {
+        Text(
+            text = text,
+            color = if (active) activeContentColor else inactiveContentColor,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.labelLarge
+        )
+    }
+}

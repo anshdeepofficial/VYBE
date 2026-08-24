@@ -15,9 +15,9 @@ data class SharedVybeSong(
 )
 
 object VybeSongShareLink {
-    const val DOWNLOAD_URL = "https://github.com/anshdeepofficial/VYBE/releases/latest"
-    const val HTTPS_HOST = "anshdeepofficial.github.io"
-    const val HTTPS_PATH_PREFIX = "/VYBE/play/"
+    const val DOWNLOAD_URL = "https://vybe.app/download"
+    const val HTTPS_HOST = "vybe.app"
+    const val HTTPS_PATH_PREFIX = "/play/"
 
     fun build(song: Song): Uri {
         val portableId = song.id.takeIf(::isPortableProviderId)

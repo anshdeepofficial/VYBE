@@ -71,21 +71,6 @@ fun SongContextBottomSheet(
     val actions = listOfNotNull(
         favoriteAction,
         SongContextAction(
-            icon = ActionIcon.DrawableRes(R.drawable.rounded_playlist_play_24),
-            label = "Play Next",
-            onClick = { onPlayNext(); onDismiss() }
-        ),
-        SongContextAction(
-            icon = ActionIcon.DrawableRes(R.drawable.rounded_queue_music_24),
-            label = "Add to Queue",
-            onClick = { onAddToQueue(); onDismiss() }
-        ),
-        SongContextAction(
-            icon = ActionIcon.DrawableRes(R.drawable.rounded_playlist_add_24),
-            label = "Add to Playlist",
-            onClick = { onAddToPlaylist(); onDismiss() }
-        ),
-        SongContextAction(
             icon = ActionIcon.DrawableRes(R.drawable.rounded_download_24),
             label = if (song.path.startsWith("http") || song.contentUriString.startsWith("http") || song.id.startsWith("yt_") || song.id.startsWith("audius_")) "Download" else "Downloaded",
             enabled = true,
@@ -112,6 +97,21 @@ fun SongContextBottomSheet(
                 context.startActivity(Intent.createChooser(shareIntent, "Share via"))
                 onDismiss()
             }
+        ),
+        SongContextAction(
+            icon = ActionIcon.DrawableRes(R.drawable.rounded_playlist_play_24),
+            label = "Play Next",
+            onClick = { onPlayNext(); onDismiss() }
+        ),
+        SongContextAction(
+            icon = ActionIcon.DrawableRes(R.drawable.rounded_queue_music_24),
+            label = "Add to Queue",
+            onClick = { onAddToQueue(); onDismiss() }
+        ),
+        SongContextAction(
+            icon = ActionIcon.DrawableRes(R.drawable.rounded_playlist_add_24),
+            label = "Add to Playlist",
+            onClick = { onAddToPlaylist(); onDismiss() }
         ),
         SongContextAction(
             icon = ActionIcon.DrawableRes(R.drawable.rounded_artist_24),
