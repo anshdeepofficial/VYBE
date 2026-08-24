@@ -222,7 +222,7 @@ fun TimerOptionsBottomSheet(
             Column(modifier = Modifier.fillMaxWidth()) {
 
 
-                val currentPlayCount = counterSliderPosition.toInt()
+                val currentPlayCount = 1
                 val timesPart = if (currentPlayCount == 1) {
                     stringResource(R.string.sleep_timer_play_count_one_time)
                 } else {
@@ -249,10 +249,10 @@ fun TimerOptionsBottomSheet(
                         )
                 ) {
                     Slider(
-                        value = counterSliderPosition,
+                        value = 1f,
                         onValueChange = {
-                            counterSliderPosition = it
-                            isTimerMode = false
+                            
+                            
                         },
                         valueRange = 1f..10f,
                         steps = 8,
@@ -260,7 +260,7 @@ fun TimerOptionsBottomSheet(
                         onValueChangeFinished = {
                             onCancelTimer()
                             onSetEndOfTrackTimer(false)
-                            onPlayCounter(counterSliderPosition.toInt())
+                            onPlayCounter(1f.toInt())
                         },
                         track = { sliderState ->
                             SliderDefaults.Track(

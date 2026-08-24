@@ -152,7 +152,7 @@ fun HomeGradientTopBar(
                     modifier = Modifier.padding(end = 4.dp)
                 ) {
                     Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Rounded.Refresh,
+                        imageVector = androidx.compose.material.icons.rounded.Refresh,
                         contentDescription = "Refresh",
                         modifier = Modifier.size(24.dp)
                     )

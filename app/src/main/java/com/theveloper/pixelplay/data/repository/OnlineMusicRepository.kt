@@ -236,4 +236,8 @@ class OnlineMusicRepository @Inject constructor(
         youTubeEngine.invalidateStreamUrl(videoId)
         saavnEngine.invalidateCache(videoId)
     }
+
+    suspend fun getSearchSuggestions(query: String, region: String): List<String> {
+        return youTubeEngine.getSearchSuggestions(query, region)
+    }
 }

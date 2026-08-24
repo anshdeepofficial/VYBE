@@ -45,7 +45,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import clickable\nimport androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -436,7 +436,7 @@ fun SearchScreen(
     androidx.compose.foundation.lazy.LazyColumn(
         modifier = Modifier.fillMaxWidth().heightIn(max = 250.dp)
     ) {
-        androidx.compose.foundation.lazy.items(querySuggestions, key = { it }) { suggestion ->
+        items(items = querySuggestions) { suggestion ->
             androidx.compose.foundation.layout.Row(
                 modifier = Modifier.fillMaxWidth().clickable {
                     searchQuery = suggestion
@@ -446,7 +446,7 @@ fun SearchScreen(
                 }.padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(imageVector = androidx.compose.material.icons.Icons.Rounded.Search, contentDescription = null)
+                Icon(imageVector = androidx.compose.material.icons.rounded.Search, contentDescription = null)
                 Spacer(modifier = Modifier.width(16.dp))
                 Text(suggestion)
             }
