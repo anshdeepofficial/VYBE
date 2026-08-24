@@ -107,6 +107,7 @@ fun HomeGradientTopBar(
     onTelegramClick: () -> Unit = {},
     onProfileClick: () -> Unit = onTelegramClick,
     onMenuClick: () -> Unit = {},
+    onRefreshClick: () -> Unit = {},
     isScrolled: Boolean = false,
 ) {
     val surfaceContainerHigh = MaterialTheme.colorScheme.surfaceContainerHighest
@@ -142,6 +143,20 @@ fun HomeGradientTopBar(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(end = 14.dp)
             ) {
+                FilledIconButton(
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    onClick = onRefreshClick,
+                    modifier = Modifier.padding(end = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = androidx.compose.material.icons.Icons.Rounded.Refresh,
+                        contentDescription = "Refresh",
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
                 FilledIconButton(
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,

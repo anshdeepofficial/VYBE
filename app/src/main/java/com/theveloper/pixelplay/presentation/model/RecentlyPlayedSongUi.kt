@@ -62,6 +62,9 @@ fun mapRecentlyPlayedSongs(
                     path = repoSong.path,
                     contentUriString = repoSong.contentUriString
                 )
+            } else if (repoSong.title == "Online Track") {
+                // If the local DB only has the placeholder and we don't have the history metadata, skip it
+                null
             } else {
                 repoSong.copy(
                     title = repoSong.title.ifBlank { entry.track?.title ?: "" },

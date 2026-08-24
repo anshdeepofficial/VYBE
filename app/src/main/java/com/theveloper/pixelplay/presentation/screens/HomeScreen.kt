@@ -396,6 +396,9 @@ fun HomeScreen(
                     onProfileClick = {
                         showProfileBottomSheet = true
                     },
+                    onRefreshClick = {
+                        playerViewModel.forceUpdateDailyMix()
+                    },
                     onMenuClick = {
                         // onOpenSidebar() // Disabled
                     },
