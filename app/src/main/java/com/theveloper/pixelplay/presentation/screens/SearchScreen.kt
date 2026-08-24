@@ -57,7 +57,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.PlayArrow
-import Icons.Rounded.Search
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.AddLink
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
