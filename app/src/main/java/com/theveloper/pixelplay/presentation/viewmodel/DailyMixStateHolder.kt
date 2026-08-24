@@ -52,6 +52,9 @@ class DailyMixStateHolder @Inject constructor(
     private val _quickPickSongs = MutableStateFlow<ImmutableList<Song>>(persistentListOf())
     val quickPickSongs: StateFlow<ImmutableList<Song>> = _quickPickSongs.asStateFlow()
 
+    private val _topMoods = MutableStateFlow<ImmutableList<String>>(persistentListOf("Chill", "Happy", "Workout", "Focus", "Romantic", "Sad", "Party", "Relax"))
+    val topMoods: StateFlow<ImmutableList<String>> = _topMoods.asStateFlow()
+
     fun initialize(coroutineScope: CoroutineScope) {
         scope = coroutineScope
     }
@@ -98,9 +101,16 @@ class DailyMixStateHolder @Inject constructor(
                 .getOrDefault(emptySet())
             val preferredGenres = runCatching { userPreferencesRepository.preferredGenres.first() }
                 .getOrDefault(emptySet())
+            val blockedArtists = runCatching { userPreferencesRepository.blockedArtists.first() }
+                .getOrDefault(emptySet()).mapTo(mutableSetOf()) { it.trim().lowercase() }
+            
+            val isNotBlocked = { song: Song -> 
+                song.displayArtist.trim().lowercase() !in blockedArtists 
+            }
+
             if (loggedOutDiscovery.isNotEmpty()) {
                 _latestReleaseSongs.value = personalizeLatestReleases(
-                    releases = loggedOutDiscovery,
+                    releases = loggedOutDiscovery.filter(isNotBlocked),
                     tasteSongs = tasteCandidates,
                     preferredArtists = preferredArtists,
                     preferredGenres = preferredGenres,
@@ -109,9 +119,32 @@ class DailyMixStateHolder @Inject constructor(
 
             // Latest releases are used only for cold-start discovery, never mixed into an
             // established profile as generic chart filler.
-            val candidateSongs = tasteCandidates.ifEmpty { loggedOutDiscovery }
+            val candidateSongs = tasteCandidates.filter(isNotBlocked).ifEmpty { 
+                loggedOutDiscovery.filter(isNotBlocked) 
+            }
 
             if (candidateSongs.isNotEmpty()) {
+                val moodToGenres = mapOf(
+                    "Chill" to listOf("lo-fi", "chill", "acoustic", "indie", "ambient"),
+                    "Happy" to listOf("pop", "dance", "upbeat", "happy"),
+                    "Workout" to listOf("rock", "metal", "hip hop", "electronic", "dance", "workout"),
+                    "Focus" to listOf("classical", "jazz", "ambient", "instrumental", "focus"),
+                    "Romantic" to listOf("r&b", "soul", "romantic", "love"),
+                    "Sad" to listOf("blues", "sad", "acoustic", "emo"),
+                    "Party" to listOf("pop", "dance", "electronic", "party", "club"),
+                    "Relax" to listOf("ambient", "classical", "lo-fi", "relax")
+                )
+                
+                val genreAffinity = tasteCandidates
+                    .mapNotNull { it.genre?.trim()?.lowercase()?.takeIf(String::isNotBlank) }
+                    .groupingBy { it }
+                    .eachCount()
+                    
+                val sortedMoods = moodToGenres.keys.toList().sortedByDescending { mood ->
+                    moodToGenres[mood]?.sumOf { genre -> genreAffinity[genre] ?: 0 } ?: 0
+                }
+                _topMoods.value = sortedMoods.toImmutableList()
+
                 val mix = dailyMixManager.generateDailyMix(candidateSongs, favoriteIds)
                 _dailyMixSongs.value = mix.toImmutableList()
                 userPreferencesRepository.saveDailyMixSongIds(mix.map { it.id })

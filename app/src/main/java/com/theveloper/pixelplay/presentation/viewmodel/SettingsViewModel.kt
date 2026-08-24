@@ -293,6 +293,26 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { userPreferencesRepository.setNotificationActionTwo(action) }
     }
 
+    // Removed unresolved appUpdater
+
+    val preferredArtists: StateFlow<Set<String>> = userPreferencesRepository.preferredArtists
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+        
+    val blockedArtists: StateFlow<Set<String>> = userPreferencesRepository.blockedArtists
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
+    fun updatePreferredArtists(artists: Set<String>) {
+        viewModelScope.launch {
+            userPreferencesRepository.updatePreferredArtists(artists)
+        }
+    }
+
+    fun updateBlockedArtists(artists: Set<String>) {
+        viewModelScope.launch {
+            userPreferencesRepository.updateBlockedArtists(artists)
+        }
+    }
+
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 

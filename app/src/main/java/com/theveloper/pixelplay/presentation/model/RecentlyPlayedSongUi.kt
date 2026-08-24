@@ -55,7 +55,23 @@ fun mapRecentlyPlayedSongs(
         if (!seenSongIds.add(entry.songId)) continue
         if (entry.songId !in recentSongIdSet) continue
 
-        val song = songById[entry.songId] ?: entry.track?.toSong(entry.songId) ?: continue
+        val repoSong = songById[entry.songId]
+        val song = if (repoSong != null) {
+            if (repoSong.title == "Online Track" && repoSong.artist == "YouTube Music" && entry.track != null) {
+                entry.track.toSong(entry.songId).copy(
+                    path = repoSong.path,
+                    contentUriString = repoSong.contentUriString
+                )
+            } else {
+                repoSong.copy(
+                    title = repoSong.title.ifBlank { entry.track?.title ?: "" },
+                    artist = repoSong.artist.ifBlank { entry.track?.artist ?: "" },
+                    albumArtUriString = repoSong.albumArtUriString ?: entry.track?.artworkUri
+                )
+            }
+        } else {
+            entry.track?.toSong(entry.songId)
+        } ?: continue
         deduped += RecentlyPlayedSongUiModel(
             song = song,
             lastPlayedTimestamp = safeTimestamp

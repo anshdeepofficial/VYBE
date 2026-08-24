@@ -257,6 +257,8 @@ fun FullPlayerContent(
     var showPlaybackSpeedBottomSheet by remember { mutableStateOf(false) }
     var showTimerBottomSheet by remember { mutableStateOf(false) }
     
+    val isTimerActive by playerViewModel.activeTimerValueDisplay.collectAsStateWithLifecycle()
+    
     val lyricsSearchUiState by playerViewModel.lyricsSearchUiState.collectAsStateWithLifecycle()
 
     // Single subscription — replaces 11 independent collectAsStateWithLifecycle calls.
@@ -594,7 +596,9 @@ fun FullPlayerContent(
             isFavoriteProvider = isFavoriteProvider,
             onShuffleToggle = onShuffleToggle,
             onRepeatToggle = onRepeatToggle,
-            onFavoriteToggle = onFavoriteToggle
+            onFavoriteToggle = onFavoriteToggle,
+            isTimerActiveProvider = { isTimerActive != null },
+            onSleepTimerToggle = { showTimerBottomSheet = true }
         )
     }
 
@@ -1355,7 +1359,9 @@ private fun FullPlayerControlsSection(
     isFavoriteProvider: () -> Boolean,
     onShuffleToggle: () -> Unit,
     onRepeatToggle: () -> Unit,
-    onFavoriteToggle: () -> Unit
+    onFavoriteToggle: () -> Unit,
+    isTimerActiveProvider: () -> Boolean = { false },
+    onSleepTimerToggle: () -> Unit = {}
 ) {
     val motionScheme = remember { MotionScheme.expressive() }
     val controlSpatialSpec = remember { motionScheme.fastSpatialSpec<Float>() }
@@ -1418,7 +1424,9 @@ private fun FullPlayerControlsSection(
                 isFavoriteProvider = isFavoriteProvider,
                 onShuffleToggle = onShuffleToggle,
                 onRepeatToggle = onRepeatToggle,
-                onFavoriteToggle = onFavoriteToggle
+                onFavoriteToggle = onFavoriteToggle,
+                isTimerActiveProvider = isTimerActiveProvider,
+                onSleepTimerToggle = onSleepTimerToggle
             )
         }
     }
@@ -2822,7 +2830,9 @@ private fun BottomToggleRow(
     isFavoriteProvider: () -> Boolean,
     onShuffleToggle: () -> Unit,
     onRepeatToggle: () -> Unit,
-    onFavoriteToggle: () -> Unit
+    onFavoriteToggle: () -> Unit,
+    isTimerActiveProvider: () -> Boolean = { false },
+    onSleepTimerToggle: () -> Unit = {}
 ) {
     val isFavorite = isFavoriteProvider()
     val rowCorners = 60.dp
@@ -2909,6 +2919,18 @@ private fun BottomToggleRow(
                 onClick = onFavoriteToggle,
                 iconId = if (isFavorite) R.drawable.round_favorite_24 else R.drawable.rounded_favorite_24,
                 contentDesc = "Favorito"
+            )
+            ToggleSegmentButton(
+                modifier = commonModifier,
+                active = isTimerActiveProvider(),
+                activeColor = LocalMaterialTheme.current.primaryFixed,
+                activeCornerRadius = rowCorners,
+                activeContentColor = LocalMaterialTheme.current.onPrimaryFixed,
+                inactiveColor = inactiveBg,
+                inactiveContentColor = inactiveContentColor,
+                onClick = onSleepTimerToggle,
+                iconId = R.drawable.rounded_timer_24,
+                contentDesc = "Timer"
             )
         }
     }

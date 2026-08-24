@@ -151,6 +151,8 @@ class MusicService : MediaLibraryService() {
     @Inject
     lateinit var musicRepository: MusicRepository
     @Inject
+    lateinit var voicePlaybackRouter: com.theveloper.pixelplay.data.service.voice.VoicePlaybackRouter
+    @Inject
     lateinit var userPreferencesRepository: UserPreferencesRepository
     @Inject
     lateinit var equalizerPreferencesRepository: EqualizerPreferencesRepository
@@ -896,6 +898,19 @@ class MusicService : MediaLibraryService() {
                 return serviceScope.future {
                     val requestedIndex = startIndex.coerceIn(0, (mediaItems.size - 1).coerceAtLeast(0))
                     val requestedItem = mediaItems.getOrNull(requestedIndex)
+
+                    val searchQuery = requestedItem?.requestMetadata?.searchQuery
+                    if (searchQuery != null && searchQuery.isNotBlank()) {
+                        val voiceItems = voicePlaybackRouter.routeVoiceQuery(searchQuery)
+                        if (voiceItems.isNotEmpty()) {
+                            grantArtworkUriPermissions(controller.packageName, voiceItems)
+                            return@future MediaSession.MediaItemsWithStartPosition(
+                                voiceItems,
+                                0,
+                                startPositionMs
+                            )
+                        }
+                    }
 
                     val contextQueue = if (requestedItem != null && !controller.packageName.startsWith(APP_PACKAGE_PREFIX)) {
                         resolveContextQueueForRequestedItem(requestedItem, controller)
@@ -2752,9 +2767,20 @@ class MusicService : MediaLibraryService() {
         val songs = musicRepository.getSongsByIds(songIds).first()
         val songMap = songs.associateBy { it.id }
 
-        return resolveMediaItemsWithTrustedArtworkGrants(requestedItems) { mediaId ->
-            songMap[mediaId]?.let { song ->
-                MediaItemBuilder.buildForExternalController(this, song)
+        return resolveMediaItemsWithTrustedArtworkGrants(requestedItems) { requestedItem ->
+            val song = songMap[requestedItem.mediaId]
+            if (song != null) {
+                val isPlaceholder = song.title == "Online Track" && song.artist == "YouTube Music"
+                val hasGoodRequestMetadata = !requestedItem.mediaMetadata.title.isNullOrBlank() && 
+                    requestedItem.mediaMetadata.title.toString() != "Online Track"
+                    
+                if (isPlaceholder && hasGoodRequestMetadata) {
+                    null // Fallback to the requested item with better metadata
+                } else {
+                    MediaItemBuilder.buildForExternalController(this, song)
+                }
+            } else {
+                null
             }
         }
     }

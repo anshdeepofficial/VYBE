@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 import androidx.core.net.toUri
+import com.theveloper.pixelplay.data.database.toOnlineSongCacheEntity
 import com.theveloper.pixelplay.data.database.FavoritesDao
 import com.theveloper.pixelplay.data.database.MusicDao
 import com.theveloper.pixelplay.data.database.SearchHistoryDao
@@ -757,6 +758,13 @@ class MusicRepositoryImpl @Inject constructor(
                 } else null
             }
         }.flowOn(Dispatchers.IO)
+    }
+
+    override suspend fun cacheOnlineSongs(songs: List<Song>) {
+        val onlineSongs = songs.filter { it.id.startsWith("yt_") || it.id.startsWith("saavn_") || it.id.startsWith("netease_") || it.id.startsWith("qq_") || it.path.startsWith("http") }
+        if (onlineSongs.isNotEmpty()) {
+            onlineSongCacheDao.upsertAll(onlineSongs.map { it.toOnlineSongCacheEntity() })
+        }
     }
 
     override suspend fun getSongByPath(path: String): Song? {

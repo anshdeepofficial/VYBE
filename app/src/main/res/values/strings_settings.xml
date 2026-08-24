@@ -15,6 +15,8 @@
     <string name="settings_category_backup_subtitle">Export and recover your personal app data</string>
     <string name="settings_category_developer_title">Developer Options</string>
     <string name="settings_category_developer_subtitle">Experimental features and debugging</string>
+    <string name="settings_category_artist_recommendations_title">Artist Recommendations</string>
+    <string name="settings_category_artist_recommendations_subtitle">Manage preferred and blocked artists</string>
     <string name="settings_category_equalizer_title">Equalizer</string>
     <string name="settings_category_equalizer_subtitle">Adjust audio frequencies and presets</string>
     <string name="settings_category_device_capabilities_title">Device Capabilities</string>

@@ -1496,6 +1496,28 @@ class LyricsRepositoryImpl @Inject constructor(
             val responses = runSearchStrategiesFast(strategies)
 
             if (responses.isEmpty()) {
+                // Fallback to exact search
+                val exactResponse = runCatching {
+                    withNetworkRetry("lrclib_manual_get_lyrics") {
+                        lrcLibApiService.getLyrics(
+                            trackName = cleanTitle,
+                            artistName = cleanArtist ?: "",
+                            albumName = "",
+                            duration = 0 // duration is not available in manual search
+                        )
+                    }
+                }.getOrNull()
+
+                if (exactResponse != null) {
+                    val rawLyrics = exactResponse.syncedLyrics ?: exactResponse.plainLyrics
+                    if (rawLyrics != null) {
+                        val parsed = LyricsUtils.parseLyrics(rawLyrics).copy(areFromRemote = true)
+                        if (parsed.isValid()) {
+                            return@withContext Result.success(Pair(query, listOf(LyricsSearchResult(exactResponse, parsed, rawLyrics))))
+                        }
+                    }
+                }
+                
                 return@withContext Result.failure(NoLyricsFoundException(query))
             }
 

@@ -1045,16 +1045,11 @@ fun QueueBottomSheet(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val isTimerActiveDerived = remember {
-                        derivedStateOf { activeTimerValueDisplay.value != null }
-                    }
                     QueueControlsToolbar(
                         isShuffleOn = isShuffleOn,
                         repeatMode = repeatMode,
-                        isTimerActive = isTimerActiveDerived,
                         onToggleShuffle = onToggleShuffle,
-                        onToggleRepeat = onToggleRepeat,
-                        onTimerClick = { showTimerOptions = true }
+                        onToggleRepeat = onToggleRepeat
                     )
 
                     Spacer(modifier = Modifier.width(4.dp))
@@ -1156,25 +1151,6 @@ fun QueueBottomSheet(
                                     showSaveQueueDialog = true
                                 }
                             )
-                            if (currentSongDisplayIndex >= 0 && currentSongDisplayIndex < displaySongCount) {
-                                QueueToolbarMenuButton(
-                                    text = stringResource(R.string.queue_action_locate_current_song),
-                                    icon = Icons.Rounded.MyLocation,
-                                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                                    onClick = {
-                                        isFabExpanded = false
-                                        queueCoroutineScope.launch {
-                                            val firstVisible = listState.firstVisibleItemIndex
-                                            if (Math.abs(currentSongDisplayIndex - firstVisible) > 20) {
-                                                listState.scrollToItem(currentSongDisplayIndex)
-                                            } else {
-                                                listState.animateScrollToItem(currentSongDisplayIndex)
-                                            }
-                                        }
-                                    }
-                                )
-                            }
                             QueueToolbarMenuButton(
                                 text = stringResource(R.string.queue_action_clear_queue),
                                 icon = Icons.Filled.ClearAll,
@@ -1508,10 +1484,8 @@ private fun QueueSourceBadge(
 private fun QueueControlsToolbar(
     isShuffleOn: Boolean,
     repeatMode: Int,
-    isTimerActive: androidx.compose.runtime.State<Boolean>,
     onToggleShuffle: () -> Unit,
     onToggleRepeat: () -> Unit,
-    onTimerClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val activeColors = IconButtonDefaults.filledIconButtonColors(
@@ -1566,17 +1540,6 @@ private fun QueueControlsToolbar(
                 Icon(
                     imageVector = repeatIcon,
                     contentDescription = stringResource(R.string.queue_cd_toggle_repeat_action),
-                )
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            FilledTonalIconButton(
-                onClick = onTimerClick,
-                colors = if (isTimerActive.value) activeColors else inactiveColors,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Timer,
-                    contentDescription = stringResource(R.string.queue_cd_sleep_timer_action),
                 )
             }
         }

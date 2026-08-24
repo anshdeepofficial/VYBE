@@ -480,11 +480,8 @@ fun ExpressiveCategoryItem(
 }
 
 private fun getAccountsColors(isDark: Boolean): Pair<Color, Color> {
-    return if (isDark) {
-        Color(0xFF37474F) to Color(0xFFBBD9E8)
-    } else {
-        Color(0xFF40515C) to Color(0xFFE1F1FA)
-    }
+    // Return a deeply saturated container color, and white/bright icon tint for high contrast
+    return Color(0xFF311B92) to Color(0xFFFFFFFF) // Deep Purple 900
 }
 
 @Composable
@@ -500,31 +497,19 @@ fun ExpressiveSettingsGroup(content: @Composable () -> Unit) {
 }
 
 private fun getCategoryColors(category: SettingsCategory, isDark: Boolean): Pair<Color, Color> {
-    return if (isDark) {
-        when (category) {
-            SettingsCategory.LIBRARY -> Color(0xFF004A77) to Color(0xFFC2E7FF) 
-            SettingsCategory.APPEARANCE -> Color(0xFF7D5260) to Color(0xFFFFD8E4) 
-            SettingsCategory.PLAYBACK -> Color(0xFF633B48) to Color(0xFFFFD8EC) 
-            SettingsCategory.BEHAVIOR -> Color(0xFF3E4C63) to Color(0xFFD7E3FF)
-            SettingsCategory.AI_INTEGRATION -> Color(0xFF004F58) to Color(0xFF88FAFF) 
-            SettingsCategory.BACKUP_RESTORE -> Color(0xFF3B4869) to Color(0xFFD9E2FF)
-            SettingsCategory.DEVELOPER -> Color(0xFF324F34) to Color(0xFFCBEFD0) 
-            SettingsCategory.EQUALIZER -> Color(0xFF6E4E13) to Color(0xFFFFDEAC) 
-            SettingsCategory.DEVICE_CAPABILITIES -> Color(0xFF004D61) to Color(0xFFACEFEE) // Custom teal/cyan mix
-            SettingsCategory.ABOUT -> Color(0xFF3F474D) to Color(0xFFDEE3EB) 
-        }
-    } else {
-        when (category) {
-            SettingsCategory.LIBRARY -> Color(0xFF334A62) to Color(0xFFE2EEFA)
-            SettingsCategory.APPEARANCE -> Color(0xFF604A5C) to Color(0xFFFFE5F3)
-            SettingsCategory.PLAYBACK -> Color(0xFF623F4A) to Color(0xFFFFE1E8)
-            SettingsCategory.BEHAVIOR -> Color(0xFF414C66) to Color(0xFFE5E9FF)
-            SettingsCategory.AI_INTEGRATION -> Color(0xFF31575A) to Color(0xFFDCF5F4)
-            SettingsCategory.BACKUP_RESTORE -> Color(0xFF465571) to Color(0xFFE5EBFF)
-            SettingsCategory.DEVELOPER -> Color(0xFF3F5942) to Color(0xFFE0F5E2)
-            SettingsCategory.EQUALIZER -> Color(0xFF6A5330) to Color(0xFFFFE9C8)
-            SettingsCategory.DEVICE_CAPABILITIES -> Color(0xFF315961) to Color(0xFFDDF5F7)
-            SettingsCategory.ABOUT -> Color(0xFF4B5258) to Color(0xFFF0F2F5)
-        }
+    // Return a deeply saturated container color, and white/bright icon tint for high contrast
+    return when (category) {
+        SettingsCategory.LIBRARY -> Color(0xFF003366) to Color(0xFFFFFFFF) // Navy
+        SettingsCategory.APPEARANCE -> Color(0xFF4A0E4E) to Color(0xFFFFFFFF) // Deep Purple
+        SettingsCategory.PLAYBACK -> Color(0xFF800020) to Color(0xFFFFFFFF) // Burgundy
+        SettingsCategory.BEHAVIOR -> Color(0xFF004D40) to Color(0xFFFFFFFF) // Saturated Teal
+        SettingsCategory.AI_INTEGRATION -> Color(0xFF006064) to Color(0xFFFFFFFF) // Deep Cyan
+        SettingsCategory.BACKUP_RESTORE -> Color(0xFF3E2723) to Color(0xFFFFFFFF) // Dark Espresso
+        SettingsCategory.DEVELOPER -> Color(0xFF1B5E20) to Color(0xFFFFFFFF) // Forest Green
+        SettingsCategory.EQUALIZER -> Color(0xFFE65100) to Color(0xFFFFFFFF) // Dark Amber/Orange
+        SettingsCategory.DEVICE_CAPABILITIES -> Color(0xFF0D47A1) to Color(0xFFFFFFFF) // Deep Blue
+        SettingsCategory.ABOUT -> Color(0xFF212121) to Color(0xFFFFFFFF) // Graphite
+        // Fallback for any new category, e.g., Artist Recommendations
+        else -> Color(0xFF4A148C) to Color(0xFFFFFFFF) // Dark Violet
     }
 }

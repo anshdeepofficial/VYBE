@@ -402,8 +402,17 @@ class MainActivity : ComponentActivity() {
                 intent.removeExtra("ACTION_SHOW_PLAYER")
             }
 
+            intent.action == android.provider.MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH -> {
+                val query = intent.getStringExtra(android.app.SearchManager.QUERY)
+                if (!query.isNullOrBlank()) {
+                    playerViewModel.playFromSearchQuery(query)
+                }
+                intent.action = null
+            }
+
             intent.action == android.content.Intent.ACTION_VIEW &&
-                intent.data?.scheme == "vybe" && intent.data?.host == "play" -> {
+                ((intent.data?.scheme == "vybe" && intent.data?.host == "play") ||
+                 (intent.data?.scheme == "https" && intent.data?.host == "anshdeepofficial.github.io" && intent.data?.path?.startsWith("/VYBE/play") == true)) -> {
                 intent.data?.let(playerViewModel::playSharedVybeLink)
                 clearExternalIntentPayload(intent)
             }
@@ -420,6 +429,19 @@ class MainActivity : ComponentActivity() {
                 resolveStreamUri(intent)?.let { uri ->
                     persistUriPermissionIfNeeded(intent, uri)
                     playerViewModel.playExternalUri(uri)
+                }
+                clearExternalIntentPayload(intent)
+            }
+
+            intent.action == android.content.Intent.ACTION_SEND && intent.type == "text/plain" -> {
+                val text = intent.getStringExtra(android.content.Intent.EXTRA_TEXT)
+                if (!text.isNullOrBlank()) {
+                    val trackId = com.theveloper.pixelplay.data.sharing.MusicLinkParser.parseExternalMusicLink(text)
+                    if (trackId != null) {
+                        playerViewModel.playExternalMusicId(trackId)
+                    } else {
+                        android.widget.Toast.makeText(this, "No supported music link found", android.widget.Toast.LENGTH_SHORT).show()
+                    }
                 }
                 clearExternalIntentPayload(intent)
             }

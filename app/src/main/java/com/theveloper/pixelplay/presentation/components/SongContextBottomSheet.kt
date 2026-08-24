@@ -101,6 +101,19 @@ fun SongContextBottomSheet(
             }
         ),
         SongContextAction(
+            icon = ActionIcon.Vector(Icons.Default.Share),
+            label = "Share",
+            onClick = {
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_SUBJECT, "${song.title} on VYBE")
+                    putExtra(Intent.EXTRA_TEXT, VybeSongShareLink.shareText(song))
+                }
+                context.startActivity(Intent.createChooser(shareIntent, "Share via"))
+                onDismiss()
+            }
+        ),
+        SongContextAction(
             icon = ActionIcon.DrawableRes(R.drawable.rounded_artist_24),
             label = "Go to Artist",
             enabled = onArtist != null,
@@ -113,26 +126,13 @@ fun SongContextBottomSheet(
         ),
         SongContextAction(
             icon = ActionIcon.DrawableRes(R.drawable.rounded_album_24),
-            label = "Go to Album",
-            enabled = onAlbum != null,
+            label = if (onAlbum != null && song.album.isNotBlank() && !song.album.equals("YouTube Music", ignoreCase = true) && !song.album.equals("Online Track", ignoreCase = true)) "Album: ${song.album}" else "Go to Album",
+            enabled = onAlbum != null && song.album.isNotBlank() && !song.album.equals("YouTube Music", ignoreCase = true) && !song.album.equals("Online Track", ignoreCase = true),
             onClick = {
                 if (onAlbum != null) {
                     onAlbum()
                     onDismiss()
                 }
-            }
-        ),
-        SongContextAction(
-            icon = ActionIcon.Vector(Icons.Default.Share),
-            label = "Share",
-            onClick = {
-                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    putExtra(Intent.EXTRA_SUBJECT, "${song.title} on VYBE")
-                    putExtra(Intent.EXTRA_TEXT, VybeSongShareLink.shareText(song))
-                }
-                context.startActivity(Intent.createChooser(shareIntent, "Share via"))
-                onDismiss()
             }
         )
     )

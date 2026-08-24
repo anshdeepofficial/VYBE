@@ -1777,6 +1777,17 @@ fun SettingsCategoryScreen(
                                 )
                             }
                         }
+                        SettingsCategory.ARTIST_RECOMMENDATIONS -> {
+                            com.theveloper.pixelplay.presentation.screens.settings.ArtistRecommendationsSettings(
+                                settingsViewModel = settingsViewModel,
+                                onManagePreferred = {
+                                    // TODO: Navigate to Preferred Artists selection screen
+                                },
+                                onManageBlocked = {
+                                    // TODO: Navigate to Blocked Artists selection screen
+                                }
+                            )
+                        }
                         SettingsCategory.DEVELOPER -> {
                             SettingsSubsection(title = stringResource(R.string.settings_experiments_section)) {
                                 SettingsItem(
@@ -3407,7 +3418,7 @@ private fun PaletteRegenerateSongSheetContent(
 }
 
 @Composable
-private fun SettingsSubsectionHeader(title: String) {
+fun SettingsSubsectionHeader(title: String) {
     Text(
         text = title,
         style = MaterialTheme.typography.labelMedium,
@@ -3417,7 +3428,7 @@ private fun SettingsSubsectionHeader(title: String) {
 }
 
 @Composable
-private fun SettingsSubsection(
+fun SettingsSubsection(
     title: String,
     addBottomSpace: Boolean = true,
     content: @Composable () -> Unit

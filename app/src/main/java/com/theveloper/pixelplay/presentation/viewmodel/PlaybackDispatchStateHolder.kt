@@ -485,13 +485,37 @@ class PlaybackDispatchStateHolder @Inject constructor(
         return contentUriString.isBlank()
     }
 
+    private fun cacheSongsAsync(songs: List<Song>) {
+        cb.scope.launch {
+            musicRepository.cacheOnlineSongs(songs)
+        }
+    }
+
     suspend fun hydrateSongsIfNeeded(songs: List<Song>): List<Song> {
+        cacheSongsAsync(songs)
         if (songs.isEmpty() || songs.none { it.requiresHydration() }) return songs
         val hydratedSongs = getSongsByIdsChunked(songs.map { it.id })
         if (hydratedSongs.isEmpty()) return songs
         val hydratedById = hydratedSongs.associateBy { it.id }
         return songs.mapNotNull { original ->
-            hydratedById[original.id] ?: original.takeIf { !original.requiresHydration() }
+            val hydrated = hydratedById[original.id]
+            if (hydrated != null) {
+                if (hydrated.title == "Online Track" && hydrated.artist == "YouTube Music") {
+                    original.copy(
+                        path = hydrated.path.ifBlank { original.path },
+                        contentUriString = hydrated.contentUriString.ifBlank { original.contentUriString }
+                    )
+                } else {
+                    hydrated.copy(
+                        title = hydrated.title.ifBlank { original.title },
+                        artist = hydrated.artist.ifBlank { original.artist },
+                        album = hydrated.album.ifBlank { original.album },
+                        albumArtUriString = hydrated.albumArtUriString ?: original.albumArtUriString
+                    )
+                }
+            } else {
+                original.takeIf { !original.requiresHydration() }
+            }
         }
     }
 
@@ -646,6 +670,27 @@ class PlaybackDispatchStateHolder @Inject constructor(
 
             internalPlaySongs(queueSongs, externalResult.song, context.getString(R.string.external_queue_label), null)
             cb.showPlayer()
+        }
+    }
+
+    fun playFromSearchQuery(query: String) {
+        val action: () -> Unit = {
+            val controller = cb.getController()
+            if (controller != null) {
+                val mediaItem = MediaItem.Builder()
+                    .setMediaId(query)
+                    .setRequestMetadata(MediaItem.RequestMetadata.Builder().setSearchQuery(query).build())
+                    .build()
+                controller.setMediaItem(mediaItem)
+                controller.prepare()
+                controller.play()
+                cb.showPlayer()
+            }
+        }
+        if (cb.getController() == null) {
+            pendingPlaybackAction = action
+        } else {
+            action()
         }
     }
 
@@ -986,6 +1031,7 @@ class PlaybackDispatchStateHolder @Inject constructor(
     }
 
     fun addSongToQueue(song: Song) {
+        cacheSongsAsync(listOf(song))
         cb.getController()?.let { controller ->
             val mediaItem = buildPlaybackMediaItem(song)
             val insertionIndex = controller.mediaItemCount
@@ -996,6 +1042,7 @@ class PlaybackDispatchStateHolder @Inject constructor(
     }
 
     fun addSongNextToQueue(song: Song) {
+        cacheSongsAsync(listOf(song))
         cb.getController()?.let { controller ->
             val mediaItem = buildPlaybackMediaItem(song)
 

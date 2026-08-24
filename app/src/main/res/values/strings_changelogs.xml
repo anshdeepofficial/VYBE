@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string-array name="changelog_0722_added">
+        <item>Voice Assistant Integration: You can now ask Google Assistant or Bixby to play a song on VYBE directly!</item>
+    </string-array>
+    <string-array name="changelog_0722_fixes">
+        <item>Missing Metadata Fix: Fixed an issue where tracks sometimes displayed "Online Track" instead of their real title.</item>
+        <item>Album Search Fix: Fixed an issue where searching for an album by name didn\'t show it correctly in the Albums tab.</item>
+    </string-array>
     <string-array name="changelog_0721_added">
         <item>Search Enhancements: YouTube Music search results are now cleanly categorized, with a dedicated section and tab just for "Videos", separating them from standard songs.</item>
     </string-array>

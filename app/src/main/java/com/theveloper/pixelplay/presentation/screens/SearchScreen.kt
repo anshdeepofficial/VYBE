@@ -57,6 +57,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.AddLink
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ColorScheme
@@ -383,6 +384,36 @@ fun SearchScreen(
                                             Icon(
                                                 imageVector = Icons.Rounded.Close,
                                                 contentDescription = stringResource(R.string.search_cd_clear_search_query),
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    } else {
+                                        IconButton(
+                                            onClick = {
+                                                val clipboardManager = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                                val clipData = clipboardManager.primaryClip
+                                                if (clipData != null && clipData.itemCount > 0) {
+                                                    val text = clipData.getItemAt(0).text?.toString()
+                                                    if (!text.isNullOrBlank()) {
+                                                        val trackId = com.theveloper.pixelplay.data.sharing.MusicLinkParser.parseExternalMusicLink(text)
+                                                        if (trackId != null) {
+                                                            playerViewModel.playExternalMusicId(trackId)
+                                                            return@IconButton
+                                                        }
+                                                    }
+                                                }
+                                                android.widget.Toast.makeText(context, "No supported music link found in clipboard", android.widget.Toast.LENGTH_SHORT).show()
+                                            },
+                                            modifier = Modifier
+                                                .size(48.dp)
+                                                .clip(CircleShape)
+                                                .background(
+                                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+                                                )
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.AddLink,
+                                                contentDescription = "Import Music Link",
                                                 tint = MaterialTheme.colorScheme.primary
                                             )
                                         }

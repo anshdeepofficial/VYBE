@@ -453,11 +453,11 @@ class OnlineSearchViewModel @Inject constructor(
                 val artist = song.artist.lowercase()
                 val album = song.album.lowercase()
                 val score = when {
-                    title == normalizedQuery -> 200
-                    title.startsWith(normalizedQuery) -> 150
-                    title.contains(normalizedQuery) -> 120
-                    artist.contains(normalizedQuery) -> 90
-                    album.contains(normalizedQuery) -> 75
+                    title == normalizedQuery -> 10000
+                    title.startsWith(normalizedQuery) -> 5000
+                    title.contains(normalizedQuery) -> 2000
+                    artist.contains(normalizedQuery) -> 1000
+                    album.contains(normalizedQuery) -> 500
                     else -> tokens.sumOf { token ->
                         (if (title.contains(token)) 20 else 0) +
                             (if (artist.contains(token)) 12 else 0) +
@@ -484,11 +484,11 @@ class OnlineSearchViewModel @Inject constructor(
                 val title = album.title.lowercase()
                 val artist = album.artist.lowercase()
                 val score = when {
-                    title == normalizedQuery -> 300
-                    "$artist $title".contains(normalizedQuery) -> 220
-                    title.startsWith(normalizedQuery) -> 180
-                    title.contains(normalizedQuery) -> 140
-                    artist == normalizedQuery -> 120
+                    title == normalizedQuery -> 10000
+                    "$artist $title".contains(normalizedQuery) -> 8000
+                    title.startsWith(normalizedQuery) -> 5000
+                    title.contains(normalizedQuery) -> 2000
+                    artist == normalizedQuery -> 1000
                     else -> tokens.sumOf { token ->
                         (if (title.contains(token)) 24 else 0) + (if (artist.contains(token)) 12 else 0)
                     }

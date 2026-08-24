@@ -61,6 +61,12 @@ enum class SettingsCategory(
         subtitleRes = R.string.settings_category_developer_subtitle,
         icon = Icons.Rounded.DeveloperMode
     ),
+    ARTIST_RECOMMENDATIONS(
+        id = "artist_recommendations",
+        titleRes = R.string.settings_category_artist_recommendations_title,
+        subtitleRes = R.string.settings_category_artist_recommendations_subtitle,
+        icon = Icons.Rounded.MusicNote // Or a better icon
+    ),
     EQUALIZER(
         id = "equalizer",
         titleRes = R.string.settings_category_equalizer_title,

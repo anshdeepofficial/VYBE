@@ -130,6 +130,7 @@ class UserPreferencesRepository @Inject constructor(
         val YOUTUBE_MUSIC_SIGN_IN_PROMPT_SHOWN = booleanPreferencesKey("youtube_music_sign_in_prompt_shown")
         val PREFERRED_GENRES = stringSetPreferencesKey("preferred_genres")
         val PREFERRED_ARTISTS = stringSetPreferencesKey("preferred_artists")
+        val BLOCKED_ARTISTS = stringSetPreferencesKey("blocked_artists")
         val SEARCH_HISTORY_ENABLED = booleanPreferencesKey("search_history_enabled")
         val PLAYER_THEME_PREFERENCE = stringPreferencesKey("player_theme_preference_v2")
         val ALBUM_ART_PALETTE_STYLE = stringPreferencesKey("album_art_palette_style_v1")
@@ -344,6 +345,7 @@ class UserPreferencesRepository @Inject constructor(
 
     val preferredGenres: Flow<Set<String>> = pref { it[PreferencesKeys.PREFERRED_GENRES] ?: emptySet() }
     val preferredArtists: Flow<Set<String>> = pref { it[PreferencesKeys.PREFERRED_ARTISTS] ?: emptySet() }
+    val blockedArtists: Flow<Set<String>> = pref { it[PreferencesKeys.BLOCKED_ARTISTS] ?: emptySet() }
     val searchHistoryEnabledFlow: Flow<Boolean> =
         pref { it[PreferencesKeys.SEARCH_HISTORY_ENABLED] ?: true }
 
@@ -353,6 +355,10 @@ class UserPreferencesRepository @Inject constructor(
 
     suspend fun updatePreferredArtists(artists: Set<String>) {
         dataStore.edit { it[PreferencesKeys.PREFERRED_ARTISTS] = artists }
+    }
+
+    suspend fun updateBlockedArtists(artists: Set<String>) {
+        dataStore.edit { it[PreferencesKeys.BLOCKED_ARTISTS] = artists }
     }
 
     suspend fun setSearchHistoryEnabled(enabled: Boolean) {

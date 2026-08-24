@@ -24,6 +24,8 @@ fun BottomToggleRow(
     onShuffleToggle: () -> Unit,
     onRepeatToggle: () -> Unit,
     onFavoriteToggle: () -> Unit,
+    isTimerActiveProvider: () -> Boolean = { false },
+    onSleepTimerToggle: () -> Unit = {},
     activeColorMain: Color = MaterialTheme.colorScheme.primary,
     activeColorSecondary: Color = MaterialTheme.colorScheme.secondary,
     activeColorTertiary: Color = MaterialTheme.colorScheme.tertiary,
@@ -115,6 +117,18 @@ fun BottomToggleRow(
                 onClick = onFavoriteToggle,
                 iconId = if (isFavorite) R.drawable.round_favorite_24 else R.drawable.rounded_favorite_24,
                 contentDesc = "Favorite"
+            )
+            ToggleSegmentButton(
+                modifier = commonModifier,
+                active = isTimerActiveProvider(),
+                activeColor = activeColorMain,
+                activeCornerRadius = rowCorners,
+                activeContentColor = onActiveColorMain,
+                inactiveColor = inactiveColor,
+                inactiveContentColor = inactiveContentColor,
+                onClick = onSleepTimerToggle,
+                iconId = R.drawable.rounded_timer_24,
+                contentDesc = "Timer"
             )
         }
     }

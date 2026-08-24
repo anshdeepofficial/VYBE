@@ -241,6 +241,21 @@ class YouTubeMusicEngine @Inject constructor(
             }.getOrDefault(emptyList())
         }
 
+    suspend fun getTrackDetails(videoId: String, region: String = "IN"): YouTubeTrack? = withContext(Dispatchers.IO) {
+        val cleanId = videoId.removePrefix("yt_").trim()
+        if (cleanId.isBlank()) return@withContext null
+        runCatching {
+            executeWebRemixRequest("next", region) { config ->
+                JSONObject().apply {
+                    put("context", createWebRemixContext(region, config))
+                    put("videoId", cleanId)
+                    put("isAudioOnly", true)
+                }
+            }?.let(::parseSearchResponse).orEmpty()
+                .firstOrNull { it.videoId == cleanId }
+        }.getOrNull()
+    }
+
     private fun isMusicTrack(track: YouTubeTrack): Boolean {
         val metadata = "${track.title} ${track.artist} ${track.album}".lowercase()
         return track.title.isNotBlank() && track.artist.isNotBlank() &&
@@ -1022,8 +1037,8 @@ class YouTubeMusicEngine @Inject constructor(
             .ifBlank { extractRunsText(item.optJSONObject("subtitle")) }
         val thumb = extractThumbnail(item.optJSONObject("thumbnail"))
 
-        when (pageType) {
-            "MUSIC_PAGE_TYPE_ARTIST" -> {
+        when {
+            pageType == "MUSIC_PAGE_TYPE_ARTIST" || browseId.startsWith("UC") -> {
                 if (title.isNotBlank() && browseId.isNotBlank()) {
                     artists.add(
                         YouTubeArtist(
@@ -1035,7 +1050,7 @@ class YouTubeMusicEngine @Inject constructor(
                     )
                 }
             }
-            "MUSIC_PAGE_TYPE_ALBUM" -> {
+            pageType == "MUSIC_PAGE_TYPE_ALBUM" || browseId.startsWith("MPRE") -> {
                 if (title.isNotBlank() && browseId.isNotBlank()) {
                     albums.add(
                         YouTubeAlbum(
@@ -1047,7 +1062,7 @@ class YouTubeMusicEngine @Inject constructor(
                     )
                 }
             }
-            "MUSIC_PAGE_TYPE_PLAYLIST", "MUSIC_PAGE_TYPE_USER_CHANNEL" -> Unit
+            pageType == "MUSIC_PAGE_TYPE_PLAYLIST" || pageType == "MUSIC_PAGE_TYPE_USER_CHANNEL" -> Unit
             else -> Unit
         }
     }

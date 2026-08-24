@@ -149,11 +149,11 @@ fun OptimizedAlbumArt(
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = contentScale,
-                    loading = { PlaceholderContent(title = title) },
-                    error = { PlaceholderContent(title = title) }
+                    loading = { PlaceholderContent(title = title, isLoading = true) },
+                    error = { PlaceholderContent(title = title, isLoading = false) }
                 )
             } else {
-                PlaceholderContent(title = title)
+                PlaceholderContent(title = title, isLoading = true)
             }
         },
         error = {
@@ -171,11 +171,11 @@ fun OptimizedAlbumArt(
                     contentDescription = "Album art of $title",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = contentScale,
-                    loading = { PlaceholderContent(title = title) },
-                    error = { PlaceholderContent(title = title) },
+                    loading = { PlaceholderContent(title = title, isLoading = true) },
+                    error = { PlaceholderContent(title = title, isLoading = false) },
                 )
             } else {
-                PlaceholderContent(title = title)
+                PlaceholderContent(title = title, isLoading = false)
             }
         },
         success = {
@@ -185,7 +185,7 @@ fun OptimizedAlbumArt(
 }
 
 @Composable
-private fun PlaceholderContent(title: String) {
+private fun PlaceholderContent(title: String, isLoading: Boolean = false) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -201,6 +201,13 @@ private fun PlaceholderContent(title: String) {
                 MaterialTheme.colorScheme.onSurfaceVariant
             ),
         )
+        if (isLoading) {
+            androidx.compose.material3.CircularProgressIndicator(
+                modifier = Modifier.size(24.dp),
+                color = MaterialTheme.colorScheme.primary,
+                strokeWidth = 2.dp
+            )
+        }
     }
 }
 

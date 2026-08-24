@@ -23,11 +23,35 @@ class OnlineMusicRepository @Inject constructor(
     private val onlineSongCacheDao: OnlineSongCacheDao,
 ) {
     suspend fun searchSongs(query: String, region: String = "IN"): List<Song> = withContext(Dispatchers.IO) {
-        youTubeEngine.search(query, region).map { it.toSong() }
+        var results = youTubeEngine.search(query, region).map { it.toSong() }
+        
+        if (results.isEmpty()) {
+            val suggestions = youTubeEngine.getSearchSuggestions(query, region)
+            if (suggestions.isNotEmpty() && suggestions.first().isNotBlank()) {
+                val correctedQuery = suggestions.first()
+                if (correctedQuery.lowercase() != query.lowercase()) {
+                    results = youTubeEngine.search(correctedQuery, region).map { it.toSong() }
+                }
+            }
+        }
+        
+        results
     }
 
     suspend fun searchMusicStructured(query: String, region: String = "IN"): YouTubeSearchResult = withContext(Dispatchers.IO) {
-        val youtubeResult = youTubeEngine.searchMusicStructured(query, region)
+        var youtubeResult = youTubeEngine.searchMusicStructured(query, region)
+        
+        // Typo tolerance: if no results, try first suggestion
+        if (youtubeResult.songs.isEmpty() && youtubeResult.albums.isEmpty() && youtubeResult.artists.isEmpty()) {
+            val suggestions = youTubeEngine.getSearchSuggestions(query, region)
+            if (suggestions.isNotEmpty() && suggestions.first().isNotBlank()) {
+                val correctedQuery = suggestions.first()
+                if (correctedQuery.lowercase() != query.lowercase()) {
+                    youtubeResult = youTubeEngine.searchMusicStructured(correctedQuery, region)
+                }
+            }
+        }
+
         if (youtubeResult.songs.isNotEmpty() || youtubeResult.albums.isNotEmpty() || youtubeResult.artists.isNotEmpty()) {
             youtubeResult
         } else {
@@ -138,6 +162,14 @@ class OnlineMusicRepository @Inject constructor(
 
     suspend fun getAlbumDetails(browseId: String): YouTubeAlbumDetails? = withContext(Dispatchers.IO) {
         youTubeEngine.getAlbumDetails(browseId)
+    }
+
+    suspend fun getTrackDetails(videoId: String, region: String = "IN"): Song? = withContext(Dispatchers.IO) {
+        if (videoId.startsWith("yt_")) {
+            youTubeEngine.getTrackDetails(videoId, normalizedRegion(region))?.toSong()
+        } else {
+            null
+        }
     }
 
     suspend fun resolvePlaybackUrl(song: Song): String? = withContext(Dispatchers.IO) {

@@ -216,6 +216,9 @@ interface MusicRepository {
      */
     fun getSongsByIds(songIds: List<String>): Flow<List<Song>>
 
+    /** Caches online songs so their metadata is preserved in history and queue. */
+    suspend fun cacheOnlineSongs(songs: List<Song>)
+
     /**
      * Obtiene una canción por su ruta de archivo.
      * @param path Ruta del archivo.

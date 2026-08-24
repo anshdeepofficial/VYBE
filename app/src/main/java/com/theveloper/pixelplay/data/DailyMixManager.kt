@@ -15,6 +15,7 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.first
 import java.io.File
 import java.util.Calendar
 import java.util.LinkedHashSet
@@ -25,7 +26,8 @@ import javax.inject.Singleton
 @Singleton
 class DailyMixManager @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val engagementDao: EngagementDao
+    private val engagementDao: EngagementDao,
+    private val userPreferencesRepository: com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 ) {
 
     private val gson = Gson()
@@ -293,6 +295,9 @@ class DailyMixManager @Inject constructor(
         val artistAffinity = mutableMapOf<Long, Double>()
         val genreAffinity = mutableMapOf<String, Double>()
 
+        val preferredArtists = userPreferencesRepository.preferredArtists.first()
+        val blockedArtists = userPreferencesRepository.blockedArtists.first()
+
         engagements.forEach { (songId, stats) ->
             val song = songById[songId] ?: return@forEach
             val weight = stats.playCount.toDouble() + (stats.totalPlayDurationMs / 60000.0)
@@ -307,20 +312,36 @@ class DailyMixManager @Inject constructor(
             favoriteArtistWeights.merge(song.artistId, 1, Int::plus)
         }
 
-        val maxPlayCount = engagements.values.maxOfOrNull { it.playCount }?.takeIf { it > 0 } ?: 1
-        val maxDuration = engagements.values.maxOfOrNull { it.totalPlayDurationMs }?.takeIf { it > 0L } ?: 1L
+        val maxPlayCount = engagements.values.maxOfOrNull { it.playCount.toDouble() }?.takeIf { it > 0 } ?: 1.0
+        val maxDuration = engagements.values.maxOfOrNull { it.totalPlayDurationMs.toDouble() }?.takeIf { it > 0 } ?: 1.0
         val maxArtistAffinity = artistAffinity.values.maxOrNull()?.takeIf { it > 0 } ?: 1.0
         val maxGenreAffinity = genreAffinity.values.maxOrNull()?.takeIf { it > 0 } ?: 1.0
-        val maxFavoriteArtist = favoriteArtistWeights.values.maxOrNull()?.takeIf { it > 0 } ?: 1
+        val maxFavoriteArtist = favoriteArtistWeights.values.maxOrNull()?.toDouble()?.takeIf { it > 0 } ?: 1.0
 
-        return allSongs.map { song ->
+        return allSongs.mapNotNull { song ->
+            // Blocked artists logic
+            val songRemoteBrowseId = song.artists.firstOrNull()?.remoteBrowseId ?: ""
+            if (blockedArtists.contains(song.artistId.toString()) || 
+                (songRemoteBrowseId.isNotBlank() && blockedArtists.contains(songRemoteBrowseId)) ||
+                blockedArtists.contains(song.artist)) {
+                return@mapNotNull null
+            }
+
             val stats = engagements[song.id]
             val playCountScore = (stats?.playCount?.toDouble() ?: 0.0) / maxPlayCount
             val durationScore = (stats?.totalPlayDurationMs?.toDouble() ?: 0.0) / maxDuration
             val affinityScore = (playCountScore * 0.7 + durationScore * 0.3).coerceIn(0.0, 1.0)
 
             val genreKey = normalizeGenreKey(song.genre)
-            val artistPreference = artistAffinity[song.artistId]?.div(maxArtistAffinity) ?: 0.0
+            var artistPreference = artistAffinity[song.artistId]?.div(maxArtistAffinity) ?: 0.0
+            
+            // Preferred artists logic
+            if (preferredArtists.contains(song.artistId.toString()) || 
+                (songRemoteBrowseId.isNotBlank() && preferredArtists.contains(songRemoteBrowseId)) ||
+                preferredArtists.contains(song.artist)) {
+                artistPreference = (artistPreference + 1.0).coerceIn(0.0, 1.0) // Boost significantly
+            }
+            
             val genrePreference = genreKey?.let { (genreAffinity[it] ?: 0.0) / maxGenreAffinity } ?: 0.0
             val favoriteArtistPreference = favoriteArtistWeights[song.artistId]?.toDouble()?.div(maxFavoriteArtist) ?: 0.0
             val preferenceScore = if (genreKey == null) {

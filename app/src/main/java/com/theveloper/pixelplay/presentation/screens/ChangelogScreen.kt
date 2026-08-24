@@ -32,6 +32,20 @@ private data class ChangelogRelease(
 
 private val VybeChangelog = listOf(
     ChangelogRelease(
+        version = "0.7.22",
+        date = "24 August 2026",
+        changes = listOf(
+            "Artwork: Added loading indicators when fetching album artwork.",
+            "Playback: Fixed an issue where original metadata was overwritten.",
+            "Lyrics: Fixed a network crash (400 Bad Request) when Lyrics Suggestions were turned off.",
+            "Sleep Timer: Extracted Sleep Timer into its own dedicated menu button in the main player.",
+            "Recommendations: Moods are now dynamically curated based on your listening habits.",
+            "Recommendations: Blocked Artists now correctly filter out of generated daily mixes.",
+            "Search: Improved typo-tolerance search ranking to heavily prioritize exact matches.",
+            "Settings: Refined category icon colors for a richer, premium look."
+        )
+    ),
+    ChangelogRelease(
         version = "0.7.21",
         date = "23 August 2026",
         changes = listOf(

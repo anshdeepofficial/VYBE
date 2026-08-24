@@ -9,13 +9,13 @@ internal data class TrustedMediaItemsResolution(
 
 internal fun resolveMediaItemsWithTrustedArtworkGrants(
     requestedItems: List<MediaItem>,
-    trustedItemResolver: (String) -> MediaItem?
+    trustedItemResolver: (MediaItem) -> MediaItem?
 ): TrustedMediaItemsResolution {
     val resolvedItems = ArrayList<MediaItem>(requestedItems.size)
     val trustedArtworkGrantItems = ArrayList<MediaItem>()
 
     requestedItems.forEach { requestedItem ->
-        val trustedItem = trustedItemResolver(requestedItem.mediaId)
+        val trustedItem = trustedItemResolver(requestedItem)
         if (trustedItem != null) {
             resolvedItems += trustedItem
             trustedArtworkGrantItems += trustedItem

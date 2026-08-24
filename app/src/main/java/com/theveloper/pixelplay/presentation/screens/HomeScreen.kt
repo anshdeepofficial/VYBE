@@ -531,6 +531,20 @@ fun HomeScreen(
                     }
                 }
 
+                item(
+                    key = "moods_section",
+                    contentType = "moods_section"
+                ) {
+                    val topMoods by playerViewModel.topMoods.collectAsStateWithLifecycle()
+                    MoodsSection(
+                        moods = topMoods,
+                        onMoodClick = { mood ->
+                            android.widget.Toast.makeText(context, "Generating $mood Mix...", android.widget.Toast.LENGTH_SHORT).show()
+                            playerViewModel.playMoodMix(mood)
+                        }
+                    )
+                }
+
                 if (recentlyPlayedSongs.size >= RecentlyPlayedSectionMinSongsToShow) {
                     item(
                         key = "recently_played_section",
@@ -1027,5 +1041,33 @@ private fun YouTubeMusicHomeRow(
             bottomBarHeight = 0.dp,
             playerViewModel = playerViewModel
         )
+    }
+}
+
+@Composable
+fun MoodsSection(
+    moods: List<String>,
+    onMoodClick: (String) -> Unit
+) {
+    Column(modifier = Modifier.padding(bottom = 8.dp)) {
+        Text(
+            text = "Moods",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(moods) { mood ->
+                androidx.compose.material3.FilterChip(
+                    selected = false,
+                    onClick = { onMoodClick(mood) },
+                    label = { Text(mood) },
+                    shape = RoundedCornerShape(16.dp)
+                )
+            }
+        }
     }
 }

@@ -1558,6 +1558,7 @@ class PlayerViewModel @Inject constructor(
     val yourMixSongs: StateFlow<ImmutableList<Song>> = dailyMixStateHolder.yourMixSongs
     val latestReleaseSongs: StateFlow<ImmutableList<Song>> = dailyMixStateHolder.latestReleaseSongs
     val quickPickSongs: StateFlow<ImmutableList<Song>> = dailyMixStateHolder.quickPickSongs
+    val topMoods: StateFlow<ImmutableList<String>> = dailyMixStateHolder.topMoods
 
     fun removeFromDailyMix(songId: String) {
         dailyMixStateHolder.removeFromDailyMix(songId)
@@ -2226,9 +2227,12 @@ class PlayerViewModel @Inject constructor(
     fun playSharedVybeLink(uri: Uri) {
         val shared = VybeSongShareLink.parse(uri) ?: return
         viewModelScope.launch {
-            val providerSong = shared.providerId
+            val providerId = shared.providerId
                 ?.takeIf { it.startsWith("yt_") || it.startsWith("saavn_") }
-                ?.let { providerId ->
+            
+            val resolved = if (providerId != null) {
+                // If the link contains all metadata, we can construct the song immediately
+                if (shared.title.isNotBlank() && shared.artist.isNotBlank()) {
                     val rawId = providerId.substringAfter('_')
                     val scheme = if (providerId.startsWith("saavn_")) "saavn" else "yt"
                     Song(
@@ -2247,20 +2251,37 @@ class PlayerViewModel @Inject constructor(
                         sampleRate = 44_100,
                         remoteAlbumBrowseId = shared.albumBrowseId,
                     )
+                } else {
+                    // Clean App Link with only ID -> fetch metadata
+                    onlineMusicRepository.getTrackDetails(providerId)
                 }
-            val resolved = providerSong ?: runCatching {
-                onlineMusicRepository.searchMusicStructured("${shared.title} ${shared.artist}".trim())
-                    .songs
-                    .sortedByDescending { candidate ->
-                        (if (candidate.title.equals(shared.title, ignoreCase = true)) 2 else 0) +
-                            (if (candidate.displayArtist.contains(shared.artist, ignoreCase = true)) 1 else 0)
-                    }
-                    .firstOrNull()
-            }.getOrNull()
+            } else {
+                runCatching {
+                    onlineMusicRepository.searchMusicStructured("${shared.title} ${shared.artist}".trim())
+                        .songs
+                        .sortedByDescending { candidate ->
+                            (if (candidate.title.equals(shared.title, ignoreCase = true)) 2 else 0) +
+                                (if (candidate.displayArtist.contains(shared.artist, ignoreCase = true)) 1 else 0)
+                        }
+                        .firstOrNull()
+                }.getOrNull()
+            }
+            
             if (resolved == null) {
                 Toast.makeText(context, "This shared song could not be found", Toast.LENGTH_LONG).show()
             } else {
                 playOnlineSeed(resolved, "Shared with VYBE")
+            }
+        }
+    }
+
+    fun playExternalMusicId(trackId: String) {
+        viewModelScope.launch {
+            val resolved = onlineMusicRepository.getTrackDetails(trackId)
+            if (resolved != null) {
+                playOnlineSeed(resolved, "Shared with VYBE")
+            } else {
+                Toast.makeText(context, "Could not load track details", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -2557,6 +2578,8 @@ class PlayerViewModel @Inject constructor(
     ) = playbackDispatchStateHolder.playSongsShuffled(songsToPlay, queueName, playlistId, startAtZero)
 
     fun playExternalUri(uri: Uri) = playbackDispatchStateHolder.playExternalUri(uri)
+
+    fun playFromSearchQuery(query: String) = playbackDispatchStateHolder.playFromSearchQuery(query)
 
     fun showPlayer() {
         if (stablePlayerState.value.currentSong != null) {
@@ -2949,6 +2972,19 @@ class PlayerViewModel @Inject constructor(
 
     fun clearAiPlaylistError() {
         aiStateHolder.clearAiPlaylistError()
+    }
+
+    fun playMoodMix(mood: String) {
+        viewModelScope.launch {
+            try {
+                val songs = onlineMusicRepository.getFastPersonalizedDiscovery(listOf(mood))
+                if (songs.isNotEmpty()) {
+                    playSongs(songs, startSong = songs.first(), queueName = "$mood Mix")
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load mood mix for $mood")
+            }
+        }
     }
 
     fun generateAiPlaylist(

@@ -22,8 +22,8 @@ class TrustedMediaItemsResolutionTest {
 
         val resolution = resolveMediaItemsWithTrustedArtworkGrants(
             requestedItems = listOf(attackerSuppliedItem, trustedItem)
-        ) { mediaId ->
-            if (mediaId == trustedItem.mediaId) trustedItem else null
+        ) { item ->
+            if (item.mediaId == trustedItem.mediaId) trustedItem else null
         }
 
         assertSame(attackerSuppliedItem, resolution.mediaItems[0])
@@ -41,8 +41,8 @@ class TrustedMediaItemsResolutionTest {
 
         val resolution = resolveMediaItemsWithTrustedArtworkGrants(
             requestedItems = listOf(requestedFirst, requestedSecond, requestedThird)
-        ) { mediaId ->
-            when (mediaId) {
+        ) { item ->
+            when (item.mediaId) {
                 trustedFirst.mediaId -> trustedFirst
                 trustedSecond.mediaId -> trustedSecond
                 else -> null

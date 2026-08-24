@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.22] - 2026-08-24
+### Added
+- **Artwork**: Added loading indicators when fetching album artwork.
+### Fixed
+- **Playback**: Fixed an issue where original metadata was overwritten.
+- **Lyrics**: Fixed a network crash (400 Bad Request) when Lyrics Suggestions were turned off.
+- **Sleep Timer**: Extracted Sleep Timer into its own dedicated menu button in the main player.
+- **Recommendations**: Moods are now dynamically curated based on your listening habits.
+- **Recommendations**: Blocked Artists now correctly filter out of generated daily mixes.
+- **Search**: Improved typo-tolerance search ranking to heavily prioritize exact matches.
+- **Settings**: Refined category icon colors for a richer, premium look.
+
 ## [0.7.21] - 2026-08-23
 ### Added
 - **Search Enhancements**: YouTube Music search results are now cleanly categorized, with a dedicated section and tab just for "Videos", separating them from standard songs.
