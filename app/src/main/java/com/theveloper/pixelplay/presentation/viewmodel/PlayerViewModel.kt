@@ -1324,9 +1324,29 @@ class PlayerViewModel @Inject constructor(
     var searchQuery by mutableStateOf("")
         private set
 
+    private val _querySuggestions = MutableStateFlow<List<String>>(emptyList())
+    val querySuggestions: StateFlow<List<String>> = _querySuggestions.asStateFlow()
+    private var suggestionJob: Job? = null
+
+
+    
     fun updateSearchQuery(query: String) {
         searchQuery = query
+        suggestionJob?.cancel()
+        if (query.isBlank()) {
+            _querySuggestions.value = emptyList()
+            return
+        }
+        suggestionJob = viewModelScope.launch {
+            delay(300) // Debounce
+            val region = "IN" // fallback
+            val suggestions = runCatching { onlineMusicRepository.getSearchSuggestions(query, region) }.getOrNull() ?: emptyList()
+            if (searchQuery == query) {
+                _querySuggestions.value = suggestions
+            }
+        }
     }
+
 
     private var mediaController: MediaController? = null
     private val _isMediaControllerReady = MutableStateFlow(false)

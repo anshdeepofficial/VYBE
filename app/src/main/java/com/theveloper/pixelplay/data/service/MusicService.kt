@@ -2774,11 +2774,17 @@ class MusicService : MediaLibraryService() {
                 val hasGoodRequestMetadata = !requestedItem.mediaMetadata.title.isNullOrBlank() && 
                     requestedItem.mediaMetadata.title.toString() != "Online Track"
                     
-                if (isPlaceholder && hasGoodRequestMetadata) {
-                    null // Fallback to the requested item with better metadata
+                val finalSong = if (isPlaceholder && hasGoodRequestMetadata) {
+                    song.copy(
+                        title = requestedItem.mediaMetadata.title.toString(),
+                        artist = requestedItem.mediaMetadata.artist?.toString()?.takeIf { it.isNotBlank() } ?: song.artist,
+                        album = requestedItem.mediaMetadata.albumTitle?.toString()?.takeIf { it.isNotBlank() } ?: song.album,
+                        albumArtUriString = requestedItem.mediaMetadata.artworkUri?.toString()?.takeIf { it.isNotBlank() } ?: song.albumArtUriString
+                    )
                 } else {
-                    MediaItemBuilder.buildForExternalController(this, song)
+                    song
                 }
+                MediaItemBuilder.buildForExternalController(this, finalSong)
             } else {
                 null
             }

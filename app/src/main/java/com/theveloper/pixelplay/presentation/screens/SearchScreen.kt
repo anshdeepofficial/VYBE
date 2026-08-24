@@ -169,6 +169,7 @@ fun SearchScreen(
     onSearchBarActiveChange: (Boolean) -> Unit = {}
 ) {
     var searchQuery by rememberSaveable { mutableStateOf(playerViewModel.searchQuery) }
+    val querySuggestions by playerViewModel.querySuggestions.collectAsStateWithLifecycle()
     val statusBarTopInset = WindowInsets.systemBars.asPaddingValues().calculateTopPadding()
     val systemNavBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val navBarCompactMode by playerViewModel.navBarCompactMode.collectAsStateWithLifecycle()
@@ -350,7 +351,7 @@ fun SearchScreen(
                                     }
                                     keyboardController?.hide()
                                 },
-                                expanded = false,
+                                expanded = querySuggestions.isNotEmpty() && searchQuery.isNotBlank(),
                                 onExpandedChange = {},
                                 placeholder = {
                                     Text(
@@ -422,8 +423,8 @@ fun SearchScreen(
                                 colors = searchBarInputFieldColors
                             )
                         },
-                        expanded = false,
-                        onExpandedChange = {},
+                        expanded = querySuggestions.isNotEmpty() && searchQuery.isNotBlank(),
+                                onExpandedChange = {},
                         modifier = Modifier
                             .clip(RoundedCornerShape(searchbarCornerRadius)),
                         colors = SearchBarDefaults.colors(
@@ -431,7 +432,27 @@ fun SearchScreen(
                             dividerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
                             inputFieldColors = searchBarInputFieldColors
                         ),
-                        content = {}
+                        content = {
+    androidx.compose.foundation.lazy.LazyColumn(
+        modifier = Modifier.fillMaxWidth().heightIn(max = 250.dp)
+    ) {
+        androidx.compose.foundation.lazy.items(querySuggestions, key = { it }) { suggestion ->
+            androidx.compose.foundation.layout.Row(
+                modifier = Modifier.fillMaxWidth().clickable {
+                    searchQuery = suggestion
+                    playerViewModel.updateSearchQuery(suggestion)
+                    playerViewModel.onSearchQuerySubmitted(suggestion)
+                    // keyboardController?.hide()
+                }.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(imageVector = androidx.compose.material.icons.Icons.Rounded.Search, contentDescription = null)
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(suggestion)
+            }
+        }
+    }
+}
                     )
                 }
 

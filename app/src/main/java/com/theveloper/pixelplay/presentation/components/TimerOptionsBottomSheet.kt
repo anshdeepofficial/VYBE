@@ -80,8 +80,8 @@ fun TimerOptionsBottomSheet(
 
     val isSwitchEnabled = isEndOfTrackTimerActive
 
-    var counterSliderPosition by remember { mutableStateOf(1f) }
-    var isTimerMode by remember { mutableStateOf(true) } // true = timer mode, false = counter mode
+    
+    
 
     // Animate background color
     val boxBackgroundColor by animateColorAsState(
@@ -105,11 +105,7 @@ fun TimerOptionsBottomSheet(
             activeTimerValueDisplay.startsWith("Custom:") -> 0f
             else -> 0f
         }
-        counterSliderPosition = playCount
-        // Restore counter mode if play count was previously set
-        if (playCount > 1f) {
-            isTimerMode = false
-        }
+        
     }
 
     ModalBottomSheet(
@@ -175,11 +171,11 @@ fun TimerOptionsBottomSheet(
                         value = timerSliderPosition,
                         onValueChange = {
                             timerSliderPosition = it
-                            isTimerMode = true
+                            
                         },
                         valueRange = 0f..(predefinedTimes.size - 1).toFloat(),
                         steps = predefinedTimes.size - 2, // Number of discrete intervals
-                        enabled = isTimerMode || counterSliderPosition == 1f,
+                        enabled = true,
                         onValueChangeFinished = {
                             val selectedIndexOnFinish = timerSliderPosition.roundToInt()
                                 .coerceIn(0, predefinedTimes.size - 1)
@@ -260,7 +256,7 @@ fun TimerOptionsBottomSheet(
                         },
                         valueRange = 1f..10f,
                         steps = 8,
-                        enabled = !isTimerMode || timerSliderPosition == 0f,
+                        enabled = false,
                         onValueChangeFinished = {
                             onCancelTimer()
                             onSetEndOfTrackTimer(false)
@@ -301,7 +297,7 @@ fun TimerOptionsBottomSheet(
                     ) // Apply animated corner radius for clipping
                     .background(color = boxBackgroundColor)   // Apply animated background color
                     .clickable(
-                        enabled = isTimerMode || counterSliderPosition == 1f,
+                        enabled = true,
                         onClick = {
                             onSetEndOfTrackTimer(!isSwitchEnabled)
                         }
@@ -322,7 +318,7 @@ fun TimerOptionsBottomSheet(
                     )
                     Switch(
                         checked = isSwitchEnabled,
-                        enabled = isTimerMode || counterSliderPosition == 1f,
+                        enabled = true,
                         onCheckedChange = {
                             onSetEndOfTrackTimer(it)
                         },
@@ -357,7 +353,7 @@ fun TimerOptionsBottomSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Button(
-                    enabled = counterSliderPosition == 1f,
+                    enabled = true,
                     onClick = {
                         showCustomTimePicker = true
                     },
@@ -389,7 +385,7 @@ fun TimerOptionsBottomSheet(
                         containerColor = MaterialTheme.colorScheme.errorContainer,
                         contentColor = MaterialTheme.colorScheme.onErrorContainer
                     ),
-                    enabled = activeTimerValueDisplay != null || counterSliderPosition != 1f,
+                    enabled = activeTimerValueDisplay != null,
                     modifier = Modifier
                         .weight(1f)
                         .height(buttonHeight)
