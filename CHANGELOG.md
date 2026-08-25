@@ -1,3 +1,10 @@
+## [0.8.4] - 2026-08-25
+### Added
+- Added 'Report Bug or Suggest Feature' in About screen which links directly to GitHub Issues.
+### Changed
+- Moved 'Preferred Artists' and 'Don't Suggest Artists' from Music Settings to Artist Settings.
+- You can now properly manage, search, add, and remove your preferred and blocked artists to boost or suppress their recommendations in the app.
+
 ## [0.8.3] - 2026-08-25
 ### Fixed
 - Fixed Audio Focus auto-resume bug (app will no longer auto-resume if you manually pause it before a phone call/notification).

@@ -285,6 +285,20 @@ fun AboutScreen(
                 )
             }
 
+            item(key = "report_bug_feature") {
+                SocialChip(
+                    label = "Report bug or suggest features",
+                    subtitle = "Open GitHub Issues to report problems or request features",
+                    iconRes = R.drawable.github, // Or R.drawable.rounded_bug_report_24 if you have one, falling back to github for safety
+                    contentDescription = "Report bug or suggest feature",
+                    onClick = { openUrl(context, "https://github.com/anshdeepofficial/VYBE/issues") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 12.dp),
+                )
+            }
+
             item(key = "changelog_link") {
                 SocialChip(
                     label = "Changelog",

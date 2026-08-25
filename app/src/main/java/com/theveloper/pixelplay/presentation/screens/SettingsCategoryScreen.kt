@@ -454,22 +454,7 @@ fun SettingsCategoryScreen(
                         SettingsCategory.LIBRARY -> {
                             Spacer(modifier = Modifier.height(10.dp))
 
-                            SettingsSubsection(title = "Artist Preferences") {
-                                SettingsItem(
-                                    title = "Preferred Artists",
-                                    subtitle = "Prioritize these artists in Mixes and Autoplay",
-                                    leadingIcon = { Icon(Icons.Outlined.Person, null, tint = MaterialTheme.colorScheme.secondary) },
-                                    trailingIcon = { Icon(Icons.Rounded.ChevronRight, stringResource(R.string.settings_cd_open), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                                    onClick = { navController.navigateSafely(Screen.PreferredArtists.route) }
-                                )
-                                SettingsItem(
-                                    title = "Blocked Artists",
-                                    subtitle = "Exclude these artists from recommendations",
-                                    leadingIcon = { Icon(Icons.Outlined.Person, null, tint = MaterialTheme.colorScheme.secondary) },
-                                    trailingIcon = { Icon(Icons.Rounded.ChevronRight, stringResource(R.string.settings_cd_open), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                                    onClick = { navController.navigateSafely(Screen.BlockedArtists.route) }
-                                )
-                            }
+                            
                             
                             SettingsSubsection(title = stringResource(R.string.settings_library_structure_section)) {
                                 SettingsItem(
@@ -1794,11 +1779,8 @@ fun SettingsCategoryScreen(
                             }
                         }
                         SettingsCategory.ARTIST_RECOMMENDATIONS -> {
-                            com.theveloper.pixelplay.presentation.screens.settings.ArtistRecommendationsSettings(
-                                settingsViewModel = settingsViewModel,
-                                onManagePreferred = {
-                                    // TODO: Navigate to Preferred Artists selection screen
-                                },
+                            // Moved to ArtistSettingsScreen
+                        },
                                 onManageBlocked = {
                                     // TODO: Navigate to Blocked Artists selection screen
                                 }
