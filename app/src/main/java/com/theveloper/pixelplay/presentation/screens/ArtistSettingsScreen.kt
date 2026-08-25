@@ -34,6 +34,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.outlined.Info
@@ -182,15 +185,15 @@ fun ArtistSettingsScreen(
                     com.theveloper.pixelplay.presentation.screens.SettingsItem(
                         title = "Preferred Artists",
                         subtitle = "Prioritize these artists in Mixes and Autoplay",
-                        leadingIcon = { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Outlined.Person, null, tint = androidx.compose.material3.MaterialTheme.colorScheme.secondary) },
-                        trailingIcon = { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.ChevronRight, "Open", tint = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant) },
+                        leadingIcon = { androidx.compose.material3.Icon(Icons.Outlined.Person, null, tint = androidx.compose.material3.MaterialTheme.colorScheme.secondary) },
+                        trailingIcon = { androidx.compose.material3.Icon(Icons.Rounded.ChevronRight, "Open", tint = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant) },
                         onClick = { navController.navigateSafely(com.theveloper.pixelplay.presentation.navigation.Screen.PreferredArtists.route) }
                     )
                     com.theveloper.pixelplay.presentation.screens.SettingsItem(
                         title = "Don't Suggest Artists",
                         subtitle = "Exclude these artists from recommendations",
-                        leadingIcon = { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Outlined.Block, null, tint = androidx.compose.material3.MaterialTheme.colorScheme.secondary) },
-                        trailingIcon = { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.ChevronRight, "Open", tint = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant) },
+                        leadingIcon = { androidx.compose.material3.Icon(Icons.Outlined.Block, null, tint = androidx.compose.material3.MaterialTheme.colorScheme.secondary) },
+                        trailingIcon = { androidx.compose.material3.Icon(Icons.Rounded.ChevronRight, "Open", tint = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant) },
                         onClick = { navController.navigateSafely(com.theveloper.pixelplay.presentation.navigation.Screen.BlockedArtists.route) }
                     )
                 }

@@ -454,7 +454,7 @@ fun SettingsCategoryScreen(
                         SettingsCategory.LIBRARY -> {
                             Spacer(modifier = Modifier.height(10.dp))
 
-                            
+
                             
                             SettingsSubsection(title = stringResource(R.string.settings_library_structure_section)) {
                                 SettingsItem(
@@ -1780,11 +1780,6 @@ fun SettingsCategoryScreen(
                         }
                         SettingsCategory.ARTIST_RECOMMENDATIONS -> {
                             // Moved to ArtistSettingsScreen
-                        },
-                                onManageBlocked = {
-                                    // TODO: Navigate to Blocked Artists selection screen
-                                }
-                            )
                         }
                         SettingsCategory.DEVELOPER -> {
                             SettingsSubsection(title = stringResource(R.string.settings_experiments_section)) {

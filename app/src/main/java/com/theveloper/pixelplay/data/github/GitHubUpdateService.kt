@@ -176,7 +176,11 @@ class GitHubUpdateService {
         val archive = context.packageManager.getPackageArchiveInfo(apk.absolutePath, flags)
             ?: error("Android could not read the downloaded update")
         check(archive.packageName == context.packageName) { "Update package does not match VYBE" }
-        check(PackageInfoCompat.getLongVersionCode(archive) > installedVersionCode(context)) {
+        val archiveCode = PackageInfoCompat.getLongVersionCode(archive)
+        val installedCode = installedVersionCode(context)
+        val archiveName = archive.versionName
+        val installedName = installedVersionName(context)
+        check(archiveCode > installedCode || (archiveCode == installedCode && archiveName != installedName)) {
             "Downloaded update is not newer than the installed VYBE version"
         }
         @Suppress("DEPRECATION")
@@ -301,6 +305,12 @@ class GitHubUpdateService {
         .replace(Regex("[^A-Za-z0-9._-]"), "_")
         .takeIf { it.endsWith(".apk", ignoreCase = true) }
         ?: "VYBE-update.apk"
+
+    private fun installedVersionName(context: Context): String? {
+        @Suppress("DEPRECATION")
+        val info = context.packageManager.getPackageInfo(context.packageName, 0)
+        return info.versionName
+    }
 
     private fun installedVersionCode(context: Context): Long {
         @Suppress("DEPRECATION")

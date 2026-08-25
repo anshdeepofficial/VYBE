@@ -1,3 +1,8 @@
+## [0.8.5] - 2026-08-25
+### Fixed
+- Fixed the 'update is not newer than installed version' error which happens when a small hotfix is deployed without a major version bump.
+- Fixed a crash in Settings category screen.
+
 ## [0.8.4] - 2026-08-25
 ### Added
 - Added 'Report Bug or Suggest Feature' in About screen which links directly to GitHub Issues.
