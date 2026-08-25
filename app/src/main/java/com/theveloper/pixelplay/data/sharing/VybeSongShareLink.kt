@@ -15,13 +15,17 @@ data class SharedVybeSong(
 )
 
 object VybeSongShareLink {
+    private const val VYBE_DOMAIN = "vybe.app"
+    
     fun build(song: Song): Uri {
         val portableId = song.id.takeIf(::isPortableProviderId)
         if (portableId != null) {
+            val cleanId = portableId.removePrefix("yt_")
             return Uri.Builder()
-                .scheme("vybe")
-                .authority("play")
-                .appendQueryParameter("id", portableId)
+                .scheme("https")
+                .authority("music.$VYBE_DOMAIN")
+                .appendPath("watch")
+                .appendQueryParameter("v", cleanId)
                 .build()
         }
         
@@ -37,11 +41,19 @@ object VybeSongShareLink {
     fun shareText(song: Song): String = buildString {
         append(song.title)
         if (song.displayArtist.isNotBlank()) append(" by ${song.displayArtist}")
-        append("\n\nOpen in VYBE:\n${build(song)}")
+        append("\n\nListen on VYBE:\n${build(song)}")
     }
 
     fun parse(uri: Uri): SharedVybeSong? {
-        // Parse vybe://play links
+        // Parse new https://music.vybe.app/watch?v=ID links
+        if ((uri.scheme == "http" || uri.scheme == "https") && uri.host == "music.$VYBE_DOMAIN" && uri.path?.contains("/watch") == true) {
+            val id = uri.getQueryParameter("v")?.take(100)
+            if (id != null) {
+                return SharedVybeSong(providerId = "yt_$id")
+            }
+        }
+        
+        // Parse old vybe://play links
         if (uri.scheme == "vybe" && uri.host == "play") {
             return SharedVybeSong(
                 providerId = uri.getQueryParameter("id")?.take(100)?.takeIf(::isPortableProviderId),

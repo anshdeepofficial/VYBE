@@ -1,3 +1,8 @@
+## [0.8.3] - 2026-08-25
+### Fixed
+- Fixed Audio Focus auto-resume bug (app will no longer auto-resume if you manually pause it before a phone call/notification).
+- Updated VYBE Share Link format to use `https://music.vybe.app/watch?v=ID` layout with backwards compatibility.
+
 ## [0.8.2]
 ### Added
 - **Library Pull-to-Refresh Metadata Fix**: Refreshing library tabs like Liked Songs and Playlists now actively resolves and restores "Online Track" placeholder metadata permanently.

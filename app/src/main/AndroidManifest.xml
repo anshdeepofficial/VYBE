@@ -83,6 +83,8 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="vybe" android:host="play" />
+                <data android:scheme="https" android:host="music.vybe.app" android:pathPrefix="/watch" />
+                <data android:scheme="http" android:host="music.vybe.app" android:pathPrefix="/watch" />
             </intent-filter>
             <meta-data
                 android:name="android.app.shortcuts"

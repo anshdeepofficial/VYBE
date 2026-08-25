@@ -389,6 +389,10 @@ class DualPlayerEngine @Inject constructor(
     // Listener to attach to the active master player (playerA)
     private val masterPlayerListener = object : Player.Listener, AnalyticsListener, ExoPlayer.AudioOffloadListener {
         override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+            if (!playWhenReady && reason == Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST) {
+                Timber.tag("TransitionDebug").d("User manually paused playback. Clearing isFocusLossPause.")
+                isFocusLossPause = false
+            }
             if (playWhenReady) {
                 lastPlayWhenReadyAtMs = SystemClock.elapsedRealtime()
                 requestAudioFocus()
