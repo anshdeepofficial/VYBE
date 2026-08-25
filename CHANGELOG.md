@@ -1,3 +1,12 @@
+## [0.8.1]
+### Added
+- **Sleep Timer Countdown**: The sleep timer now displays a live digital countdown on the player screen.
+- **Spotify Importer UI**: Replaced the Spotify account login with a simpler Playlist Importer interface.
+
+### Fixed
+- **Sleep Timer Options**: Replaced the complex Play Count feature with a straightforward Apply Timer button in the timer options.
+- **Spotify Login Error**: Removed the `SPOTIFY_CLIENT_ID` requirement that was causing login errors.
+
 ## [0.8.0] - 2026-08-24
 
 ### Added

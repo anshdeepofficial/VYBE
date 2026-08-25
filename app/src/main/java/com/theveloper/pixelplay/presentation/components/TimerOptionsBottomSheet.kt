@@ -219,64 +219,7 @@ fun TimerOptionsBottomSheet(
             }
             Spacer(modifier = Modifier.height(16.dp))
 
-            Column(modifier = Modifier.fillMaxWidth()) {
-
-
-                val currentPlayCount = 1
-                val timesPart = if (currentPlayCount == 1) {
-                    stringResource(R.string.sleep_timer_play_count_one_time)
-                } else {
-                    pluralStringResource(
-                        R.plurals.sleep_timer_play_count_n_times,
-                        currentPlayCount,
-                        currentPlayCount
-                    )
-                }
-                val counterDisplayText = stringResource(R.string.sleep_timer_play_count_label, timesPart)
-                Text(
-                    text = counterDisplayText,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 0.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            shape = RoundedCornerShape(18.dp)
-                        )
-                ) {
-                    Slider(
-                        value = 1f,
-                        onValueChange = {
-                            
-                            
-                        },
-                        valueRange = 1f..10f,
-                        steps = 8,
-                        enabled = false,
-                        onValueChangeFinished = {
-                            onCancelTimer()
-                            onSetEndOfTrackTimer(false)
-                            onPlayCounter(1f.toInt())
-                        },
-                        track = { sliderState ->
-                            SliderDefaults.Track(
-                                sliderState = sliderState,
-                                modifier = Modifier
-                                    .heightIn(min = 32.dp),
-                            )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 12.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
+            
 
             // End of track option
             Box(
@@ -353,98 +296,29 @@ fun TimerOptionsBottomSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Button(
-                    enabled = true,
                     onClick = {
-                        showCustomTimePicker = true
-                    },
-                    shape = RoundedCornerShape(
-                        topStart = 50.dp,
-                        bottomStart = 50.dp,
-                        topEnd = 8.dp,
-                        bottomEnd = 8.dp
-                    ),
-                    modifier = Modifier
-                        .weight(1f) // Give buttons equal space if desired
-                        .height(buttonHeight)
-                ) {
-                    Text(stringResource(R.string.sleep_timer_custom_time))
-                }
-                Button(
-                    onClick = {
-                        onCancelTimer()
+                        val currentIndex = timerSliderPosition.roundToInt().coerceIn(0, predefinedTimes.size - 1)
+                        val selectedMinutesOnFinish = predefinedTimes[currentIndex]
+                        if (selectedMinutesOnFinish > 0) {
+                            onSetPredefinedTimer(selectedMinutesOnFinish)
+                        } else {
+                            onCancelTimer()
+                        }
                         onDismiss()
-                        onCancelCountedPlay()
                     },
-                    shape = RoundedCornerShape(
-                        topStart = 8.dp,
-                        bottomStart = 8.dp,
-                        topEnd = 50.dp,
-                        bottomEnd = 50.dp
-                    ),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer
-                    ),
-                    enabled = activeTimerValueDisplay != null,
+                    shape = RoundedCornerShape(24.dp),
                     modifier = Modifier
-                        .weight(1f)
+                        .fillMaxWidth()
                         .height(buttonHeight)
                 ) {
-                    Text(stringResource(R.string.sleep_timer_cancel_timer))
+                    Text("Apply Timer")
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
 
-    if (showCustomTimePicker) {
-        val initialHour = 0    // Default to 0 hours for a duration
-        val initialMinute = 15 // Default to 15 minutes for a duration
-
-        val timePickerState = rememberTimePickerState(
-            initialHour = initialHour,
-            initialMinute = initialMinute,
-            is24Hour = true // Consistent with your previous setting (24-hour format)
-        )
-
-        AlertDialog(
-            onDismissRequest = {
-                showCustomTimePicker = false // Dismiss the M3 dialog
-                // No need to call onDismiss() for the bottom sheet here,
-                // as that's handled by the confirm button or if the user specifically dismisses the bottom sheet.
-            },
-            title = { Text(stringResource(R.string.sleep_timer_ui_set_custom_duration)) },
-            text = {
-                TimePicker(state = timePickerState)
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val hour = timePickerState.hour
-                        val minute = timePickerState.minute
-                        val totalMinutes = hour * 60 + minute
-
-                        if (totalMinutes > 0) { // Ensure some time is set
-                            onSetPredefinedTimer(totalMinutes) // Your existing callback
-                        }
-                        showCustomTimePicker = false // Dismiss the M3 dialog
-                        onDismiss() // Dismiss the bottom sheet after setting time, as per original logic
-                    }
-                ) {
-                    Text(stringResource(R.string.common_ok))
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showCustomTimePicker = false // Dismiss the M3 dialog
-                    }
-                ) {
-                    Text(stringResource(R.string.common_cancel), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-            }
-        )
-    }
+    
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
