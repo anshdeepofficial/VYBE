@@ -958,6 +958,7 @@ class MusicService : MediaLibraryService() {
                 delay(2_000L)
                 if (mediaSession?.player?.hasForegroundPlaybackIntent() != true) {
                     stopForeground(STOP_FOREGROUND_REMOVE)
+                    cancelTemporaryForegroundNotification()
                 } else {
                     cancelTemporaryForegroundNotification()
                 }
@@ -1241,6 +1242,7 @@ class MusicService : MediaLibraryService() {
         if (needsTemporaryForeground || startedTemporaryForegroundInOnCreate) {
             if (mediaSession?.player?.hasForegroundPlaybackIntent() != true) {
                 stopForeground(STOP_FOREGROUND_REMOVE)
+                    cancelTemporaryForegroundNotification()
                 if (needsTemporaryForeground) {
                     stopSelfResult(startId)
                 }
@@ -2591,6 +2593,7 @@ class MusicService : MediaLibraryService() {
 
         widgetUpdateManager.requestFullUpdate(true)
         stopForeground(STOP_FOREGROUND_REMOVE)
+                    cancelTemporaryForegroundNotification()
 
         stopSelf()
     }

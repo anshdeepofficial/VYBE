@@ -1,3 +1,14 @@
+## [0.8.2]
+### Added
+- **Library Pull-to-Refresh Metadata Fix**: Refreshing library tabs like Liked Songs and Playlists now actively resolves and restores "Online Track" placeholder metadata permanently.
+- **Advanced Timer Controls**: Reinstated full timer controls with dedicated buttons for Custom Time, Cancel, and Apply, giving users maximum flexibility.
+
+### Fixed
+- **Download Notifications**: Both song downloads and app updates now clearly display in the status bar notifications area.
+- **Playback Processing Notification**: Eliminated the persistent "Processing playback action" notification that could get stuck when playback paused.
+- **Digital Sleep Timer Clock**: Fixed an issue where the live digital countdown clock was missing from the player controls.
+- **Immersive Artwork Refinement**: The Immersive Artwork feature has been refined to keep the original album art centered and perfectly visible, while extending a beautifully blurred background with proper top and bottom shading for text readability.
+
 ## [0.8.1]
 ### Added
 - **Sleep Timer Countdown**: The sleep timer now displays a live digital countdown on the player screen.

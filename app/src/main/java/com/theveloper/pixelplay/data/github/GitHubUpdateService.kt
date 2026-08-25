@@ -1,5 +1,12 @@
 package com.theveloper.pixelplay.data.github
 
+
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import com.theveloper.pixelplay.R
+
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -87,6 +94,27 @@ class GitHubUpdateService {
         update: GitHubReleaseUpdate,
         onProgress: (Float) -> Unit,
     ): Result<File> = withContext(Dispatchers.IO) {
+        
+        val channelId = "vybe_update_channel"
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "App Updates",
+                NotificationManager.IMPORTANCE_DEFAULT
+            )
+            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            nm.createNotificationChannel(channel)
+        }
+        val notificationId = 10001
+        val notificationManager = NotificationManagerCompat.from(context)
+        val builder = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(R.drawable.monochrome_player)
+            .setContentTitle("Downloading VYBE Update")
+            .setContentText(update.apkName)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setOngoing(true)
+            .setProgress(100, 0, false)
+
         val directory = File(context.cacheDir, "app_updates").apply { mkdirs() }
         val target = File(directory, safeFileName(update.apkName))
         val partial = File(directory, "${target.name}.partial")
@@ -126,6 +154,10 @@ class GitHubUpdateService {
                 .apply()
             onProgress(1f)
             target
+        }.onSuccess {
+            runCatching { notificationManager.cancel(notificationId) }
+        }.onFailure {
+            runCatching { notificationManager.cancel(notificationId) }
         }.onFailure {
             partial.delete()
             target.delete()

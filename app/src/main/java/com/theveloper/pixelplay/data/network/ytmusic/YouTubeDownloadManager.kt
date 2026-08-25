@@ -127,7 +127,7 @@ class YouTubeDownloadManager @Inject constructor(
                 NotificationChannel(
                     DOWNLOAD_CHANNEL_ID,
                     "Music downloads",
-                    NotificationManager.IMPORTANCE_LOW,
+                    NotificationManager.IMPORTANCE_DEFAULT,
                 ).apply {
                     description = "Silent offline music download progress"
                     setSound(null, null)
@@ -220,7 +220,7 @@ class YouTubeDownloadManager @Inject constructor(
             )
             .setOnlyAlertOnce(true)
             .setSilent(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
             .setOngoing(!failed && !paused)
             .setAutoCancel(false)
@@ -249,7 +249,7 @@ class YouTubeDownloadManager @Inject constructor(
             .setContentText("Downloaded for offline playback")
             .setOnlyAlertOnce(true)
             .setSilent(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
             .setAutoCancel(true)
             .setProgress(0, 0, false)

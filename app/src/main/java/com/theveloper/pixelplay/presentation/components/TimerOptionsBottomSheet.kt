@@ -296,6 +296,37 @@ fun TimerOptionsBottomSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Button(
+                    onClick = { showCustomTimePicker = true },
+                    shape = RoundedCornerShape(
+                        topStart = 50.dp,
+                        bottomStart = 50.dp,
+                        topEnd = 8.dp,
+                        bottomEnd = 8.dp
+                    ),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(buttonHeight)
+                ) {
+                    Text(stringResource(R.string.sleep_timer_custom_time), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                Button(
+                    onClick = {
+                        onCancelTimer()
+                        onSetEndOfTrackTimer(false)
+                        onDismiss()
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                    ),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(buttonHeight)
+                ) {
+                    Text(stringResource(R.string.sleep_timer_cancel_timer), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                Button(
                     onClick = {
                         val currentIndex = timerSliderPosition.roundToInt().coerceIn(0, predefinedTimes.size - 1)
                         val selectedMinutesOnFinish = predefinedTimes[currentIndex]
@@ -306,12 +337,17 @@ fun TimerOptionsBottomSheet(
                         }
                         onDismiss()
                     },
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(
+                        topStart = 8.dp,
+                        bottomStart = 8.dp,
+                        topEnd = 50.dp,
+                        bottomEnd = 50.dp
+                    ),
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .weight(1f)
                         .height(buttonHeight)
                 ) {
-                    Text("Apply Timer")
+                    Text("Apply Timer", maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
@@ -319,6 +355,53 @@ fun TimerOptionsBottomSheet(
     }
 
     
+
+    if (showCustomTimePicker) {
+        val initialHour = 0
+        val initialMinute = 15
+
+        val timePickerState = rememberTimePickerState(
+            initialHour = initialHour,
+            initialMinute = initialMinute,
+            is24Hour = true
+        )
+
+        AlertDialog(
+            onDismissRequest = {
+                showCustomTimePicker = false
+            },
+            title = { Text(stringResource(R.string.sleep_timer_ui_set_custom_duration)) },
+            text = {
+                TimePicker(state = timePickerState)
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val hour = timePickerState.hour
+                        val minute = timePickerState.minute
+                        val totalMinutes = hour * 60 + minute
+
+                        if (totalMinutes > 0) {
+                            onSetPredefinedTimer(totalMinutes)
+                        }
+                        showCustomTimePicker = false
+                        onDismiss()
+                    }
+                ) {
+                    Text(stringResource(R.string.common_ok))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showCustomTimePicker = false
+                    }
+                ) {
+                    Text(stringResource(R.string.common_cancel), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -345,4 +428,6 @@ fun TimerOptionsBottomSheet(
         onOpenCustomTimePicker = {},
         onCancelTimer = { playerViewModel.cancelSleepTimer() }
     )
+
 }
+

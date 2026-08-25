@@ -599,6 +599,7 @@ fun FullPlayerContent(
             onRepeatToggle = onRepeatToggle,
             onFavoriteToggle = onFavoriteToggle,
             isTimerActiveProvider = { isTimerActive != null },
+            timerStringProvider = { isTimerActive },
             onSleepTimerToggle = { showTimerBottomSheet = true }
         )
     }
@@ -1233,7 +1234,6 @@ private fun FullPlayerAlbumCoverSection(
                             .graphicsLayer {
                                 scaleX = albumArtScale
                                 scaleY = albumArtScale
-                                alpha = if (immersiveArtworkEnabled) 0f else 1f
                             },
                         albumArtQuality = albumArtQuality
                     )
@@ -1279,48 +1279,6 @@ private fun ImmersiveArtworkBackground(
             )
         }
 
-        AnimatedContent(
-            targetState = song,
-            contentKey = { "main_${it.id}" },
-            transitionSpec = {
-                fadeIn(tween(420, easing = FastOutSlowInEasing)) togetherWith
-                    fadeOut(tween(300, easing = FastOutSlowInEasing))
-            },
-            modifier = Modifier.align(Alignment.TopCenter),
-            label = "ImmersiveMainArtworkTransition",
-        ) { current ->
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f)
-                    .clipToBounds(),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (isLandscapeArtwork) {
-                    OptimizedAlbumArt(
-                        uri = current.albumArtUriString ?: artwork,
-                        title = current.title,
-                        targetSize = targetSize,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .blur(18.dp),
-                    )
-                }
-                OptimizedAlbumArt(
-                    uri = current.albumArtUriString ?: artwork,
-                    title = current.title,
-                    targetSize = targetSize,
-                    contentScale = ContentScale.Fit,
-                    onAspectRatioResolved = { ratio -> artworkAspectRatio = ratio },
-                    modifier = if (isLandscapeArtwork) {
-                        Modifier.fillMaxWidth().aspectRatio(artworkAspectRatio)
-                    } else {
-                        Modifier.fillMaxSize()
-                    },
-                )
-            }
-        }
         Box(
             modifier = Modifier
                 .fillMaxSize()

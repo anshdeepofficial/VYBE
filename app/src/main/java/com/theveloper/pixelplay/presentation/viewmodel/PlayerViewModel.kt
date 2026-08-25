@@ -3502,6 +3502,34 @@ class PlayerViewModel @Inject constructor(
             userPreferencesRepository.addCustomGenre(genre, iconResId)
         }
     }
+
+    fun resolveOnlineTrackPlaceholders() {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val placeholders = onlineFavoriteSongs.value.filter { it.title == "Online Track" }
+            val resolvedList = mutableListOf<com.theveloper.pixelplay.data.model.Song>()
+            for (placeholder in placeholders) {
+                val resolved = runCatching { onlineMusicRepository.getTrackDetails(placeholder.id) }.getOrNull()
+                if (resolved != null) {
+                    resolvedList.add(resolved)
+                }
+            }
+            if (resolvedList.isNotEmpty()) {
+                musicRepository.cacheOnlineSongs(resolvedList)
+            }
+            
+            val queuePlaceholders = _playerUiState.value.currentPlaybackQueue.filter { it.title == "Online Track" }
+            val resolvedQueue = mutableListOf<com.theveloper.pixelplay.data.model.Song>()
+            for (placeholder in queuePlaceholders) {
+                val resolved = runCatching { onlineMusicRepository.getTrackDetails(placeholder.id) }.getOrNull()
+                if (resolved != null) {
+                    resolvedQueue.add(resolved)
+                }
+            }
+            if (resolvedQueue.isNotEmpty()) {
+                musicRepository.cacheOnlineSongs(resolvedQueue)
+            }
+        }
+    }
 }
 
 internal fun Song.withRepositoryHydration(repositorySong: Song): Song {

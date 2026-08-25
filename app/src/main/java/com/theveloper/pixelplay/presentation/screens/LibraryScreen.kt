@@ -666,13 +666,14 @@ fun LibraryScreen(
     var isMinDelayActive by remember { mutableStateOf(false) }
     var refreshGeneration by remember { mutableStateOf(0) }
 
-    val onRefresh: () -> Unit = remember(scope, syncManager) {
+    val onRefresh: () -> Unit = remember(scope, syncManager, playerViewModel) {
         {
             val currentRefreshGeneration = refreshGeneration + 1
             refreshGeneration = currentRefreshGeneration
             isMinDelayActive = true
             isRefreshing = true
             syncManager.incrementalSync()
+            playerViewModel.resolveOnlineTrackPlaceholders()
             scope.launch {
                 kotlinx.coroutines.delay(PULL_REFRESH_MIN_VISIBLE_MS)
                 if (currentRefreshGeneration != refreshGeneration) return@launch
