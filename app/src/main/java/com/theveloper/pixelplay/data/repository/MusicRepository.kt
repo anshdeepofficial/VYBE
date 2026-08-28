@@ -89,12 +89,13 @@ interface MusicRepository {
     fun getCloudSongCountFlow(): Flow<Int>
 
     /**
-     * Returns a random selection of songs for efficient shuffle.
-     * Uses database-level RANDOM() for performance.
+     * Retrieves a set of random songs bounded by [limit] from the database.
+     *
      * @param limit Maximum number of songs to return.
+     * @param storageFilter Current storage filter (Online, Offline, All).
      * @return List of randomly selected songs.
      */
-    suspend fun getRandomSongs(limit: Int): List<Song>
+    suspend fun getRandomSongs(limit: Int, storageFilter: com.theveloper.pixelplay.data.model.StorageFilter = com.theveloper.pixelplay.data.model.StorageFilter.ALL): List<Song>
 
     /**
      * Returns a bounded song page without materializing the full library.

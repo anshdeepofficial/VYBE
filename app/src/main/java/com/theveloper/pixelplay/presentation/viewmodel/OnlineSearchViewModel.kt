@@ -378,26 +378,28 @@ class OnlineSearchViewModel @Inject constructor(
                         runCatching { repository.searchFallbackSongs(trimmed) }.getOrDefault(emptyList())
                     }
 
-                    val fastSongs = withTimeoutOrNull(3_500L) { fallbackRequest.await() }
-                        .orEmpty()
-                        .let { rankSearchSongs(trimmed, it, retainRelated = false) }
-                    if (fastSongs.isNotEmpty() && currentQuery == trimmed) {
-                        _searchResultsSongs.value = fastSongs
-                        _searchResultsAlbums.value = emptyList()
-                        _searchResultsArtists.value = emptyList()
-                        _isLoading.value = false
-                    }
-
+                    // Await the primary YouTube search first. It is usually much faster than Saavn.
                     val youtubeResult = withTimeoutOrNull(10_000L) { youtubeRequest.await() }
                         ?: YouTubeSearchResult()
-                    val finalFallback = if (fastSongs.isNotEmpty()) fastSongs else {
-                        withTimeoutOrNull(1_500L) { fallbackRequest.await() }
-                            .orEmpty()
-                            .let { rankSearchSongs(trimmed, it, retainRelated = false) }
+
+                    // If YouTube returned results, we can show them immediately.
+                    if (youtubeResult.songs.isNotEmpty() || youtubeResult.albums.isNotEmpty() || youtubeResult.artists.isNotEmpty()) {
+                        if (currentQuery == trimmed) {
+                            _searchResultsSongs.value = rankSearchSongs(trimmed, youtubeResult.songs, retainRelated = true)
+                            _searchResultsAlbums.value = youtubeResult.albums
+                            _searchResultsArtists.value = youtubeResult.artists
+                            _isLoading.value = false
+                        }
                     }
+
+                    // Now wait for the fallback results to augment the list, but don't block the initial render.
+                    val fallbackSongs = withTimeoutOrNull(3_500L) { fallbackRequest.await() }
+                        .orEmpty()
+                        .let { rankSearchSongs(trimmed, it, retainRelated = false) }
+
                     youtubeResult.copy(
                         songs = rankSearchSongs(trimmed, youtubeResult.songs, retainRelated = true)
-                            .plus(finalFallback)
+                            .plus(fallbackSongs)
                             .distinctBy { it.id }
                     )
                 }

@@ -74,10 +74,16 @@ fun ReorderTabsSheet(
     onDismiss: () -> Unit
 ) {
     var showResetDialog by remember { mutableStateOf(false) }
-    var localTabs by remember { mutableStateOf(tabs) }
+    
+    val allPossibleTabs = remember { LibraryTabId.entries.map { it.stableKey } }
+    var localTabs by remember { 
+        mutableStateOf(tabs + allPossibleTabs.filter { it !in tabs })
+    }
+    var visibleTabs by remember { mutableStateOf(tabs.toSet()) }
 
     LaunchedEffect(tabs) {
-        localTabs = tabs
+        localTabs = tabs + allPossibleTabs.filter { it !in tabs }
+        visibleTabs = tabs.toSet()
     }
 
     if (showResetDialog) {
@@ -89,7 +95,10 @@ fun ReorderTabsSheet(
                 TextButton(
                     onClick = {
                         onReset()
-                        localTabs = tabs
+                        // Resets to default order
+                        val defaultTabs = LibraryTabId.defaultOrder.map { it.stableKey }
+                        localTabs = defaultTabs
+                        visibleTabs = defaultTabs.toSet()
                         showResetDialog = false
                     }
                 ) {
@@ -158,7 +167,8 @@ fun ReorderTabsSheet(
                         scope.launch {
                             isLoading = true
                             delay(700) // Simulate network/db operation
-                            onReorder(localTabs)
+                            val newOrder = localTabs.filter { it in visibleTabs }
+                            onReorder(newOrder)
                             isLoading = false
                             onDismiss()
                         }
@@ -219,7 +229,21 @@ fun ReorderTabsSheet(
                                             text = LibraryTabId.fromStableKey(tab)
                                                 ?.let { stringResource(it.labelRes) }
                                                 ?: tab,
-                                            style = MaterialTheme.typography.bodyLarge
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        androidx.compose.material3.Switch(
+                                            checked = tab in visibleTabs,
+                                            onCheckedChange = { isChecked ->
+                                                if (isChecked) {
+                                                    visibleTabs = visibleTabs + tab
+                                                } else {
+                                                    // Ensure at least one tab is always visible
+                                                    if (visibleTabs.size > 1) {
+                                                        visibleTabs = visibleTabs - tab
+                                                    }
+                                                }
+                                            }
                                         )
                                     }
                                 }

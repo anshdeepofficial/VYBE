@@ -1160,6 +1160,7 @@ fun LibraryScreen(
                                         com.theveloper.pixelplay.data.preferences.TelegramTopicDisplayMode.CHANNELS_AND_TOPICS ->
                                             true
                                     }
+                                    "YOUTUBE_MUSIC:HISTORY" -> false
                                     else -> true
                                 }
                             }
@@ -1315,11 +1316,12 @@ fun LibraryScreen(
                                         .fillMaxWidth()
                                         .padding(end = 4.dp),
                                     onMainActionClick = {
-                                        when (tabTitles.getOrNull(currentTabIndex)?.toLibraryTabIdOrNull()) {
+                                        when (currentTabId) {
                                             LibraryTabId.PLAYLISTS -> showPlaylistCreationTypeDialog = true
                                             LibraryTabId.LIKED -> playerViewModel.shuffleFavoriteSongs()
                                             LibraryTabId.ALBUMS -> playerViewModel.shuffleRandomAlbum()
                                             LibraryTabId.ARTISTS -> playerViewModel.shuffleRandomArtist()
+                                            LibraryTabId.DOWNLOADS -> playerViewModel.shuffleDownloadedSongs()
                                             else -> playerViewModel.shuffleAllSongs()
                                         }
                                     },

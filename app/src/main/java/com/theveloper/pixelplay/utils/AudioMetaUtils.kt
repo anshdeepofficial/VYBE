@@ -75,6 +75,44 @@ object AudioMetaUtils {
 
     }
 
+    fun getAudioDurationMs(filePath: String): Long? {
+        val file = File(filePath)
+        if (!file.exists() || !file.canRead()) return null
+        var duration: Long? = null
+        MediaMetadataRetrieverPool.withRetriever { retriever ->
+            try {
+                retriever.setDataSource(filePath)
+                val durStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                if (durStr != null) {
+                    duration = durStr.toLongOrNull()
+                }
+            } catch (e: Exception) {
+                Log.w("AudioMetaUtils", "Retriever failed for duration: ${e.message}")
+            }
+        }
+        if (duration == null) {
+            try {
+                MediaExtractor().apply {
+                    setDataSource(filePath)
+                    for (i in 0 until trackCount) {
+                        val format = getTrackFormat(i)
+                        val trackMime = format.getString(MediaFormat.KEY_MIME)
+                        if (trackMime?.startsWith("audio/") == true) {
+                            if (format.containsKey(MediaFormat.KEY_DURATION)) {
+                                duration = format.getLong(MediaFormat.KEY_DURATION) / 1000L
+                            }
+                            break
+                        }
+                    }
+                    release()
+                }
+            } catch (e: Exception) {
+                Log.w("AudioMetaUtils", "Extractor failed for duration: ${e.message}")
+            }
+        }
+        return duration
+    }
+
     fun mimeTypeToFormat(mimeType: String?): String {
         val normalized = mimeType
             ?.trim()

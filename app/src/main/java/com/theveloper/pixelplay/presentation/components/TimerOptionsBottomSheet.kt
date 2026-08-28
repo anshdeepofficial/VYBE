@@ -66,10 +66,12 @@ fun TimerOptionsBottomSheet(
     activeTimerDurationMinutes: Int?,
     playCount: Float,
     isEndOfTrackTimerActive: Boolean,
+    isEndOfPlaylistTimerActive: Boolean,
     onDismiss: () -> Unit,
     onCancelCountedPlay: () -> Unit,
     onSetPredefinedTimer: (minutes: Int) -> Unit,
     onSetEndOfTrackTimer: (enable: Boolean) -> Unit,
+    onSetEndOfPlaylistTimer: (enable: Boolean) -> Unit,
     onOpenCustomTimePicker: () -> Unit,
     onCancelTimer: () -> Unit
 ) {
@@ -79,20 +81,26 @@ fun TimerOptionsBottomSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val isSwitchEnabled = isEndOfTrackTimerActive
-
-    
-    
+    val isEopSwitchEnabled = isEndOfPlaylistTimerActive
 
     // Animate background color
     val boxBackgroundColor by animateColorAsState(
         targetValue = if (isSwitchEnabled) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.surfaceContainerHigh,
         label = "boxBackgroundColorAnimation"
     )
+    val eopBoxBackgroundColor by animateColorAsState(
+        targetValue = if (isEopSwitchEnabled) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.surfaceContainerHigh,
+        label = "eopBoxBackgroundColorAnimation"
+    )
 
     // Animate corner radius
     val boxCornerRadius by animateDpAsState(
         targetValue = if (isSwitchEnabled) 18.dp else 50.dp,
         label = "boxCornerRadiusAnimation"
+    )
+    val eopBoxCornerRadius by animateDpAsState(
+        targetValue = if (isEopSwitchEnabled) 18.dp else 50.dp,
+        label = "eopBoxCornerRadiusAnimation"
     )
 
     LaunchedEffect(activeTimerDurationMinutes, activeTimerValueDisplay, playCount) {
@@ -220,6 +228,73 @@ fun TimerOptionsBottomSheet(
             Spacer(modifier = Modifier.height(16.dp))
 
             
+
+            // End of playlist option
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 0.dp)
+                    .clip(
+                        AbsoluteSmoothCornerShape(
+                            cornerRadiusBL = eopBoxCornerRadius,
+                            smoothnessAsPercentBR = 60,
+                            cornerRadiusTR = eopBoxCornerRadius,
+                            smoothnessAsPercentTL = 60,
+                            cornerRadiusTL = eopBoxCornerRadius,
+                            smoothnessAsPercentBL = 60,
+                            cornerRadiusBR = eopBoxCornerRadius,
+                            smoothnessAsPercentTR = 60
+                        )
+                    ) // Apply animated corner radius for clipping
+                    .background(color = eopBoxBackgroundColor)   // Apply animated background color
+                    .clickable(
+                        enabled = true,
+                        onClick = {
+                            onSetEndOfPlaylistTimer(!isEopSwitchEnabled)
+                        }
+                    )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp, horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "End of playlist",
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 8.dp),
+                        color = if (isEopSwitchEnabled) MaterialTheme.colorScheme.onTertiary else MaterialTheme.colorScheme.onSurface // Adjust text color for contrast
+                    )
+                    Switch(
+                        checked = isEopSwitchEnabled,
+                        enabled = true,
+                        onCheckedChange = {
+                            onSetEndOfPlaylistTimer(it)
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.tertiary,
+                            checkedTrackColor = MaterialTheme.colorScheme.tertiaryContainer,
+                            uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        thumbContent = if (isEopSwitchEnabled) {
+                            {
+                                Icon(
+                                    imageVector = Icons.Rounded.Check,
+                                    contentDescription = stringResource(R.string.sleep_timer_cd_switch_on),
+                                    tint = MaterialTheme.colorScheme.tertiaryContainer,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                                )
+                            }
+                        } else {
+                            null
+                        }
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
 
             // End of track option
             Box(
@@ -414,6 +489,7 @@ fun TimerOptionsBottomSheet(
     val activeTimerDurationMinutes by playerViewModel.activeTimerDurationMinutes.collectAsStateWithLifecycle()
     val playCount by playerViewModel.playCount.collectAsStateWithLifecycle()
     val isEndOfTrackTimerActive by playerViewModel.isEndOfTrackTimerActive.collectAsStateWithLifecycle()
+    val isEndOfPlaylistTimerActive by playerViewModel.isEndOfPlaylistTimerActive.collectAsStateWithLifecycle()
 
     TimerOptionsBottomSheet(
         onPlayCounter = { playerViewModel.playCounted(it) },
@@ -421,13 +497,14 @@ fun TimerOptionsBottomSheet(
         activeTimerDurationMinutes = activeTimerDurationMinutes,
         playCount = playCount,
         isEndOfTrackTimerActive = isEndOfTrackTimerActive,
+        isEndOfPlaylistTimerActive = isEndOfPlaylistTimerActive,
         onDismiss = onDismiss,
         onCancelCountedPlay = { playerViewModel.cancelCountedPlay() },
         onSetPredefinedTimer = { playerViewModel.setSleepTimer(it) },
         onSetEndOfTrackTimer = { playerViewModel.setEndOfTrackTimer(it) },
+        onSetEndOfPlaylistTimer = { playerViewModel.setEndOfPlaylistTimer(it) },
         onOpenCustomTimePicker = {},
         onCancelTimer = { playerViewModel.cancelSleepTimer() }
     )
-
 }
 

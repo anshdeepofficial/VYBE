@@ -39,6 +39,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -50,6 +51,7 @@ class SongInfoBottomSheetViewModel @Inject constructor(
     private val transferStateStore: PhoneWatchTransferStateStore,
     private val musicDao: MusicDao,
     private val onlineMusicRepository: OnlineMusicRepository,
+    private val youTubeDownloadManager: com.theveloper.pixelplay.data.network.ytmusic.YouTubeDownloadManager,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
@@ -139,9 +141,29 @@ class SongInfoBottomSheetViewModel @Inject constructor(
         }
     }
 
+
+    fun isSongDownloaded(songId: String) = youTubeDownloadManager.isDownloaded(songId)
+
+    fun toggleDownload(song: Song) {
+        viewModelScope.launch {
+            val isDownloaded = youTubeDownloadManager.isDownloaded(song.id).first()
+            if (isDownloaded) {
+                youTubeDownloadManager.deleteDownload(song.id)
+            } else {
+                youTubeDownloadManager.enqueueDownload(song)
+            }
+        }
+    }
+
     fun loadAudioMeta(song: Song) {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            _resolvedDurationMs.value = song.duration
+            val fileDurMs = AudioMetaUtils.getAudioDurationMs(song.path)
+            if (fileDurMs != null && fileDurMs > 0L) {
+                _resolvedDurationMs.value = fileDurMs
+            } else {
+                _resolvedDurationMs.value = song.duration
+            }
+            
             val meta = AudioMetaUtils.getAudioMetadata(
                 musicDao = musicDao,
                 id = song.id.toLongOrNull() ?: -1L,
@@ -149,7 +171,7 @@ class SongInfoBottomSheetViewModel @Inject constructor(
                 deepScan = false
             )
             _audioMeta.value = meta
-            if (song.duration <= 0L && getCloudProviderLabel(song.contentUriString) != null) {
+            if (_resolvedDurationMs.value <= 0L && getCloudProviderLabel(song.contentUriString) != null) {
                 val resolved = withTimeoutOrNull(8_000L) {
                     onlineMusicRepository.searchMusicStructured("${song.title} ${song.artist}".trim())
                         .songs

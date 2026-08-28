@@ -47,6 +47,9 @@ class SleepTimerStateHolder @Inject constructor(
     private val _isEndOfTrackTimerActive = MutableStateFlow(value = false)
     val isEndOfTrackTimerActive: StateFlow<Boolean> = _isEndOfTrackTimerActive.asStateFlow()
 
+    private val _isEndOfPlaylistTimerActive = MutableStateFlow(value = false)
+    val isEndOfPlaylistTimerActive: StateFlow<Boolean> = _isEndOfPlaylistTimerActive.asStateFlow()
+
     private val _activeTimerValueDisplay = MutableStateFlow<String?>(null)
     val activeTimerValueDisplay: StateFlow<String?> = _activeTimerValueDisplay.asStateFlow()
 
@@ -60,6 +63,7 @@ class SleepTimerStateHolder @Inject constructor(
     // Internal jobs
     private var sleepTimerJob: Job? = null
     private var eotSongMonitorJob: Job? = null
+    private var eopMonitorJob: Job? = null
 
     // Dependencies that will be injected via initialize
     private val alarmManager: AlarmManager =
@@ -110,6 +114,11 @@ class SleepTimerStateHolder @Inject constructor(
         val scope = this.scope ?: return
 
         // Cancel any existing EOT timer first
+        if (_isEndOfPlaylistTimerActive.value) {
+            eopMonitorJob?.cancel()
+            cancelSleepTimer(suppressDefaultToast = true)
+        }
+
         if (_isEndOfTrackTimerActive.value) {
             eotSongMonitorJob?.cancel()
             cancelSleepTimer(suppressDefaultToast = true)
@@ -271,6 +280,82 @@ class SleepTimerStateHolder @Inject constructor(
         }
     }
 
+    fun setEndOfPlaylistTimer(enable: Boolean) {
+        val scope = this.scope ?: return
+
+        if (enable) {
+            val controller = mediaControllerProvider?.invoke()
+            if (controller == null || controller.mediaItemCount == 0) {
+                scope.launch {
+                    toastEmitter?.invoke(context.getString(R.string.sleep_timer_eot_no_song_toast)) // Reuse for now
+                }
+                return
+            }
+
+            _activeTimerDurationMinutes.value = null
+            _activeTimerValueDisplay.value = "End of Playlist"
+            _isEndOfPlaylistTimerActive.value = true
+            EotStateHolder.setEopActive(true)
+
+            sleepTimerJob?.cancel()
+            _sleepTimerEndTimeMillis.value = null
+
+            if (_isEndOfTrackTimerActive.value) {
+                eotSongMonitorJob?.cancel()
+                _isEndOfTrackTimerActive.value = false
+                EotStateHolder.setEotTargetSong(null)
+            }
+
+            eopMonitorJob?.cancel()
+            eopMonitorJob = scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                while (true) {
+                    val ctrl = mediaControllerProvider?.invoke()
+                    if (ctrl == null || !_isEndOfPlaylistTimerActive.value) break
+
+                    var remainingMillis = 0L
+                    val currentIndex = ctrl.currentMediaItemIndex
+                    val count = ctrl.mediaItemCount
+
+                    if (currentIndex != androidx.media3.common.C.INDEX_UNSET && count > 0) {
+                        val currentItem = ctrl.currentMediaItem
+                        if (currentItem != null) {
+                            val currentDuration = currentItem.mediaMetadata.extras?.getLong(com.theveloper.pixelplay.utils.MediaItemBuilder.EXTERNAL_EXTRA_DURATION) ?: ctrl.duration
+                            if (currentDuration > 0) {
+                                val currentPosition = ctrl.currentPosition.coerceAtLeast(0)
+                                remainingMillis += (currentDuration - currentPosition).coerceAtLeast(0)
+                            }
+                        }
+
+                        for (i in (currentIndex + 1) until count) {
+                            val item = ctrl.getMediaItemAt(i)
+                            val dur = item.mediaMetadata.extras?.getLong(com.theveloper.pixelplay.utils.MediaItemBuilder.EXTERNAL_EXTRA_DURATION) ?: 0L
+                            remainingMillis += dur
+                        }
+                    }
+
+                    if (remainingMillis > 0) {
+                        val minutes = java.util.concurrent.TimeUnit.MILLISECONDS.toMinutes(remainingMillis)
+                        val seconds = java.util.concurrent.TimeUnit.MILLISECONDS.toSeconds(remainingMillis) % 60
+                        _activeTimerValueDisplay.value = String.format(java.util.Locale.US, "%02d:%02d", minutes, seconds)
+                    } else {
+                        _activeTimerValueDisplay.value = "00:00"
+                    }
+
+                    kotlinx.coroutines.delay(1000)
+                }
+            }
+
+            scope.launch {
+                toastEmitter?.invoke("Sleep timer set to end of playlist")
+            }
+        } else {
+            eopMonitorJob?.cancel()
+            if (_isEndOfPlaylistTimerActive.value) {
+                cancelSleepTimer()
+            }
+        }
+    }
+
     /**
      * Cancel any active sleep timer or EOT timer.
      */
@@ -286,6 +371,12 @@ class SleepTimerStateHolder @Inject constructor(
         sleepTimerJob?.cancel()
         sleepTimerJob = null
         _sleepTimerEndTimeMillis.value = null
+
+        // Cancel EOP timer
+        eopMonitorJob?.cancel()
+        eopMonitorJob = null
+        _isEndOfPlaylistTimerActive.value = false
+        EotStateHolder.setEopActive(false)
 
         // Cancel EOT timer
         eotSongMonitorJob?.cancel()

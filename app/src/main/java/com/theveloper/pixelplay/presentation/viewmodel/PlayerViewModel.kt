@@ -672,6 +672,7 @@ class PlayerViewModel @Inject constructor(
     private val _isInitialThemePreloadComplete = MutableStateFlow(false)
 
     val isEndOfTrackTimerActive: StateFlow<Boolean> = sleepTimerStateHolder.isEndOfTrackTimerActive
+    val isEndOfPlaylistTimerActive: StateFlow<Boolean> = sleepTimerStateHolder.isEndOfPlaylistTimerActive
     val activeTimerValueDisplay: StateFlow<String?> = sleepTimerStateHolder.activeTimerValueDisplay
     val activeTimerDurationMinutes: StateFlow<Int?> = sleepTimerStateHolder.activeTimerDurationMinutes
     val playCount: StateFlow<Float> = sleepTimerStateHolder.playCount
@@ -1633,6 +1634,18 @@ class PlayerViewModel @Inject constructor(
     fun shuffleRandomArtist() =
         queueStateHolder.shuffleRandomArtist(shufflePlaybackCallbacks())
 
+    fun shuffleDownloadedSongs() {
+        val downloadManager = com.theveloper.pixelplay.data.network.ytmusic.YouTubeDownloadManager.fromContext(context)
+        viewModelScope.launch {
+            val downloadedSongs = downloadManager.getDownloadedSongs().first()
+            if (downloadedSongs.isNotEmpty()) {
+                playSongsShuffled(downloadedSongs, context.getString(R.string.library_tab_downloads), startAtZero = true)
+            } else {
+                sendToast(context.getString(R.string.player_view_model_no_songs_to_shuffle))
+            }
+        }
+    }
+
 
     private fun loadPersistedDailyMix() {
         // Delegate to DailyMixStateHolder
@@ -2440,11 +2453,15 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun triggerAlbumNavigationFromPlayer(song: Song) {
+        if (song.album.equals("Unknown Album", ignoreCase = true) || song.album.isBlank()) {
+            Toast.makeText(context, context.getString(R.string.album_detail_not_found), Toast.LENGTH_SHORT).show()
+            return
+        }
         song.remoteAlbumBrowseId?.takeIf(String::isNotBlank)?.let {
             triggerRemoteAlbumNavigationFromPlayer(it)
             return
         }
-        if (song.albumId > 0L) {
+        if (song.albumId != 0L) {
             triggerAlbumNavigationFromPlayer(song.albumId)
             return
         }
@@ -2474,6 +2491,10 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun triggerArtistNavigationFromPlayer(artist: Artist) {
+        if (artist.name.equals("Unknown Artist", ignoreCase = true) || artist.name.isBlank()) {
+            Toast.makeText(context, context.getString(R.string.artist_detail_not_found), Toast.LENGTH_SHORT).show()
+            return
+        }
         artist.remoteBrowseId?.takeIf(String::isNotBlank)?.let { browseId ->
             triggerRemoteArtistNavigationFromPlayer(browseId)
             return
@@ -3109,6 +3130,10 @@ class PlayerViewModel @Inject constructor(
     fun setEndOfTrackTimer(enable: Boolean) {
         val currentSongId = stablePlayerState.value.currentSong?.id
         sleepTimerStateHolder.setEndOfTrackTimer(enable, currentSongId)
+    }
+
+    fun setEndOfPlaylistTimer(enable: Boolean) {
+        sleepTimerStateHolder.setEndOfPlaylistTimer(enable)
     }
 
     fun cancelSleepTimer(overrideToastMessage: String? = null, suppressDefaultToast: Boolean = false) {

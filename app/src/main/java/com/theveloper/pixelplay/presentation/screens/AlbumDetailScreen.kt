@@ -30,6 +30,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.Shuffle
@@ -122,11 +124,13 @@ fun AlbumDetailScreen(
     viewModel: AlbumDetailViewModel = hiltViewModel(),
     playlistViewModel: PlaylistViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var selectedSongIds by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(setOf<String>()) }
+    val isSelectionMode = selectedSongIds.isNotEmpty()
     val stablePlayerState by playerViewModel.stablePlayerState.collectAsStateWithLifecycle()
     val favoriteIds by playerViewModel.favoriteSongIds.collectAsStateWithLifecycle()
     val navBarCompactMode by playerViewModel.navBarCompactMode.collectAsStateWithLifecycle()
 
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showSongInfoBottomSheet by remember { mutableStateOf(false) }
     val selectedSongForInfo by playerViewModel.selectedSongForInfo.collectAsStateWithLifecycle()
     val systemNavBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
@@ -167,12 +171,13 @@ fun AlbumDetailScreen(
             label = "fabPadding"
         )
 
-        when {
-            uiState.isLoading && uiState.album == null -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    ContainedLoadingIndicator()
+        Box(modifier = Modifier.fillMaxSize()) {
+            when {
+                uiState.isLoading && uiState.album == null -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        ContainedLoadingIndicator()
+                    }
                 }
-            }
 
             uiState.error != null && uiState.album == null -> {
                 Box(
@@ -339,11 +344,30 @@ fun AlbumDetailScreen(
                                     isCurrentSong = stablePlayerState.currentSong?.id == song.id,
                                     isPlaying = stablePlayerState.isPlaying,
                                     showAlbumArt = true,
+                                    isSelected = selectedSongIds.contains(song.id),
+                                    isSelectionMode = isSelectionMode,
+                                    onLongPress = {
+                                        selectedSongIds = if (selectedSongIds.contains(song.id)) {
+                                            selectedSongIds - song.id
+                                        } else {
+                                            selectedSongIds + song.id
+                                        }
+                                    },
                                     onMoreOptionsClick = {
                                         playerViewModel.selectSongForInfo(song)
                                         showSongInfoBottomSheet = true
                                     },
-                                    onClick = { playerViewModel.showAndPlaySong(song, songs) }
+                                    onClick = { 
+                                        if (isSelectionMode) {
+                                            selectedSongIds = if (selectedSongIds.contains(song.id)) {
+                                                selectedSongIds - song.id
+                                            } else {
+                                                selectedSongIds + song.id
+                                            }
+                                        } else {
+                                            playerViewModel.showAndPlaySong(song, songs) 
+                                        }
+                                    }
                                 )
                             }
                         }
@@ -401,6 +425,45 @@ fun AlbumDetailScreen(
                                 }
                             }
                         )
+                    }
+
+                    // Selection mode action bar
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = isSelectionMode,
+                        enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.slideInVertically(initialOffsetY = { offset -> offset }),
+                        exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.slideOutVertically(targetOffsetY = { offset -> offset }),
+                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = fabBottomPadding + 80.dp)
+                    ) {
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        Row(
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp)
+                                .fillMaxWidth()
+                                .background(
+                                    MaterialTheme.colorScheme.primaryContainer,
+                                    androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                                )
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("${selectedSongIds.size} Selected", color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            Row {
+                                androidx.compose.material3.IconButton(onClick = {
+                                    val selectedSongs = songs.filter { song -> selectedSongIds.contains(song.id) }
+                                    selectedSongs.forEach { song ->
+                                        com.theveloper.pixelplay.data.network.ytmusic.YouTubeDownloadManager
+                                            .fromContext(context).enqueueDownload(song, true)
+                                    }
+                                    selectedSongIds = emptySet()
+                                }) {
+                                    Icon(Icons.Rounded.Download, contentDescription = "Download")
+                                }
+                                androidx.compose.material3.IconButton(onClick = { selectedSongIds = emptySet() }) {
+                                    Icon(Icons.Rounded.Close, contentDescription = "Clear")
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -501,6 +564,8 @@ fun AlbumDetailScreen(
         }
     }
 }
+}
+
 
 @Composable
 private fun SharedAlbumTopBarProbe(

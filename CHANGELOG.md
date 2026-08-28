@@ -1,3 +1,12 @@
+## [0.8.6] - 2026-08-28
+### Added
+- Download pause, resume, retry and cancel handling with persistent progress.
+- Expanded queue, album, playlist and sleep-timer actions.
+
+### Fixed
+- Improved online-song metadata, artwork, search matching and end-of-track state handling.
+- Improved release stability across Android devices.
+
 ## [0.8.5] - 2026-08-25
 ### Fixed
 - Fixed the 'update is not newer than installed version' error which happens when a small hotfix is deployed without a major version bump.

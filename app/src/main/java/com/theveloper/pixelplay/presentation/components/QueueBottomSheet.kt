@@ -17,6 +17,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -466,6 +467,9 @@ fun QueueBottomSheet(
         derivedStateOf { reorderableState.isAnyItemDragging }
     }
     val updatedIsReordering by rememberUpdatedState(isReordering)
+    
+    val selectedSongIds = remember { androidx.compose.runtime.mutableStateListOf<String>() }
+    val isSelectionMode = selectedSongIds.isNotEmpty()
 
     fun remapCommittedKeysForDisplay(newSongs: List<Song>) {
         // Fast path: common queue-skip case where display list is just a suffix of previous display list.
@@ -1256,9 +1260,11 @@ fun QueueBottomSheet(
                 activeTimerDurationMinutes = activeTimerDurationMinutes.value,
                 playCount = playCount.value,
                 isEndOfTrackTimerActive = isEndOfTrackTimerActive.value,
+                isEndOfPlaylistTimerActive = false,
                 onDismiss = { showTimerOptions = false },
                 onSetPredefinedTimer = onSetPredefinedTimer,
                 onSetEndOfTrackTimer = onSetEndOfTrackTimer,
+                onSetEndOfPlaylistTimer = {},
                 onOpenCustomTimePicker = onOpenCustomTimePicker,
                 onCancelCountedPlay = onCancelCountedPlay,
                 onCancelTimer = onCancelTimer
@@ -1949,6 +1955,9 @@ fun QueuePlaylistSongItem(
     song: Song,
     isCurrentSong: Boolean,
     isPlaying: Boolean? = null,
+    isSelected: Boolean = false,
+    isSelectionMode: Boolean = false,
+    onLongPress: () -> Unit = {},
     isDragging: Boolean,
     onRemoveClick: () -> Unit,
     dragHandle: @Composable () -> Unit,
@@ -2078,13 +2087,14 @@ fun QueuePlaylistSongItem(
                 }
                 .padding(horizontal = 12.dp)
                 .clip(itemShape)
-                .clickable(
-                    enabled = currentOffsetPx == 0f
-                ) {
-                    onClick()
-                },
+                .combinedClickable(
+                    enabled = currentOffsetPx == 0f,
+                    onClick = { if (isSelectionMode) onLongPress() else onClick() },
+                    onLongClick = { onLongPress() }
+                ),
             shape = itemShape,
-            color = backgroundColor,
+            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else backgroundColor,
+            border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
             tonalElevation = elevation,
             shadowElevation = elevation
         ) {

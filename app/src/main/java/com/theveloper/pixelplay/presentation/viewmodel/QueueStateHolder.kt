@@ -208,7 +208,7 @@ class QueueStateHolder @Inject constructor(
         callbacks: ShufflePlaybackCallbacks
     ) {
         callbacks.scope.launch {
-            val randomSongs = musicRepository.getRandomSongs(limit = SHUFFLE_SAMPLE_LIMIT)
+            val randomSongs = musicRepository.getRandomSongs(limit = SHUFFLE_SAMPLE_LIMIT, storageFilter = callbacks.currentStorageFilter())
             if (randomSongs.isNotEmpty()) {
                 callbacks.playShuffled(randomSongs, queueName)
             }

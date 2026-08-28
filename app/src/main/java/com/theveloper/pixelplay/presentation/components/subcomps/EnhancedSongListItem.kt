@@ -23,6 +23,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.DownloadDone
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.platform.LocalContext
+import com.theveloper.pixelplay.data.network.ytmusic.SongDownloadStatus
+import com.theveloper.pixelplay.data.network.ytmusic.YouTubeDownloadManager
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -376,6 +383,63 @@ fun EnhancedSongListItem(
                 }
 
                 if (showTrailingAction) {
+                    val context = LocalContext.current
+                    val downloadManager = remember { YouTubeDownloadManager.fromContext(context) }
+                    val downloadProgress by downloadManager.downloadProgress.collectAsStateWithLifecycle()
+                    val progress = downloadProgress[song.id]
+                    
+                    val isDownloaded = remember(song.id, progress) {
+                        if (progress?.status == SongDownloadStatus.DOWNLOADING || progress?.status == SongDownloadStatus.PREPARING) {
+                            false
+                        } else {
+                            downloadManager.isSongDownloaded(song.id)
+                        }
+                    }
+                    
+                    if (progress != null && (progress.status == SongDownloadStatus.DOWNLOADING || progress.status == SongDownloadStatus.PREPARING)) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                progress = { progress.percent / 100f },
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = contentColor,
+                                trackColor = contentColor.copy(alpha = 0.2f)
+                            )
+                        }
+                    } else if (!isDownloaded) {
+                        FilledIconButton(
+                            onClick = { downloadManager.enqueueDownload(song) },
+                            colors = IconButtonDefaults.filledIconButtonColors(
+                                containerColor = Color.Transparent,
+                                contentColor = contentColor.copy(alpha = 0.7f)
+                            ),
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Download,
+                                contentDescription = "Download",
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    } else {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.DownloadDone,
+                                contentDescription = "Downloaded",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(2.dp))
+
                     FilledIconButton(
                         onClick = { onMoreOptionsClick(song) },
                         colors = IconButtonDefaults.filledIconButtonColors(

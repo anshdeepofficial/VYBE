@@ -58,7 +58,20 @@ enum class SongDownloadStatus { PREPARING, DOWNLOADING, PAUSED, FAILED }
 data class SongDownloadProgress(
     val song: Song,
     val percent: Int = 0,
+    val downloadedBytes: Long = 0L,
+    val totalBytes: Long = -1L,
     val status: SongDownloadStatus = SongDownloadStatus.PREPARING,
+)
+
+data class BatchDownloadSession(
+    val id: String,
+    val title: String,
+    val totalSongs: Int,
+    val songs: List<Song>,
+    val completedCount: Int = 0,
+    val failedCount: Int = 0,
+    val currentSongIndex: Int = 0,
+    val isPaused: Boolean = false
 )
 
 @Singleton
@@ -114,11 +127,19 @@ class YouTubeDownloadManager @Inject constructor(
             list.map { it.toSong() }
         }
     }
+    
+    fun isSongDownloaded(songId: String): Boolean {
+        return File(getDownloadsDirectory(), "${songId.replace(Regex("[^a-zA-Z0-9_-]"), "_")}.m4a").exists()
+    }
 
     private val activeDownloads = ConcurrentHashMap<String, Job>()
     private val pausedDownloads = ConcurrentHashMap.newKeySet<String>()
     private val _downloadProgress = MutableStateFlow<Map<String, SongDownloadProgress>>(emptyMap())
     val downloadProgress: StateFlow<Map<String, SongDownloadProgress>> = _downloadProgress.asStateFlow()
+
+    private val _batchSession = MutableStateFlow<BatchDownloadSession?>(null)
+    val batchSession: StateFlow<BatchDownloadSession?> = _batchSession.asStateFlow()
+    private var batchJob: Job? = null
 
     init {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -148,17 +169,17 @@ class YouTubeDownloadManager @Inject constructor(
             return@synchronized false
         }
         pausedDownloads.remove(song.id)
-        publishProgress(song, if (resume) _downloadProgress.value[song.id]?.percent ?: 0 else 0, SongDownloadStatus.PREPARING)
+        publishProgress(song, if (resume) _downloadProgress.value[song.id]?.percent ?: 0 else 0, _downloadProgress.value[song.id]?.downloadedBytes ?: 0L, _downloadProgress.value[song.id]?.totalBytes ?: -1L, SongDownloadStatus.PREPARING)
         activeDownloads[song.id] = appScope.launch {
             try {
-                val completed = downloadSong(song, resume) { percent ->
-                    publishProgress(song, percent, SongDownloadStatus.DOWNLOADING)
+                val completed = downloadSong(song, resume) { percent, downloaded, total ->
+                    publishProgress(song, percent, downloaded, total, SongDownloadStatus.DOWNLOADING)
                 }
                 if (completed) {
                     showCompletedNotification(song)
                     _downloadProgress.update { it - song.id }
                 } else if (!pausedDownloads.contains(song.id)) {
-                    publishProgress(song, _downloadProgress.value[song.id]?.percent ?: 0, SongDownloadStatus.FAILED)
+                    publishProgress(song, _downloadProgress.value[song.id]?.percent ?: 0, _downloadProgress.value[song.id]?.downloadedBytes ?: 0L, _downloadProgress.value[song.id]?.totalBytes ?: -1L, SongDownloadStatus.FAILED)
                 }
             } catch (_: CancellationException) {
                 if (!pausedDownloads.contains(song.id)) _downloadProgress.update { it - song.id }
@@ -173,7 +194,7 @@ class YouTubeDownloadManager @Inject constructor(
         val progress = _downloadProgress.value[songId] ?: return
         pausedDownloads.add(songId)
         activeDownloads.remove(songId)?.cancel()
-        publishProgress(progress.song, progress.percent, SongDownloadStatus.PAUSED)
+        publishProgress(progress.song, progress.percent, progress.downloadedBytes, progress.totalBytes, SongDownloadStatus.PAUSED)
     }
 
     fun resumeDownload(songId: String): Boolean {
@@ -187,6 +208,59 @@ class YouTubeDownloadManager @Inject constructor(
         return enqueueDownload(progress.song)
     }
 
+    fun enqueuePlaylistDownload(playlistId: String, playlistName: String, songs: List<Song>) {
+        if (batchJob?.isActive == true) {
+            Toast.makeText(context, "A batch download is already running", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val unDownloadedSongs = songs.filter { 
+            runCatching { !File(getDownloadsDirectory(), "${it.id.replace(Regex("[^a-zA-Z0-9_-]"), "_")}.m4a").exists() }.getOrDefault(true) 
+        }
+        if (unDownloadedSongs.isEmpty()) {
+            Toast.makeText(context, "All songs are already downloaded", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        _batchSession.value = BatchDownloadSession(
+            id = playlistId,
+            title = playlistName,
+            totalSongs = unDownloadedSongs.size,
+            songs = unDownloadedSongs
+        )
+        
+        batchJob = appScope.launch {
+            for ((index, song) in unDownloadedSongs.withIndex()) {
+                _batchSession.update { it?.copy(currentSongIndex = index) }
+                publishProgress(song, 0, 0L, -1L, SongDownloadStatus.PREPARING)
+                
+                try {
+                    val completed = downloadSong(song, false) { percent, downloaded, total ->
+                        publishProgress(song, percent, downloaded, total, SongDownloadStatus.DOWNLOADING)
+                    }
+                    if (completed) {
+                        _batchSession.update { it?.copy(completedCount = (it.completedCount) + 1) }
+                        _downloadProgress.update { it - song.id }
+                    } else {
+                        _batchSession.update { it?.copy(failedCount = (it.failedCount) + 1) }
+                        publishProgress(song, 0, 0L, -1L, SongDownloadStatus.FAILED)
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    _batchSession.update { it?.copy(failedCount = (it.failedCount) + 1) }
+                    publishProgress(song, 0, 0L, -1L, SongDownloadStatus.FAILED)
+                }
+            }
+            
+            // Finish
+            _batchSession.value?.let { finalBatch ->
+                publishBatchNotification(finalBatch, 100)
+            }
+            _batchSession.value = null
+        }
+        Toast.makeText(context, "Started downloading ${unDownloadedSongs.size} songs", Toast.LENGTH_SHORT).show()
+    }
+
     fun cancelDownload(songId: String) {
         pausedDownloads.remove(songId)
         activeDownloads.remove(songId)?.cancel()
@@ -198,24 +272,40 @@ class YouTubeDownloadManager @Inject constructor(
 
     private fun notificationId(songId: String): Int = 24_000 + (songId.hashCode() and 0x3FFF)
 
-    private fun publishProgress(song: Song, percent: Int, status: SongDownloadStatus) {
+    private fun publishProgress(song: Song, percent: Int, downloadedBytes: Long, totalBytes: Long, status: SongDownloadStatus) {
         val safePercent = percent.coerceIn(0, 100)
         val previous = _downloadProgress.value[song.id]
-        if (previous?.percent == safePercent && previous.status == status) return
+        if (previous?.percent == safePercent && previous.status == status && previous.downloadedBytes == downloadedBytes) return
         _downloadProgress.update {
-            it + (song.id to SongDownloadProgress(song, safePercent, status))
+            it + (song.id to SongDownloadProgress(song, safePercent, downloadedBytes, totalBytes, status))
         }
+        
+        val batch = _batchSession.value
+        val isBatch = batch != null && batch.songs.any { it.id == song.id }
+        
+        if (isBatch) {
+            publishBatchNotification(batch!!, safePercent)
+            return
+        }
+
         val preparing = status == SongDownloadStatus.PREPARING
         val paused = status == SongDownloadStatus.PAUSED
         val failed = status == SongDownloadStatus.FAILED
+        
+        val sizeText = if (totalBytes > 0) {
+            val mbDown = String.format("%.1f", downloadedBytes / 1024f / 1024f)
+            val mbTotal = String.format("%.1f", totalBytes / 1024f / 1024f)
+            "$mbDown / $mbTotal MB"
+        } else ""
+        
         val notification = NotificationCompat.Builder(context, DOWNLOAD_CHANNEL_ID)
             .setSmallIcon(R.drawable.monochrome_player)
             .setContentTitle(song.title)
             .setContentText(
                 when {
-                    failed -> "Download failed — tap Download to retry"
-                    preparing -> "Preparing download…"
-                    else -> "Downloading $safePercent%"
+                    failed -> "Download failed - tap Download to retry"
+                    preparing -> "Preparing download..."
+                    else -> "Downloading $safePercent% $sizeText"
                 }
             )
             .setOnlyAlertOnce(true)
@@ -233,6 +323,26 @@ class YouTubeDownloadManager @Inject constructor(
             .addAction(R.drawable.monochrome_player, "Cancel", actionIntent(ACTION_CANCEL, song.id))
             .build()
         runCatching { NotificationManagerCompat.from(context).notify(notificationId(song.id), notification) }
+    }
+
+    private fun publishBatchNotification(batch: BatchDownloadSession, currentPercent: Int) {
+        val notificationId = 24_000 + (batch.id.hashCode() and 0x3FFF)
+        val text = "Downloading ${batch.currentSongIndex + 1} of ${batch.totalSongs}"
+        val isFinished = batch.completedCount + batch.failedCount == batch.totalSongs
+        
+        val notification = NotificationCompat.Builder(context, DOWNLOAD_CHANNEL_ID)
+            .setSmallIcon(R.drawable.monochrome_player)
+            .setContentTitle(batch.title)
+            .setContentText(if (isFinished) "Batch download complete" else text)
+            .setOnlyAlertOnce(true)
+            .setSilent(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setCategory(NotificationCompat.CATEGORY_PROGRESS)
+            .setOngoing(!isFinished)
+            .setAutoCancel(isFinished)
+            .setProgress(100, currentPercent, false)
+            .build()
+        runCatching { NotificationManagerCompat.from(context).notify(notificationId, notification) }
     }
 
     private fun actionIntent(action: String, songId: String): PendingIntent = PendingIntent.getBroadcast(
@@ -260,7 +370,7 @@ class YouTubeDownloadManager @Inject constructor(
     suspend fun downloadSong(
         song: Song,
         resume: Boolean = false,
-        onProgress: ((Int) -> Unit)? = null,
+        onProgress: ((Int, Long, Long) -> Unit)? = null,
     ): Boolean = withContext(Dispatchers.IO) {
         try {
             withContext(Dispatchers.Main) {
@@ -356,7 +466,7 @@ class YouTubeDownloadManager @Inject constructor(
         streamUrl: String,
         tempFile: File,
         resume: Boolean,
-        onProgress: ((Int) -> Unit)?,
+        onProgress: ((Int, Long, Long) -> Unit)?,
     ): Int {
         val existingBytes = if (resume && tempFile.exists()) tempFile.length() else 0L
         val requestBuilder = Request.Builder()
@@ -380,7 +490,7 @@ class YouTubeDownloadManager @Inject constructor(
                         output.write(buffer, 0, bytesRead)
                         totalRead += bytesRead
                         if (totalBytes > 0L) {
-                            onProgress?.invoke(((totalRead * 100L) / totalBytes).toInt())
+                            onProgress?.invoke(((totalRead * 100L) / totalBytes).toInt(), totalRead, totalBytes)
                         }
                     }
                     output.flush()

@@ -32,6 +32,17 @@ private data class ChangelogRelease(
 
 private val VybeChangelog = listOf(
     ChangelogRelease(
+        version = "0.8.6",
+        date = "28 August 2026",
+        changes = listOf(
+            "Downloads: Added resilient download state, progress controls, retry and pause/resume support.",
+            "Playback: Improved queue state, end-of-track handling and sleep timer controls.",
+            "Library: Improved album, playlist and online-song metadata and artwork handling.",
+            "Search: Refined YouTube Music result resolution and matching.",
+            "Stability: Verified the complete release source with a clean Kotlin compilation."
+        )
+    ),
+    ChangelogRelease(
         version = "0.8.0",
         date = "24 August 2026",
         changes = listOf(

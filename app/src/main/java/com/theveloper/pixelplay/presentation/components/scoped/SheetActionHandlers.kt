@@ -87,7 +87,7 @@ internal fun rememberSheetActionHandlers(
                     route = Screen.AlbumDetail.createRoute(song.remoteAlbumBrowseId),
                     patternToPop = Screen.AlbumDetail.route
                 )
-            } else if (song.albumId > 0L) {
+            } else if (song.albumId != 0L) {
                 navController.navigateSafelyReplacing(
                     route = Screen.AlbumDetail.createRoute(song.albumId),
                     patternToPop = Screen.AlbumDetail.route
@@ -110,7 +110,7 @@ internal fun rememberSheetActionHandlers(
                     route = Screen.ArtistDetail.createRoute(remoteArtistId),
                     patternToPop = Screen.ArtistDetail.route
                 )
-            } else if (song.artistId > 0L) {
+            } else if (song.artistId != 0L) {
                 navController.navigateSafelyReplacing(
                     route = Screen.ArtistDetail.createRoute(song.artistId),
                     patternToPop = Screen.ArtistDetail.route

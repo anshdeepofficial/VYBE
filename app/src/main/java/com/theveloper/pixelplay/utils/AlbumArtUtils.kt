@@ -188,7 +188,7 @@ object AlbumArtUtils {
             return null
         }
 
-        extractEmbeddedAlbumArtBytes(resolvedPath)?.let { bytes ->
+        extractEmbeddedAlbumArtBytes(appContext, songId, resolvedPath)?.let { bytes ->
             cacheAlbumArtBytes(appContext, bytes, songId)
             return cachedFile.takeIf { it.exists() && it.length() > 0 }
         }
@@ -247,7 +247,7 @@ object AlbumArtUtils {
             noArtFile.delete()
         }
 
-        val hasEmbeddedArt = extractEmbeddedAlbumArtBytes(filePath)?.isNotEmpty() == true
+        val hasEmbeddedArt = extractEmbeddedAlbumArtBytes(appContext, songId, filePath)?.isNotEmpty() == true
         if (hasEmbeddedArt) {
             noArtFile.delete()
             return true
@@ -537,9 +537,9 @@ object AlbumArtUtils {
         }.getOrNull()
     }
 
-    private fun extractEmbeddedAlbumArtBytes(filePath: String): ByteArray? {
+    private fun extractEmbeddedAlbumArtBytes(appContext: Context, songId: Long, filePath: String): ByteArray? {
         val startNanos = System.nanoTime()
-        val bytes = extractEmbeddedAlbumArtBytesInternal(filePath)
+        val bytes = extractEmbeddedAlbumArtBytesInternal(appContext, songId, filePath)
         PerformanceMetrics.recordTiming(
             PerformanceMetrics.Timings.ARTWORK_EXTRACT,
             (System.nanoTime() - startNanos) / 1_000_000
@@ -555,11 +555,18 @@ object AlbumArtUtils {
         return bytes
     }
 
-    private fun extractEmbeddedAlbumArtBytesInternal(filePath: String): ByteArray? {
+    private fun extractEmbeddedAlbumArtBytesInternal(appContext: Context, songId: Long, filePath: String): ByteArray? {
         val retrieverArtwork = MediaMetadataRetrieverPool.withRetriever { retriever ->
             try {
-                retriever.setDataSource(filePath)
-            } catch (e: IllegalArgumentException) {
+                if (songId > 0) {
+                    val contentUri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, songId)
+                    appContext.contentResolver.openFileDescriptor(contentUri, "r")?.use { pfd ->
+                        retriever.setDataSource(pfd.fileDescriptor)
+                    }
+                } else {
+                    retriever.setDataSource(filePath)
+                }
+            } catch (e: Exception) {
                 try {
                     FileInputStream(filePath).use { fis ->
                         retriever.setDataSource(fis.fd)

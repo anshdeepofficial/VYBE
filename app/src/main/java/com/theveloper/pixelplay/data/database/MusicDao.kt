@@ -582,13 +582,15 @@ interface MusicDao {
     @Query("""
         SELECT * FROM songs
         WHERE (:applyDirectoryFilter = 0 OR id < 0 OR parent_directory_path IN (:allowedParentDirs))
+          AND (:filterMode = 0 OR (:filterMode = 1 AND id > 0 AND parent_directory_path NOT LIKE 'saavn_%') OR (:filterMode = 2 AND (id < 0 OR parent_directory_path LIKE 'saavn_%')))
         ORDER BY RANDOM()
         LIMIT :limit
     """)
     suspend fun getRandomSongs(
         limit: Int,
         allowedParentDirs: List<String> = emptyList(),
-        applyDirectoryFilter: Boolean = false
+        applyDirectoryFilter: Boolean = false,
+        filterMode: Int = 0
     ): List<SongEntity>
 
     @Query("""
@@ -1092,6 +1094,7 @@ interface MusicDao {
         FROM songs
         INNER JOIN albums ON albums.id = songs.album_id
         WHERE (:applyDirectoryFilter = 0 OR songs.id < 0 OR songs.parent_directory_path IN (:allowedParentDirs))
+        AND albums.title != 'Unknown Album'
         AND (
             :filterMode = 0
             OR (
@@ -1136,6 +1139,7 @@ interface MusicDao {
         FROM songs
         INNER JOIN albums ON albums.id = songs.album_id
         WHERE (:applyDirectoryFilter = 0 OR songs.id < 0 OR songs.parent_directory_path IN (:allowedParentDirs))
+        AND albums.title != 'Unknown Album'
         AND (
             :filterMode = 0
             OR (
@@ -1277,6 +1281,7 @@ interface MusicDao {
             albums.year AS year
         FROM albums
         WHERE albums.title LIKE '%' || :query || '%'
+        AND albums.title != 'Unknown Album'
         AND song_count >= :minTracks
         ORDER BY albums.title ASC
     """)
@@ -1359,6 +1364,7 @@ interface MusicDao {
         FROM songs
         INNER JOIN albums ON albums.id = songs.album_id
         WHERE (:applyDirectoryFilter = 0 OR songs.id < 0 OR songs.parent_directory_path IN (:allowedParentDirs))
+        AND albums.title != 'Unknown Album'
         AND (albums.title LIKE '%' || :query || '%' OR albums.artist_name LIKE '%' || :query || '%')
         GROUP BY
             albums.id,

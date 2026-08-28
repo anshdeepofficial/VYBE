@@ -20,6 +20,13 @@ object EotStateHolder {
      *
      * @param songId The ID of the song targeted by EOT, or null if EOT is inactive.
      */
+    private val _isEopActive = MutableStateFlow(false)
+    val isEopActive: StateFlow<Boolean> = _isEopActive.asStateFlow()
+
+    fun setEopActive(active: Boolean) {
+        _isEopActive.value = active
+    }
+
     fun setEotTargetSong(songId: String?) {
         _eotTargetSongId.value = songId
     }

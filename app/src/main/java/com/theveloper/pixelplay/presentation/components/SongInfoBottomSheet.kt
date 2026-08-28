@@ -47,6 +47,7 @@ import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.AudioFile
 import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.MusicNote
@@ -65,6 +66,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -158,6 +160,7 @@ fun SongInfoBottomSheet(
     var pendingTonePermissionTarget by remember { mutableStateOf<ToneTarget?>(null) }
     val audioMeta by songInfoViewModel.audioMeta.collectAsStateWithLifecycle()
     val resolvedDurationMs by songInfoViewModel.resolvedDurationMs.collectAsStateWithLifecycle()
+    val isDownloaded by songInfoViewModel.isSongDownloaded(song.id).collectAsStateWithLifecycle(initialValue = false)
     val resolvedArtists by songInfoViewModel.resolvedArtists.collectAsStateWithLifecycle()
     val isPixelPlayWatchAvailable by songInfoViewModel.isPixelPlayWatchAvailable.collectAsStateWithLifecycle()
     val isWatchAvailabilityResolved by songInfoViewModel.isWatchAvailabilityResolved.collectAsStateWithLifecycle()
@@ -546,7 +549,10 @@ fun SongInfoBottomSheet(
                                                         }
                                                     }
                                                 }
-                                            }
+                                            },
+                                            showDownload = (song.id.toLongOrNull() == null),
+                                            isDownloaded = isDownloaded,
+                                            onDownloadToggle = { songInfoViewModel.toggleDownload(song) }
                                         )
 
                                         val shouldRenderWatchTransferRow =
@@ -1472,7 +1478,10 @@ overflow = TextOverflow.Ellipsis,
 private fun Row3Actions(
     onAddToPlaylist: () -> Unit,
     showDelete: Boolean,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    showDownload: Boolean = false,
+    isDownloaded: Boolean = false,
+    onDownloadToggle: () -> Unit = {}
 ) {
     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
     var clickPending by remember { mutableStateOf(false) }
@@ -1501,9 +1510,21 @@ private fun Row3Actions(
         }
     }
 
+    val downloadInteractionSource = remember { MutableInteractionSource() }
+    val isDownloadPressed by downloadInteractionSource.collectIsPressedAsState()
+    var downloadVisualPressed by remember { mutableStateOf(false) }
+    LaunchedEffect(isDownloadPressed) {
+        if (isDownloadPressed) {
+            downloadVisualPressed = true
+        } else {
+            kotlinx.coroutines.delay(180)
+            downloadVisualPressed = false
+        }
+    }
+
     val pressSpec = spring<Float>(
-        dampingRatio = 0.6f,
-        stiffness = 500f
+        dampingRatio = 0.8f,
+        stiffness = 300f
     )
 
     val pressFractionPlaylist by animateFloatAsState(
@@ -1516,20 +1537,25 @@ private fun Row3Actions(
         animationSpec = pressSpec,
         label = "DeletePressFraction"
     )
+    val pressFractionDownload by animateFloatAsState(
+        targetValue = if (downloadVisualPressed) 1f else 0f,
+        animationSpec = pressSpec,
+        label = "DownloadPressFraction"
+    )
 
-    val weightPlaylist = (0.5f + 0.08f * pressFractionPlaylist - 0.08f * pressFractionDelete).coerceAtLeast(0.1f)
-    val weightDelete = (0.5f + 0.08f * pressFractionDelete - 0.08f * pressFractionPlaylist).coerceAtLeast(0.1f)
+    val secondaryPress = maxOf(pressFractionDelete, pressFractionDownload)
+    val weightPlaylist = (0.5f + 0.08f * pressFractionPlaylist - 0.08f * secondaryPress).coerceAtLeast(0.1f)
+    val weightSecondary = (0.5f + 0.08f * secondaryPress - 0.08f * pressFractionPlaylist).coerceAtLeast(0.1f)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(IntrinsicSize.Min),
-        verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         FilledTonalButton(
             modifier = Modifier
-                .weight(if (showDelete) weightPlaylist else 1f)
+                .weight(if (showDelete || showDownload) weightPlaylist else 1f)
                 .heightIn(min = 66.dp),
             colors = ButtonDefaults.filledTonalButtonColors(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -1568,7 +1594,7 @@ private fun Row3Actions(
         if (showDelete) {
             FilledTonalButton(
                 modifier = Modifier
-                    .weight(weightDelete)
+                    .weight(weightSecondary)
                     .heightIn(min = 66.dp),
                 colors = ButtonDefaults.filledTonalButtonColors(
                     containerColor = MaterialTheme.colorScheme.errorContainer,
@@ -1597,6 +1623,45 @@ private fun Row3Actions(
                 Spacer(Modifier.width(6.dp))
                 TightWrapText(
                     text = stringResource(R.string.song_info_action_delete),
+                    modifier = Modifier.padding(end = 4.dp),
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 2,
+                    lineHeight = 20.sp
+                )
+            }
+        }
+        
+        if (showDownload) {
+            FilledTonalButton(
+                modifier = Modifier
+                    .weight(weightSecondary)
+                    .heightIn(min = 66.dp),
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = if (isDownloaded) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = if (isDownloaded) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer
+                ),
+                contentPadding = PaddingValues(horizontal = 10.dp),
+                shape = CircleShape,
+                interactionSource = downloadInteractionSource,
+                onClick = {
+                    if (clickPending) return@FilledTonalButton
+                    clickPending = true
+                    downloadVisualPressed = true
+                    coroutineScope.launch {
+                        kotlinx.coroutines.delay(180)
+                        downloadVisualPressed = false
+                        clickPending = false
+                        onDownloadToggle()
+                    }
+                }
+            ) {
+                Icon(
+                    if (isDownloaded) Icons.Default.DeleteForever else Icons.Rounded.Download,
+                    contentDescription = if (isDownloaded) "Remove" else "Download"
+                )
+                Spacer(Modifier.width(6.dp))
+                TightWrapText(
+                    text = if (isDownloaded) "Remove" else "Download",
                     modifier = Modifier.padding(end = 4.dp),
                     overflow = TextOverflow.Ellipsis,
                     maxLines = 2,

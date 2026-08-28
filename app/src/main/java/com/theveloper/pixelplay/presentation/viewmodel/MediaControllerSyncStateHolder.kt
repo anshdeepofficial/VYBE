@@ -674,7 +674,15 @@ class MediaControllerSyncStateHolder @Inject constructor(
                         val activeEotSongId = EotStateHolder.eotTargetSongId.value
                         val previousSongId = playerCtrl.run { if (previousMediaItemIndex != C.INDEX_UNSET) getMediaItemAt(previousMediaItemIndex).mediaId else null }
 
-                        if (sleepTimerStateHolder.isEndOfTrackTimerActive.value && activeEotSongId != null && previousSongId != null && previousSongId == activeEotSongId) {
+                        if (EotStateHolder.isEopActive.value && playerCtrl.previousMediaItemIndex == playerCtrl.mediaItemCount - 1) {
+                            playerCtrl.seekTo(0L)
+                            playerCtrl.pause()
+
+                            cb.scope.launch {
+                                cb.emitToast("Playback stopped at end of playlist")
+                            }
+                            cb.cancelSleepTimerForEot()
+                        } else if (sleepTimerStateHolder.isEndOfTrackTimerActive.value && activeEotSongId != null && previousSongId != null && previousSongId == activeEotSongId) {
                             playerCtrl.seekTo(0L)
                             playerCtrl.pause()
 

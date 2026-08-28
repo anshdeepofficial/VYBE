@@ -410,16 +410,6 @@ class YouTubeMusicEngine @Inject constructor(
             return cached.first
         }
 
-        // YouTube changes its player clients and signature rules frequently. NewPipe's
-        // maintained extractor handles those changes (including signature/n-parameter
-        // deciphering) and gives us an audio-only progressive URL Media3 can consume.
-        val extractorUrl = newPipeStreamResolver.resolve(cleanId)
-        if (!extractorUrl.isNullOrBlank()) {
-            Log.d(TAG, "Resolved stream via NewPipe for $cleanId")
-            streamUrlCache[cleanId] = extractorUrl to System.currentTimeMillis()
-            return extractorUrl
-        }
-
         // 2. Strategy A: Innertube ANDROID_VR (Direct unthrottled audio streams)
         val vrUrl = resolveViaAndroidVr(cleanId)
         if (!vrUrl.isNullOrBlank() && validateStreamUrl(vrUrl)) {
@@ -460,7 +450,18 @@ class YouTubeMusicEngine @Inject constructor(
             return androidUrl
         }
 
-        // 7. Strategy F: Piped instances failover
+        // 6. Strategy F: NewPipe extractor fallback
+        // YouTube changes its player clients and signature rules frequently. NewPipe's
+        // maintained extractor handles those changes (including signature/n-parameter
+        // deciphering) and gives us an audio-only progressive URL Media3 can consume.
+        val extractorUrl = newPipeStreamResolver.resolve(cleanId)
+        if (!extractorUrl.isNullOrBlank()) {
+            Log.d(TAG, "Resolved stream via NewPipe for $cleanId")
+            streamUrlCache[cleanId] = extractorUrl to System.currentTimeMillis()
+            return extractorUrl
+        }
+
+        // 7. Strategy G: Piped instances failover
         for (pipedBase in PIPED_INSTANCES) {
             val pipedUrl = resolveViaPiped(cleanId, pipedBase)
             if (!pipedUrl.isNullOrBlank() && validateStreamUrl(pipedUrl)) {
@@ -470,7 +471,7 @@ class YouTubeMusicEngine @Inject constructor(
             }
         }
 
-        // 8. Strategy G: Invidious instances failover
+        // 8. Strategy H: Invidious instances failover
         for (invidiousBase in INVIDIOUS_INSTANCES) {
             val invidiousUrl = resolveViaInvidious(cleanId, invidiousBase)
             if (!invidiousUrl.isNullOrBlank() && validateStreamUrl(invidiousUrl)) {
