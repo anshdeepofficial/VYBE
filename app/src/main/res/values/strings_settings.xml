@@ -223,6 +223,12 @@
     <string name="settings_navbar_corner_title">NavBar Corner Radius</string>
     <string name="settings_navbar_corner_subtitle">Adjust the corner radius of the navigation bar.</string>
     <string name="settings_lyrics_screen_section">Lyrics Screen</string>
+    <string name="settings_logo_section">Logo</string>
+    <string name="settings_logo_mode_title">Logo appearance</string>
+    <string name="settings_logo_mode_subtitle">Keep one logo style or follow the device appearance.</string>
+    <string name="settings_logo_mode_light">Light — black logo on white</string>
+    <string name="settings_logo_mode_dark">Dark — white logo on black</string>
+    <string name="settings_logo_mode_dynamic">Dynamic — follow device</string>
     <string name="settings_immersive_lyrics_title">Immersive Lyrics</string>
     <string name="settings_immersive_lyrics_subtitle">Auto-hide controls and enlarge text.</string>
     <string name="settings_auto_hide_delay_title">Auto-hide Delay</string>

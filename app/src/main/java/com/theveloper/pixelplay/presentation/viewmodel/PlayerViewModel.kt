@@ -1125,7 +1125,7 @@ class PlayerViewModel @Inject constructor(
      */
     private fun shufflePlaybackCallbacks() = ShufflePlaybackCallbacks(
         scope = viewModelScope,
-        currentStorageFilter = { playerUiState.value.currentStorageFilter },
+        currentStorageFilter = { com.theveloper.pixelplay.data.model.StorageFilter.ALL },
         albums = { libraryStateHolder.albums.value },
         artists = { libraryStateHolder.artists.value },
         playShuffled = { songs, queueName -> playSongsShuffled(songs, queueName, startAtZero = true) },
@@ -1581,6 +1581,8 @@ class PlayerViewModel @Inject constructor(
     val quickPickSongs: StateFlow<ImmutableList<Song>> = dailyMixStateHolder.quickPickSongs
     val isHomeRefreshing: StateFlow<Boolean> = dailyMixStateHolder.isRefreshing
     val topMoods: StateFlow<ImmutableList<String>> = dailyMixStateHolder.topMoods
+    val moodColors: StateFlow<Map<String, Long>> = userPreferencesRepository.moodColorsFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
     fun removeFromDailyMix(songId: String) {
         dailyMixStateHolder.removeFromDailyMix(songId)
@@ -3027,6 +3029,15 @@ class PlayerViewModel @Inject constructor(
                 Timber.e(e, "Failed to load mood mix for $mood")
             }
         }
+    }
+
+    suspend fun loadMoodMix(mood: String): List<Song> =
+        runCatching { onlineMusicRepository.getFastPersonalizedDiscovery(listOf(mood)) }
+            .onFailure { Timber.e(it, "Failed to load mood playlist for $mood") }
+            .getOrDefault(emptyList())
+
+    fun setMoodColor(mood: String, colorArgb: Long) {
+        viewModelScope.launch { userPreferencesRepository.setMoodColor(mood, colorArgb) }
     }
 
     fun generateAiPlaylist(

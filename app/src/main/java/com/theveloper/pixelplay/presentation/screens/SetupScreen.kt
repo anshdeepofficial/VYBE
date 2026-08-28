@@ -116,6 +116,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -656,15 +657,14 @@ fun WelcomePage() {
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )
-            Text(
-                text = stringResource(R.string.app_name),
-                style = ExpTitleTypography.displayLarge.copy(
-                    fontSize = 42.sp,
-                    color = MaterialTheme.colorScheme.primary,
-                    lineHeight = 1.1.em
+            androidx.compose.foundation.Image(
+                painter = painterResource(R.drawable.vybe_logo_foreground),
+                contentDescription = stringResource(R.string.app_name),
+                colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(
+                    com.theveloper.pixelplay.ui.theme.vybeLogoForegroundColor()
                 ),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxWidth(0.54f).height(72.dp),
             )
         }
         Spacer(modifier = Modifier.height(16.dp))

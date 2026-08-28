@@ -166,6 +166,7 @@ import com.theveloper.pixelplay.data.backup.model.ModuleRestoreDetail
 import com.theveloper.pixelplay.data.backup.model.RestorePlan
 import com.theveloper.pixelplay.data.preferences.AppLanguage
 import com.theveloper.pixelplay.data.preferences.AppThemeMode
+import com.theveloper.pixelplay.data.preferences.LogoMode
 import com.theveloper.pixelplay.data.preferences.CollagePattern
 import com.theveloper.pixelplay.data.preferences.CarouselStyle
 import com.theveloper.pixelplay.data.preferences.LaunchTab
@@ -501,8 +502,8 @@ fun SettingsCategoryScreen(
                                 SliderSettingsItem(
                                     label = stringResource(R.string.settings_min_tracks_per_album),
                                     value = minTracksPerAlbumDraft,
-                                    valueRange = 1f..5f,
-                                    steps = 3, // 1, 2, 3, 4, 5
+                                    valueRange = 2f..5f,
+                                    steps = 2, // 2, 3, 4, 5
                                     onValueChange = { minTracksPerAlbumDraft = it },
                                     onValueChangeFinished = {
                                         val selectedTracks = minTracksPerAlbumDraft.toInt()
@@ -758,6 +759,21 @@ fun SettingsCategoryScreen(
                                     leadingIcon = { Icon(painterResource(R.drawable.rounded_rounded_corner_24), null, tint = MaterialTheme.colorScheme.secondary) },
                                     trailingIcon = { Icon(Icons.Rounded.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                                     onClick = { navController.navigateSafely("nav_bar_corner_radius") }
+                                )
+                            }
+
+                            SettingsSubsection(title = stringResource(R.string.settings_logo_section)) {
+                                ThemeSelectorItem(
+                                    label = stringResource(R.string.settings_logo_mode_title),
+                                    description = stringResource(R.string.settings_logo_mode_subtitle),
+                                    options = mapOf(
+                                        LogoMode.LIGHT to stringResource(R.string.settings_logo_mode_light),
+                                        LogoMode.DARK to stringResource(R.string.settings_logo_mode_dark),
+                                        LogoMode.DYNAMIC to stringResource(R.string.settings_logo_mode_dynamic)
+                                    ),
+                                    selectedKey = uiState.logoMode,
+                                    onSelectionChanged = settingsViewModel::setLogoMode,
+                                    leadingIcon = { Icon(painterResource(R.drawable.vybe_logo_monochrome), null, tint = MaterialTheme.colorScheme.secondary) }
                                 )
                             }
 

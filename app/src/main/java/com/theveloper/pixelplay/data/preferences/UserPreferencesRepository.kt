@@ -54,6 +54,12 @@ object AppThemeMode {
     const val AMOLED = "amoled"
 }
 
+object LogoMode {
+    const val DYNAMIC = "dynamic"
+    const val LIGHT = "light"
+    const val DARK = "dark"
+}
+
 /** Controls how a full library scan treats multiple files with matching metadata. */
 enum class SongIdentityMode {
     FILE,
@@ -274,6 +280,7 @@ class UserPreferencesRepository @Inject constructor(
         // Collage
         val COLLAGE_PATTERN = stringPreferencesKey("collage_pattern")
         val COLLAGE_AUTO_ROTATE = booleanPreferencesKey("collage_auto_rotate")
+        val MOOD_COLORS = stringPreferencesKey("mood_colors_v1")
 
         // Quick settings / last playlist
         val LAST_PLAYLIST_ID = stringPreferencesKey("last_playlist_id")
@@ -854,12 +861,12 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
 
     val minTracksPerAlbumFlow: Flow<Int> =
         dataStore.data.map { preferences ->
-            preferences[PreferencesKeys.MIN_TRACKS_PER_ALBUM] ?: 1
+            (preferences[PreferencesKeys.MIN_TRACKS_PER_ALBUM] ?: 2).coerceAtLeast(2)
         }
 
     suspend fun setMinTracksPerAlbum(minTracks: Int) {
         dataStore.edit { preferences ->
-            preferences[PreferencesKeys.MIN_TRACKS_PER_ALBUM] = minTracks
+            preferences[PreferencesKeys.MIN_TRACKS_PER_ALBUM] = minTracks.coerceIn(2, 5)
         }
     }
 
@@ -1353,6 +1360,15 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
 
     suspend fun setCollageAutoRotate(enabled: Boolean) {
         dataStore.edit { it[PreferencesKeys.COLLAGE_AUTO_ROTATE] = enabled }
+    }
+
+    val moodColorsFlow: Flow<Map<String, Long>> =
+        pref { decodeJsonPref(it, PreferencesKeys.MOOD_COLORS, emptyMap()) }
+
+    suspend fun setMoodColor(mood: String, colorArgb: Long) {
+        editJsonMap<Long>(PreferencesKeys.MOOD_COLORS) {
+            this[mood.trim().lowercase()] = colorArgb
+        }
     }
 
     // ─── Quick settings / last playlist ──────────────────────────────────────

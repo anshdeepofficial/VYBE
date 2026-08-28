@@ -19,10 +19,15 @@ class ThemePreferencesRepository @Inject constructor(
         val ALBUM_ART_PALETTE_STYLE = stringPreferencesKey("album_art_palette_style_v1")
         val ALBUM_ART_COLOR_ACCURACY = intPreferencesKey("album_art_color_accuracy_v1")
         val APP_THEME_MODE = stringPreferencesKey("app_theme_mode")
+        val LOGO_MODE = stringPreferencesKey("logo_mode_v1")
     }
 
     val appThemeModeFlow: Flow<String> = dataStore.data.map { preferences ->
         preferences[Keys.APP_THEME_MODE] ?: AppThemeMode.FOLLOW_SYSTEM
+    }
+
+    val logoModeFlow: Flow<String> = dataStore.data.map { preferences ->
+        preferences[Keys.LOGO_MODE] ?: LogoMode.DYNAMIC
     }
 
     val playerThemePreferenceFlow: Flow<String> = dataStore.data.map { preferences ->
@@ -45,6 +50,14 @@ class ThemePreferencesRepository @Inject constructor(
     suspend fun setAppThemeMode(themeMode: String) =
         dataStore.edit { preferences ->
             preferences[Keys.APP_THEME_MODE] = themeMode
+        }
+
+    suspend fun setLogoMode(mode: String) =
+        dataStore.edit { preferences ->
+            preferences[Keys.LOGO_MODE] = when (mode) {
+                LogoMode.LIGHT, LogoMode.DARK -> mode
+                else -> LogoMode.DYNAMIC
+            }
         }
 
     suspend fun initializeAppThemeMode(themeMode: String) =

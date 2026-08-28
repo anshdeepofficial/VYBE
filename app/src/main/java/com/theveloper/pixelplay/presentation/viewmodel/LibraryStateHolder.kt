@@ -78,18 +78,8 @@ class LibraryStateHolder @Inject constructor(
     private val _currentStorageFilter = MutableStateFlow(com.theveloper.pixelplay.data.model.StorageFilter.ALL)
     val currentStorageFilter = _currentStorageFilter.asStateFlow()
 
-    /**
-     * Effective storage filter that accounts for the "hide local media" preference.
-     * When hideLocalMedia is true, forces ONLINE filter (excludes source_type = 0).
-     */
-    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     private val effectiveStorageFilter: kotlinx.coroutines.flow.Flow<com.theveloper.pixelplay.data.model.StorageFilter> =
-        kotlinx.coroutines.flow.combine(
-            _currentStorageFilter,
-            userPreferencesRepository.hideLocalMediaFlow
-        ) { filter, hideLocal ->
-            if (hideLocal) com.theveloper.pixelplay.data.model.StorageFilter.ONLINE else filter
-        }
+        kotlinx.coroutines.flow.flowOf(com.theveloper.pixelplay.data.model.StorageFilter.ALL)
 
     private fun effectiveFoldersStorageFilter(
         selectedFilter: com.theveloper.pixelplay.data.model.StorageFilter
@@ -131,7 +121,7 @@ class LibraryStateHolder @Inject constructor(
         ) { sort, filter, minTracks ->
             Triple(sort, filter, minTracks)
         }.flatMapLatest { (sortOption, filter, minTracks) ->
-            musicRepository.getPaginatedAlbums(sortOption, filter, minTracks)
+            musicRepository.getPaginatedAlbums(sortOption, filter, minTracks.coerceAtLeast(2))
         }
         .flowOn(Dispatchers.IO)
 
@@ -218,8 +208,7 @@ class LibraryStateHolder @Inject constructor(
             val likedSortKey = userPreferencesRepository.likedSongsSortOptionFlow.first()
             _currentFavoriteSortOption.value = SortOption.LIKED.find { it.storageKey == likedSortKey } ?: SortOption.LikedSongDateLiked
 
-            // Restore last storage filter (All / Cloud / Local)
-            _currentStorageFilter.value = userPreferencesRepository.lastStorageFilterFlow.first()
+            _currentStorageFilter.value = com.theveloper.pixelplay.data.model.StorageFilter.ALL
         }
     }
 
@@ -281,7 +270,7 @@ class LibraryStateHolder @Inject constructor(
             ) { filter, minTracks ->
                 filter to minTracks
             }.flatMapLatest { (filter, minTracks) ->
-                musicRepository.getAlbums(filter, minTracks)
+                musicRepository.getAlbums(filter, minTracks.coerceAtLeast(2))
             }.conflate().collect { albums ->
                 val sortedAlbums = withContext(Dispatchers.Default) {
                     sortAlbumsList(albums, _currentAlbumSortOption.value).toImmutableList()

@@ -1,5 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string-array name="changelog_087_added">
+        <item>Added selectable Light, Dark, and Dynamic VYBE logo modes.</item>
+        <item>Added temporary mood playlists with optional saving and customizable mood colors.</item>
+        <item>Added dedicated in-app bug report and feature suggestion forms.</item>
+    </string-array>
+    <string-array name="changelog_087_improvements">
+        <item>Applied the new VYBE logo across onboarding, Home, About, launcher, and media surfaces.</item>
+        <item>Profile analytics now opens fully and focuses on listening statistics and habits.</item>
+        <item>Changelog and update actions now use a compact side-by-side layout.</item>
+    </string-array>
+    <string-array name="changelog_087_fixes">
+        <item>Fixed Library shuffle for songs, liked tracks, albums, and artists.</item>
+        <item>Fixed valid albums opening as not found and removed single-track false albums.</item>
+        <item>Removed obsolete Cloud, Local, All Songs, and Backup &amp; Restore entry points.</item>
+    </string-array>
     <string-array name="changelog_0722_added">
         <item>Voice Assistant Integration: You can now ask Google Assistant or Bixby to play a song on VYBE directly!</item>
     </string-array>

@@ -222,7 +222,8 @@ fun SettingsScreen(
                 ExpressiveSettingsGroup {
                     val mainCategories = SettingsCategory.entries.filter {
                         it != SettingsCategory.ABOUT && 
-                        it != SettingsCategory.DEVICE_CAPABILITIES
+                        it != SettingsCategory.DEVICE_CAPABILITIES &&
+                        it != SettingsCategory.BACKUP_RESTORE
                     }
 
                     val totalItems = mainCategories.size + 3 // Device + Accounts + About

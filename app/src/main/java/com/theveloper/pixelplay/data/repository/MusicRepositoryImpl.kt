@@ -289,7 +289,13 @@ class MusicRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getFavoriteSongsOnce(storageFilter: StorageFilter): List<Song> {
-        return songRepository.getFavoriteSongsOnce(storageFilter)
+        val localFavorites = songRepository.getFavoriteSongsOnce(storageFilter)
+        val onlineFavorites = if (storageFilter != StorageFilter.OFFLINE) {
+            audiusFavoriteDao.getAllFavorites().first().map { it.toSong().copy(isFavorite = true) }
+        } else {
+            emptyList()
+        }
+        return (localFavorites + onlineFavorites).distinctBy { it.id }
     }
 
     override suspend fun getFavoriteSongsPage(

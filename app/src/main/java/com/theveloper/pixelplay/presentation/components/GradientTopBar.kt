@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.shape.CircleShape
@@ -130,12 +132,14 @@ fun HomeGradientTopBar(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.padding(start = 16.dp)
             ) {
-                Text(
-                    text = "VYBE",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = GoogleSansRounded,
-                    color = MaterialTheme.colorScheme.onSurface
+                androidx.compose.foundation.Image(
+                    painter = painterResource(R.drawable.vybe_logo_foreground),
+                    contentDescription = "VYBE",
+                    colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(
+                        com.theveloper.pixelplay.ui.theme.vybeLogoForegroundColor()
+                    ),
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.width(88.dp).height(34.dp)
                 )
             }
         },

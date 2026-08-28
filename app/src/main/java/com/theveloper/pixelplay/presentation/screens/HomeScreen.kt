@@ -7,6 +7,9 @@ import android.content.Intent
 import androidx.activity.compose.ReportDrawnWhen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -66,7 +69,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -113,6 +118,7 @@ import com.theveloper.pixelplay.presentation.navigation.Screen
 import com.theveloper.pixelplay.presentation.components.StreamingProviderSheet
 import com.theveloper.pixelplay.presentation.telegram.auth.TelegramLoginActivity
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
+import com.theveloper.pixelplay.presentation.viewmodel.PlaylistViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.SettingsViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.StatsViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.AccountsViewModel
@@ -138,6 +144,7 @@ fun HomeScreen(
     paddingValuesParent: PaddingValues,
     playerViewModel: PlayerViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel(),
+    playlistViewModel: PlaylistViewModel = hiltViewModel(),
     accountsViewModel: AccountsViewModel = hiltViewModel(),
     neteaseViewModel: NeteaseDashboardViewModel = hiltViewModel(),
     qqMusicViewModel: QqMusicDashboardViewModel = hiltViewModel(),
@@ -333,6 +340,10 @@ fun HomeScreen(
     var showProfileBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
+    var selectedMood by rememberSaveable { mutableStateOf<String?>(null) }
+    var moodMixSongs by remember { mutableStateOf<List<Song>>(emptyList()) }
+    var isMoodMixLoading by remember { mutableStateOf(false) }
+    val moodColors by playerViewModel.moodColors.collectAsStateWithLifecycle()
     LocalContext.current
 
     val homeStatsOverview by statsViewModel.homeOverview.collectAsStateWithLifecycle()
@@ -544,9 +555,16 @@ fun HomeScreen(
                     val topMoods by playerViewModel.topMoods.collectAsStateWithLifecycle()
                     MoodsSection(
                         moods = topMoods,
+                        moodColors = moodColors,
+                        onMoodColorChange = playerViewModel::setMoodColor,
                         onMoodClick = { mood ->
-                            android.widget.Toast.makeText(context, "Generating $mood Mix...", android.widget.Toast.LENGTH_SHORT).show()
-                            playerViewModel.playMoodMix(mood)
+                            selectedMood = mood
+                            moodMixSongs = emptyList()
+                            isMoodMixLoading = true
+                            scope.launch {
+                                moodMixSongs = playerViewModel.loadMoodMix(mood)
+                                isMoodMixLoading = false
+                            }
                         }
                     )
                 }
@@ -621,6 +639,24 @@ fun HomeScreen(
             navController = navController,
             onDismiss = { showProfileBottomSheet = false },
             statsViewModel = statsViewModel
+        )
+    }
+    selectedMood?.let { mood ->
+        MoodPlaylistSheet(
+            mood = mood,
+            songs = moodMixSongs,
+            isLoading = isMoodMixLoading,
+            onDismiss = { selectedMood = null },
+            onPlay = { if (moodMixSongs.isNotEmpty()) playerViewModel.playSongs(moodMixSongs, moodMixSongs.first(), "$mood Playlist") },
+            onSongClick = { song -> playerViewModel.playSongs(moodMixSongs, song, "$mood Playlist") },
+            onSave = {
+                playlistViewModel.createPlaylist(
+                    name = "$mood Playlist",
+                    songIds = moodMixSongs.map(Song::id),
+                    source = "MOOD"
+                )
+                android.widget.Toast.makeText(context, "$mood Playlist saved", android.widget.Toast.LENGTH_SHORT).show()
+            }
         )
     }
 }
@@ -1053,8 +1089,13 @@ private fun YouTubeMusicHomeRow(
 @Composable
 fun MoodsSection(
     moods: List<String>,
+    moodColors: Map<String, Long>,
+    onMoodColorChange: (String, Long) -> Unit,
     onMoodClick: (String) -> Unit
 ) {
+    var colorMood by remember { mutableStateOf<String?>(null) }
+    val scrollState = rememberScrollState()
+    val visibleMoods = remember(moods) { moods.take(12) }
     Column(modifier = Modifier.padding(bottom = 8.dp)) {
         Text(
             text = "Moods",
@@ -1062,17 +1103,106 @@ fun MoodsSection(
             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        Column(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(scrollState).padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(moods) { mood ->
-                androidx.compose.material3.FilterChip(
-                    selected = false,
-                    onClick = { onMoodClick(mood) },
-                    label = { Text(mood) },
-                    shape = RoundedCornerShape(16.dp)
-                )
+            repeat(3) { rowIndex ->
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    visibleMoods.filterIndexed { index, _ -> index % 3 == rowIndex }.forEach { mood ->
+                        val stored = moodColors[mood.lowercase()]
+                        val fallback = moodDefaultColor(mood)
+                        val background = Color((stored ?: fallback.toLong()).toInt())
+                        Surface(
+                            color = background,
+                            contentColor = if (androidx.core.graphics.ColorUtils.calculateLuminance(background.toArgb()) > 0.5) Color.Black else Color.White,
+                            shape = RoundedCornerShape(18.dp),
+                            modifier = Modifier
+                                .height(56.dp)
+                                .width(168.dp)
+                                .pointerInput(mood) {
+                                    detectTapGestures(
+                                        onTap = { onMoodClick(mood) },
+                                        onLongPress = { colorMood = mood }
+                                    )
+                                }
+                        ) {
+                            Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Rounded.MusicNote, null, modifier = Modifier.size(20.dp))
+                                Spacer(Modifier.width(10.dp))
+                                Text(mood, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    colorMood?.let { mood ->
+        val colors = listOf(0xFF6750A4, 0xFF006C4C, 0xFF9C4146, 0xFF00658A, 0xFF7D5260, 0xFF735C00, 0xFF4A6363, 0xFF874D00)
+        AlertDialog(
+            onDismissRequest = { colorMood = null },
+            title = { Text("Choose $mood color") },
+            text = {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    colors.take(4).forEach { argb ->
+                        Surface(
+                            onClick = { onMoodColorChange(mood, argb); colorMood = null },
+                            color = Color(argb.toInt()), shape = RoundedCornerShape(14.dp), modifier = Modifier.size(48.dp)
+                        ) {}
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { colorMood = null }) { Text("Done") } }
+        )
+    }
+}
+
+private fun moodDefaultColor(mood: String): Int {
+    val palette = intArrayOf(0xFF6750A4.toInt(), 0xFF006C4C.toInt(), 0xFF9C4146.toInt(), 0xFF00658A.toInt(), 0xFF735C00.toInt())
+    return palette[(mood.lowercase().hashCode() and Int.MAX_VALUE) % palette.size]
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MoodPlaylistSheet(
+    mood: String,
+    songs: List<Song>,
+    isLoading: Boolean,
+    onDismiss: () -> Unit,
+    onPlay: () -> Unit,
+    onSongClick: (Song) -> Unit,
+    onSave: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp)) {
+            Text("$mood Playlist", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text("Temporary mood mix • save it only if you want", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilledTonalButton(onClick = onPlay, enabled = songs.isNotEmpty()) { Text("Play") }
+                TextButton(onClick = onSave, enabled = songs.isNotEmpty()) { Text("Save Playlist") }
+            }
+            if (isLoading) {
+                Box(Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            } else {
+                LazyColumn(modifier = Modifier.heightIn(max = 560.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    items(songs, key = { it.id }) { song ->
+                        Surface(onClick = { onSongClick(song) }, shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
+                            Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                AsyncImage(song.albumArtUriString, null, contentScale = ContentScale.Crop, modifier = Modifier.size(52.dp).clip(RoundedCornerShape(10.dp)))
+                                Spacer(Modifier.width(10.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(song.title, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(song.displayArtist, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

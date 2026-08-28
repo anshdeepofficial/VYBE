@@ -105,9 +105,27 @@ class AlbumDetailViewModel @Inject constructor(
                 val albumSongsFlow = musicRepository.getSongsForAlbum(id)
 
                 combine(albumDetailsFlow, albumSongsFlow) { album, songs ->
-                    if (album != null) {
+                    val resolvedAlbum = album ?: songs.firstOrNull()?.let { firstSong ->
+                        val title = firstSong.album.takeUnless {
+                            it.isBlank() || it.equals("YouTube Music", ignoreCase = true)
+                        } ?: firstSong.title
+                        Album(
+                            id = id,
+                            title = title,
+                            artist = firstSong.albumArtist?.takeIf(String::isNotBlank) ?: firstSong.artist,
+                            year = firstSong.year,
+                            dateAdded = songs.maxOfOrNull { it.dateAdded } ?: firstSong.dateAdded,
+                            albumArtUriString = songs.firstNotNullOfOrNull {
+                                it.albumArtUriString?.takeIf(String::isNotBlank)
+                            },
+                            songCount = songs.size,
+                            albumArtist = firstSong.albumArtist?.takeIf(String::isNotBlank) ?: firstSong.artist,
+                            remoteBrowseId = firstSong.remoteAlbumBrowseId,
+                        )
+                    }
+                    if (resolvedAlbum != null) {
                         AlbumDetailUiState(
-                            album = album,
+                            album = resolvedAlbum,
                             songs = songs.sortedWith(
                                 compareBy<Song> { it.discNumber ?: 1 }
                                     .thenBy { if (it.trackNumber > 0) it.trackNumber else Int.MAX_VALUE }

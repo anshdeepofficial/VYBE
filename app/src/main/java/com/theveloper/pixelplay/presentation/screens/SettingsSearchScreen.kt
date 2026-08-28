@@ -136,15 +136,6 @@ object SettingsSearchIndex {
             keywords = listOf("streaming", "online", "autoplay", "background", "buffering", "cast")
         ),
 
-        // Backup & Restore
-        SettingSearchItem(
-            title = "Backup & Restore",
-            description = "Create automated or manual backups of playlists, favorites, and settings",
-            categoryName = "Backup",
-            route = Screen.SettingsCategory.createRoute(SettingsCategory.BACKUP_RESTORE.id),
-            keywords = listOf("backup", "restore", "export", "import", "playlists", "cloud")
-        ),
-
         // Music management
         SettingSearchItem(
             title = "Import Spotify Playlist",

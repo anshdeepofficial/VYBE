@@ -111,12 +111,12 @@ fun PlayStoreAnnouncementDialog(
                 ) {
                     Surface(
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primaryContainer,
+                        color = com.theveloper.pixelplay.ui.theme.vybeLogoBackgroundColor(),
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.vybe_logo_monochrome),
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            tint = com.theveloper.pixelplay.ui.theme.vybeLogoForegroundColor(),
                             modifier = Modifier
                                 .padding(10.dp)
                                 .size(26.dp),

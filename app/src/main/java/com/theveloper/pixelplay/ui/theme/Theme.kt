@@ -22,10 +22,26 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import com.theveloper.pixelplay.presentation.viewmodel.ColorSchemePair
+import com.theveloper.pixelplay.data.preferences.LogoMode
 import androidx.core.graphics.ColorUtils
 
 val LocalPixelPlayDarkTheme = staticCompositionLocalOf { false }
 val LocalShowScrollbar = staticCompositionLocalOf { true }
+val LocalVybeLogoMode = staticCompositionLocalOf { LogoMode.DYNAMIC }
+
+@Composable
+fun vybeLogoForegroundColor(): Color = when (LocalVybeLogoMode.current) {
+    LogoMode.LIGHT -> Color.Black
+    LogoMode.DARK -> Color.White
+    else -> if (LocalPixelPlayDarkTheme.current) Color.White else Color.Black
+}
+
+@Composable
+fun vybeLogoBackgroundColor(): Color = when (LocalVybeLogoMode.current) {
+    LogoMode.LIGHT -> Color.White
+    LogoMode.DARK -> Color.Black
+    else -> if (LocalPixelPlayDarkTheme.current) Color.Black else Color.White
+}
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this

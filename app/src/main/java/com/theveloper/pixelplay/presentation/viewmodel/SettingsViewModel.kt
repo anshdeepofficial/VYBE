@@ -13,6 +13,7 @@ import com.theveloper.pixelplay.data.backup.model.RestorePlan
 import com.theveloper.pixelplay.data.backup.model.RestoreResult
 import com.theveloper.pixelplay.data.backup.model.ValidationError
 import com.theveloper.pixelplay.data.preferences.AppThemeMode
+import com.theveloper.pixelplay.data.preferences.LogoMode
 import com.theveloper.pixelplay.data.preferences.CarouselStyle
 import com.theveloper.pixelplay.data.preferences.LibraryNavigationMode
 import com.theveloper.pixelplay.data.preferences.ThemePreference
@@ -64,6 +65,7 @@ data class SettingsUiState(
     val isLoadingDirectories: Boolean = false,
     val appLanguageTag: String = AppLanguage.SYSTEM.tag,
     val appThemeMode: String = AppThemeMode.FOLLOW_SYSTEM,
+    val logoMode: String = LogoMode.DYNAMIC,
     val playerThemePreference: String = ThemePreference.ALBUM_ART,
     val albumArtPaletteStyle: AlbumArtPaletteStyle = AlbumArtPaletteStyle.default,
     val albumArtColorAccuracy: Int = AlbumArtColorAccuracy.DEFAULT,
@@ -117,7 +119,7 @@ data class SettingsUiState(
     val collagePattern: CollagePattern = CollagePattern.default,
     val collageAutoRotate: Boolean = false,
     val minSongDuration: Int = 10000,
-    val minTracksPerAlbum: Int = 1,
+    val minTracksPerAlbum: Int = 2,
     val songIdentityMode: SongIdentityMode = SongIdentityMode.FILE,
     val replayGainEnabled: Boolean = false,
     val replayGainUseAlbumGain: Boolean = false,
@@ -182,6 +184,7 @@ private sealed interface SettingsUiUpdate {
     data class Group1(
         val appRebrandDialogShown: Boolean,
         val appThemeMode: String,
+        val logoMode: String,
         val playerThemePreference: String,
         val albumArtPaletteStyle: AlbumArtPaletteStyle,
         val albumArtColorAccuracy: Int,
@@ -972,6 +975,7 @@ class SettingsViewModel @Inject constructor(
                 userPreferencesRepository.immersiveArtworkEnabledFlow,
                 userPreferencesRepository.launchTabFlow,
                 userPreferencesRepository.showPlayerFileInfoFlow
+                ,themePreferencesRepository.logoModeFlow
             ) { values ->
                 SettingsUiUpdate.Group1(
                     appRebrandDialogShown = values[0] as Boolean,
@@ -987,13 +991,15 @@ class SettingsViewModel @Inject constructor(
                     carouselStyle = values[10] as String,
                     immersiveArtworkEnabled = values[11] as Boolean,
                     launchTab = values[12] as String,
-                    showPlayerFileInfo = values[13] as Boolean
+                    showPlayerFileInfo = values[13] as Boolean,
+                    logoMode = values[14] as String
                 )
             }.collect { update ->
                 _uiState.update { state ->
                     state.copy(
                         appRebrandDialogShown = update.appRebrandDialogShown,
                         appThemeMode = update.appThemeMode,
+                        logoMode = update.logoMode,
                         playerThemePreference = update.playerThemePreference,
                         albumArtPaletteStyle = update.albumArtPaletteStyle,
                         albumArtColorAccuracy = update.albumArtColorAccuracy,
@@ -1284,6 +1290,12 @@ class SettingsViewModel @Inject constructor(
     fun setAppThemeMode(mode: String) {
         viewModelScope.launch {
             themePreferencesRepository.setAppThemeMode(mode)
+        }
+    }
+
+    fun setLogoMode(mode: String) {
+        viewModelScope.launch {
+            themePreferencesRepository.setLogoMode(mode)
         }
     }
 

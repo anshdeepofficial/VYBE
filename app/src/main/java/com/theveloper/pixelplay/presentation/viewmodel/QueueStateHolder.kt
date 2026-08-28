@@ -239,7 +239,9 @@ class QueueStateHolder @Inject constructor(
      */
     fun shuffleRandomAlbum(callbacks: ShufflePlaybackCallbacks) {
         callbacks.scope.launch {
-            val allAlbums = callbacks.albums()
+            val allAlbums = callbacks.albums().ifEmpty {
+                musicRepository.getAllAlbumsOnce(StorageFilter.ALL, minTracks = 2)
+            }
             if (allAlbums.isEmpty()) return@launch
             val randomAlbum = allAlbums.random()
             val albumSongs = musicRepository.getSongsForAlbum(randomAlbum.id).first()
@@ -254,7 +256,9 @@ class QueueStateHolder @Inject constructor(
      */
     fun shuffleRandomArtist(callbacks: ShufflePlaybackCallbacks) {
         callbacks.scope.launch {
-            val allArtists = callbacks.artists()
+            val allArtists = callbacks.artists().ifEmpty {
+                musicRepository.getAllArtistsOnce()
+            }
             if (allArtists.isEmpty()) return@launch
             val randomArtist = allArtists.random()
             val artistSongs = musicRepository.getSongsForArtist(randomArtist.id).first()

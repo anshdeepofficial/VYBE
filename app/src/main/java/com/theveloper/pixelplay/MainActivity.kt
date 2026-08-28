@@ -110,6 +110,7 @@ import com.theveloper.pixelplay.data.github.GitHubReleaseUpdate
 import com.theveloper.pixelplay.data.github.GitHubUpdateService
 import com.theveloper.pixelplay.data.github.PlayStoreAnnouncementRemoteConfig
 import com.theveloper.pixelplay.data.preferences.AppThemeMode
+import com.theveloper.pixelplay.data.preferences.LogoMode
 import com.theveloper.pixelplay.data.preferences.NavBarStyle
 import com.theveloper.pixelplay.data.preferences.sanitizeNavBarCornerRadius
 import com.theveloper.pixelplay.data.preferences.ThemePreferencesRepository
@@ -141,6 +142,7 @@ import com.theveloper.pixelplay.presentation.viewmodel.MainViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.ui.theme.PixelPlayTheme
 import com.theveloper.pixelplay.ui.theme.LocalShowScrollbar
+import com.theveloper.pixelplay.ui.theme.LocalVybeLogoMode
 import com.theveloper.pixelplay.utils.CrashHandler
 import com.theveloper.pixelplay.utils.AppLocaleManager
 import com.theveloper.pixelplay.utils.LogUtils
@@ -257,6 +259,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val systemDarkTheme = isSystemInDarkTheme()
             val appThemeMode by themePreferencesRepository.appThemeModeFlow.collectAsStateWithLifecycle(initialValue = AppThemeMode.FOLLOW_SYSTEM)
+            val logoMode by themePreferencesRepository.logoModeFlow.collectAsStateWithLifecycle(initialValue = LogoMode.DYNAMIC)
             val showScrollbar by userPreferencesRepository.showScrollbarFlow.collectAsStateWithLifecycle(initialValue = true)
             val useDarkTheme = when (appThemeMode) {
                 AppThemeMode.DARK -> true
@@ -305,7 +308,10 @@ class MainActivity : ComponentActivity() {
 
             val albumColorSchemePair by playerViewModel.themeStateHolder.currentAlbumArtColorSchemePair.collectAsStateWithLifecycle()
 
-            CompositionLocalProvider(LocalShowScrollbar provides showScrollbar) {
+            CompositionLocalProvider(
+                LocalShowScrollbar provides showScrollbar,
+                LocalVybeLogoMode provides logoMode
+            ) {
                 PixelPlayTheme(
                     darkTheme = useDarkTheme,
                     amoledTheme = appThemeMode == AppThemeMode.AMOLED,

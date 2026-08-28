@@ -19,6 +19,7 @@ import com.theveloper.pixelplay.ui.theme.PixelPlayTheme
 import android.content.Intent.EXTRA_STREAM
 import androidx.media3.common.util.UnstableApi
 import com.theveloper.pixelplay.data.preferences.AppThemeMode
+import com.theveloper.pixelplay.data.preferences.LogoMode
 import com.theveloper.pixelplay.data.preferences.ThemePreferencesRepository
 import javax.inject.Inject
 
@@ -46,21 +47,26 @@ class ExternalPlayerActivity : ComponentActivity() {
         setContent {
             val systemDarkTheme = isSystemInDarkTheme()
             val appThemeMode by themePreferencesRepository.appThemeModeFlow.collectAsStateWithLifecycle(initialValue = AppThemeMode.FOLLOW_SYSTEM)
+            val logoMode by themePreferencesRepository.logoModeFlow.collectAsStateWithLifecycle(initialValue = LogoMode.DYNAMIC)
             val useDarkTheme = when (appThemeMode) {
                 AppThemeMode.DARK -> true
                 AppThemeMode.AMOLED -> true
                 AppThemeMode.LIGHT -> false
                 else -> systemDarkTheme
             }
-            PixelPlayTheme(
-                darkTheme = useDarkTheme,
-                amoledTheme = appThemeMode == AppThemeMode.AMOLED,
+            androidx.compose.runtime.CompositionLocalProvider(
+                com.theveloper.pixelplay.ui.theme.LocalVybeLogoMode provides logoMode
             ) {
-                ExternalPlayerOverlay(
-                    playerViewModel = playerViewModel,
-                    onDismiss = { finish() },
-                    onOpenFullPlayer = { openFullPlayer() }
-                )
+                PixelPlayTheme(
+                    darkTheme = useDarkTheme,
+                    amoledTheme = appThemeMode == AppThemeMode.AMOLED,
+                ) {
+                    ExternalPlayerOverlay(
+                        playerViewModel = playerViewModel,
+                        onDismiss = { finish() },
+                        onOpenFullPlayer = { openFullPlayer() }
+                    )
+                }
             }
         }
 

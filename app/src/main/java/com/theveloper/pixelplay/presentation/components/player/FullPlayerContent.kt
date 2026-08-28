@@ -2478,7 +2478,7 @@ private fun PlaceholderBox(
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(cornerRadius),
-        color = color,
+        color = com.theveloper.pixelplay.ui.theme.vybeLogoBackgroundColor(),
         tonalElevation = 0.dp
     ) {}
 }
@@ -2503,7 +2503,7 @@ private fun AlbumPlaceholder(
                 modifier = Modifier.size(86.dp),
                 painter = painterResource(R.drawable.vybe_logo_monochrome),
                 contentDescription = null,
-                tint = onColor
+                tint = com.theveloper.pixelplay.ui.theme.vybeLogoForegroundColor()
             )
         }
     }

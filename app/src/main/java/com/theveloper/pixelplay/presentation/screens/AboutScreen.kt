@@ -50,13 +50,16 @@ import androidx.compose.material.icons.rounded.Gavel
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Public
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -132,6 +135,11 @@ private data class Contributor(
     val contributions: Int? = null,
 )
 
+private enum class FeedbackType(val title: String, val issuePrefix: String) {
+    BUG("Report a bug", "[Bug]"),
+    FEATURE("Suggest a feature", "[Feature]")
+}
+
 private val CoreMaintainer = Contributor(
     id = "anshdeepofficial",
     displayName = "Anshdeep Singh",
@@ -187,6 +195,7 @@ fun AboutScreen(
     var updateDownloadProgress by remember { mutableStateOf(0f) }
     var downloadedUpdateFile by remember { mutableStateOf<File?>(null) }
     var updateMessage by remember { mutableStateOf<String?>(null) }
+    var feedbackType by remember { mutableStateOf<FeedbackType?>(null) }
 
     val statusBarHeight = WindowInsets.statusBars
         .asPaddingValues()
@@ -285,64 +294,43 @@ fun AboutScreen(
                 )
             }
 
-            item(key = "report_bug_feature") {
-                SocialChip(
-                    label = "Report bug or suggest features",
-                    subtitle = "Open GitHub Issues to report problems or request features",
-                    iconRes = R.drawable.github, // Or R.drawable.rounded_bug_report_24 if you have one, falling back to github for safety
-                    contentDescription = "Report bug or suggest feature",
-                    onClick = { openUrl(context, "https://github.com/anshdeepofficial/VYBE/issues") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 12.dp),
-                )
+            item(key = "feedback_actions") {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    SocialChip("Report Bug", "Send details", R.drawable.github, "Report a bug", { feedbackType = FeedbackType.BUG }, Modifier.weight(1f))
+                    SocialChip("Suggest", "Request feature", R.drawable.gemini_ai, "Suggest a feature", { feedbackType = FeedbackType.FEATURE }, Modifier.weight(1f))
+                }
             }
 
-            item(key = "changelog_link") {
-                SocialChip(
-                    label = "Changelog",
-                    subtitle = "What's new in VYBE $versionName",
-                    iconRes = R.drawable.rounded_format_list_bulleted_24,
-                    contentDescription = "Open VYBE changelog",
-                    onClick = { navController.navigateSafely(Screen.Changelog.route) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 12.dp),
-                )
-            }
-
-            item(key = "check_for_updates") {
-                SocialChip(
-                    label = if (isCheckingUpdate) "Checking for updates…" else "Check for Updates",
-                    subtitle = updateStatus,
-                    iconRes = R.drawable.rounded_download_24,
-                    contentDescription = "Check for a VYBE update",
-                    onClick = {
-                        if (!isCheckingUpdate) coroutineScope.launch {
-                            isCheckingUpdate = true
-                            updateStatus = "Contacting the VYBE update service…"
-                            updateService.checkForUpdate(context, respectDismissal = false)
-                                .onSuccess { update ->
-                                    availableUpdate = update
-                                    updateStatus = if (update == null) {
-                                        "VYBE is up to date • Version $versionName (${BuildConfig.VERSION_CODE})"
-                                    } else {
-                                        "VYBE ${update.tagName} is available"
+            item(key = "release_actions") {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    SocialChip("Changelog", "What's new", R.drawable.rounded_format_list_bulleted_24, "Open VYBE changelog", { navController.navigateSafely(Screen.Changelog.route) }, Modifier.weight(1f))
+                    SocialChip(
+                        if (isCheckingUpdate) "Checking…" else "Updates",
+                        "Check latest",
+                        R.drawable.rounded_download_24,
+                        "Check for a VYBE update",
+                        {
+                            if (!isCheckingUpdate) coroutineScope.launch {
+                                isCheckingUpdate = true
+                                updateStatus = "Contacting the VYBE update service…"
+                                updateService.checkForUpdate(context, respectDismissal = false)
+                                    .onSuccess { update ->
+                                        availableUpdate = update
+                                        updateStatus = if (update == null) "VYBE is up to date • Version $versionName (${BuildConfig.VERSION_CODE})" else "VYBE ${update.tagName} is available"
                                     }
-                                }
-                                .onFailure { error ->
-                                    updateStatus = error.message ?: "Could not check for updates"
-                                }
-                            isCheckingUpdate = false
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 8.dp),
-                )
+                                    .onFailure { error -> updateStatus = error.message ?: "Could not check for updates" }
+                                isCheckingUpdate = false
+                            }
+                        },
+                        Modifier.weight(1f)
+                    )
+                }
             }
 
             item(key = "maintainer_title") {
@@ -418,6 +406,32 @@ fun AboutScreen(
             },
         )
     }
+
+    feedbackType?.let { type ->
+        FeedbackDialog(type, onDismiss = { feedbackType = null }) { details ->
+            val title = android.net.Uri.encode("${type.issuePrefix} ${details.lineSequence().firstOrNull().orEmpty().take(70)}")
+            val body = android.net.Uri.encode("${details.trim()}\n\nVYBE $versionName (${BuildConfig.VERSION_CODE})\nAndroid ${android.os.Build.VERSION.RELEASE}")
+            openUrl(context, "https://github.com/anshdeepofficial/VYBE/issues/new?title=$title&body=$body")
+            feedbackType = null
+        }
+    }
+}
+
+@Composable
+private fun FeedbackDialog(type: FeedbackType, onDismiss: () -> Unit, onSend: (String) -> Unit) {
+    var details by remember(type) { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(type.title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(if (type == FeedbackType.BUG) "Tell us what happened and how to reproduce it." else "Describe the feature and why it would help.")
+                OutlinedTextField(details, { details = it }, label = { Text("Details") }, minLines = 5, modifier = Modifier.fillMaxWidth())
+            }
+        },
+        confirmButton = { TextButton(onClick = { onSend(details) }, enabled = details.isNotBlank()) { Text("Send") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
 }
 
 @Composable
@@ -450,37 +464,25 @@ private fun AboutHeroCard(
                 ) {
                     Surface(
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primaryContainer,
+                        color = com.theveloper.pixelplay.ui.theme.vybeLogoBackgroundColor(),
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.vybe_logo_monochrome),
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            tint = com.theveloper.pixelplay.ui.theme.vybeLogoForegroundColor(),
                             modifier = Modifier.padding(10.dp).size(28.dp),
                         )
                     }
 
                     Spacer(modifier = Modifier.width(12.dp))
 
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.about_app_name),
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            text = stringResource(R.string.about_tagline),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+                    Image(
+                        painter = painterResource(R.drawable.vybe_logo_foreground),
+                        contentDescription = stringResource(R.string.about_app_name),
+                        colorFilter = ColorFilter.tint(com.theveloper.pixelplay.ui.theme.vybeLogoForegroundColor()),
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.width(156.dp).height(52.dp)
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
