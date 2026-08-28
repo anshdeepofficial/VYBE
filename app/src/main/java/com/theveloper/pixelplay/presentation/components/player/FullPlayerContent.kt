@@ -2501,7 +2501,7 @@ private fun AlbumPlaceholder(
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
             Icon(
                 modifier = Modifier.size(86.dp),
-                painter = painterResource(R.drawable.vybe_logo_monochrome),
+                painter = painterResource(R.drawable.vybe_logo_foreground),
                 contentDescription = null,
                 tint = com.theveloper.pixelplay.ui.theme.vybeLogoForegroundColor()
             )

@@ -467,7 +467,7 @@ private fun AboutHeroCard(
                         color = com.theveloper.pixelplay.ui.theme.vybeLogoBackgroundColor(),
                     ) {
                         Icon(
-                            painter = painterResource(R.drawable.vybe_logo_monochrome),
+                            painter = painterResource(R.drawable.vybe_logo_foreground),
                             contentDescription = null,
                             tint = com.theveloper.pixelplay.ui.theme.vybeLogoForegroundColor(),
                             modifier = Modifier.padding(10.dp).size(28.dp),

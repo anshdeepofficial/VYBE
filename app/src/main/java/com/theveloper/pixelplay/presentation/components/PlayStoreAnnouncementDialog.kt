@@ -114,7 +114,7 @@ fun PlayStoreAnnouncementDialog(
                         color = com.theveloper.pixelplay.ui.theme.vybeLogoBackgroundColor(),
                     ) {
                         Icon(
-                            painter = painterResource(id = R.drawable.vybe_logo_monochrome),
+                            painter = painterResource(id = R.drawable.vybe_logo_foreground),
                             contentDescription = null,
                             tint = com.theveloper.pixelplay.ui.theme.vybeLogoForegroundColor(),
                             modifier = Modifier

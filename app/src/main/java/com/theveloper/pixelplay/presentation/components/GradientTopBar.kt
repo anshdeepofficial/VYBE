@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -139,7 +140,7 @@ fun HomeGradientTopBar(
                         com.theveloper.pixelplay.ui.theme.vybeLogoForegroundColor()
                     ),
                     contentScale = ContentScale.Fit,
-                    modifier = Modifier.width(88.dp).height(34.dp)
+                    modifier = Modifier.height(44.dp).widthIn(min = 104.dp, max = 140.dp)
                 )
             }
         },

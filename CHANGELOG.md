@@ -1,3 +1,10 @@
+## [0.9.0] - 2026-08-28
+### Fixed
+- **Splash Screen Logo**: Fixed the app launch splash logo being cropped/zoomed in on open, now displayed with proper safe margins and centering.
+- **Home Top Bar Brand Logo**: Restored VYBE header logo to its proper prominent, crisp size on the Home screen.
+- **Crash Fixes**: Fixed crash when opening Appearance Settings and About Screen caused by XML bitmap resource resolution in Compose.
+- **Batch Downloads & Selection**: Fixed and polished multi-selection downloading and album actions.
+
 ## [0.8.6] - 2026-08-28
 ### Added
 - Download pause, resume, retry and cancel handling with persistent progress.

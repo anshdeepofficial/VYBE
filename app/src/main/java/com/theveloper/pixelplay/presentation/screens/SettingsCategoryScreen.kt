@@ -773,7 +773,7 @@ fun SettingsCategoryScreen(
                                     ),
                                     selectedKey = uiState.logoMode,
                                     onSelectionChanged = settingsViewModel::setLogoMode,
-                                    leadingIcon = { Icon(painterResource(R.drawable.vybe_logo_monochrome), null, tint = MaterialTheme.colorScheme.secondary) }
+                                    leadingIcon = { Icon(painterResource(R.drawable.vybe_logo_foreground), null, tint = MaterialTheme.colorScheme.secondary) }
                                 )
                             }
 
