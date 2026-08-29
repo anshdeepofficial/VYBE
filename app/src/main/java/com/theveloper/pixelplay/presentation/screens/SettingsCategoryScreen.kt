@@ -261,6 +261,7 @@ fun SettingsCategoryScreen(
     var showImportFlow by remember { mutableStateOf(false) }
     var showListenTogetherDialog by remember { mutableStateOf(false) }
     var showStorageUsageDialog by remember { mutableStateOf(false) }
+    var showLogoRestartDialog by remember { mutableStateOf(false) }
     var storageUsage by remember { mutableStateOf<StorageUsageSnapshot?>(null) }
     var isStorageUsageLoading by remember { mutableStateOf(false) }
     var listenTogetherInvite by remember { mutableStateOf("") }
@@ -772,7 +773,12 @@ fun SettingsCategoryScreen(
                                         LogoMode.DYNAMIC to stringResource(R.string.settings_logo_mode_dynamic)
                                     ),
                                     selectedKey = uiState.logoMode,
-                                    onSelectionChanged = settingsViewModel::setLogoMode,
+                                    onSelectionChanged = { mode ->
+                                        if (mode != uiState.logoMode) {
+                                            settingsViewModel.setLogoMode(mode)
+                                            showLogoRestartDialog = true
+                                        }
+                                    },
                                     leadingIcon = { Icon(painterResource(R.drawable.vybe_logo_foreground), null, tint = MaterialTheme.colorScheme.secondary) }
                                 )
                             }
@@ -2295,6 +2301,23 @@ fun SettingsCategoryScreen(
                 onRemoveHistoryEntry = { settingsViewModel.removeBackupHistoryEntry(it) }
             )
         }
+    }
+
+    if (showLogoRestartDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoRestartDialog = false },
+            title = { Text("Apply logo appearance") },
+            text = { Text("Restart VYBE now to apply the selected logo everywhere, including system surfaces.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showLogoRestartDialog = false
+                    (context as? android.app.Activity)?.recreate()
+                }) { Text("Restart now") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoRestartDialog = false }) { Text("Restart later") }
+            }
+        )
     }
 }
 

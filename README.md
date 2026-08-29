@@ -5,12 +5,13 @@
 <h1 align="center">VYBE</h1>
 
 <p align="center">
-  A modern Android music experience for discovery, streaming, local playback, downloads, lyrics, and personal listening.
+  A modern Android and iPhone music experience for discovery, local playback, lyrics, and personal listening.
 </p>
 
 <p align="center">
   <a href="https://github.com/anshdeepofficial/VYBE/releases/latest"><img src="https://img.shields.io/github/v/release/anshdeepofficial/VYBE?style=for-the-badge&logo=github&label=Latest%20Release" alt="Latest release" /></a>
   <img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android 8.0+" />
+  <img src="https://img.shields.io/badge/iPhone-iOS%2017%2B-000000?style=for-the-badge&logo=apple&logoColor=white" alt="iOS 17+" />
   <img src="https://img.shields.io/badge/Kotlin-Jetpack%20Compose-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin and Jetpack Compose" />
 </p>
 
@@ -85,9 +86,9 @@ Tap the button to add this GitHub repository to Obtainium. If Obtainium is not i
 
 ### Requirements
 
-- Android Studio with the current Android SDK
-- JDK 21
 - Git
+- Android: Android Studio with the current Android SDK and JDK 21
+- iPhone: macOS with Xcode 16 or newer
 
 ### Debug build
 
@@ -100,6 +101,15 @@ cd VYBE
 On macOS or Linux, run `./gradlew :app:assembleDebug` instead.
 
 The debug APK is written under `app/build/outputs/apk/debug/`.
+
+### iPhone build
+
+Open `iosApp/VYBE.xcodeproj` in Xcode, select the **VYBE** scheme and an iPhone
+simulator, then build and run. A physical-device or distributable IPA build
+requires an Apple Developer team and signing profile. See
+[`iosApp/README.md`](iosApp/README.md) for local instructions and
+[`docs/IOS_RELEASE.md`](docs/IOS_RELEASE.md) for the combined APK/IPA release
+workflow.
 
 ### Release signing
 
@@ -119,13 +129,15 @@ Keep all private credentials outside version control.
 ## Project notes
 
 - Minimum supported Android version: Android 8.0 (API 26)
-- UI: Jetpack Compose and Material 3
-- Playback: AndroidX Media3
+- Minimum supported iPhone version: iOS 17
+- UI: Jetpack Compose/Material 3 on Android; SwiftUI on iPhone
+- Playback: AndroidX Media3 on Android; AVFoundation on iPhone
+- Platform sources remain separate under `app/` and `iosApp/`
 - Latest published version: 0.8.6 (version code 32)
 
 ## Feedback and issues
 
-Found a reproducible problem or have a focused feature request? Open a [GitHub issue](https://github.com/anshdeepofficial/VYBE/issues) with the app version, Android version, device model, and clear reproduction steps.
+Found a reproducible problem or have a focused feature request? Open a [GitHub issue](https://github.com/anshdeepofficial/VYBE/issues) with the app version, operating-system version, device model, and clear reproduction steps.
 
 ## License
 

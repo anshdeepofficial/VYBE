@@ -95,6 +95,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.lerp as lerpDp
 import androidx.compose.ui.util.lerp as lerpFloat
 import androidx.core.graphics.drawable.toBitmap
@@ -466,22 +467,25 @@ private fun AboutHeroCard(
                         shape = CircleShape,
                         color = com.theveloper.pixelplay.ui.theme.vybeLogoBackgroundColor(),
                     ) {
-                        Icon(
+                        androidx.compose.foundation.Image(
                             painter = painterResource(R.drawable.vybe_logo_foreground),
                             contentDescription = null,
-                            tint = com.theveloper.pixelplay.ui.theme.vybeLogoForegroundColor(),
-                            modifier = Modifier.padding(10.dp).size(28.dp),
+                            colorFilter = ColorFilter.tint(com.theveloper.pixelplay.ui.theme.vybeLogoForegroundColor()),
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.padding(6.dp).size(40.dp),
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(14.dp))
 
-                    Image(
-                        painter = painterResource(R.drawable.vybe_logo_foreground),
-                        contentDescription = stringResource(R.string.about_app_name),
-                        colorFilter = ColorFilter.tint(com.theveloper.pixelplay.ui.theme.vybeLogoForegroundColor()),
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.width(156.dp).height(52.dp)
+                    Text(
+                        text = "VYBE",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontFamily = com.theveloper.pixelplay.ui.theme.GoogleSansRounded,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
 

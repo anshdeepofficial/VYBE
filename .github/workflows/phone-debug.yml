@@ -1,4 +1,4 @@
-name: Build Phone APK (Debug)
+name: Build Mobile Apps (Debug)
 
 on:
   push:
@@ -50,5 +50,38 @@ jobs:
           path: |
             app/build/outputs/apk/debug/app-arm64-v8a-debug.apk
             app/build/outputs/apk/debug/app-armeabi-v7a-debug.apk
+          if-no-files-found: error
+          compression-level: 0
+
+  build-iphone:
+    name: Build iPhone simulator app
+    if: github.actor != 'dependabot[bot]'
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Build VYBE for iPhone Simulator
+        run: |
+          xcodebuild build \
+            -project iosApp/VYBE.xcodeproj \
+            -scheme VYBE \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/ios-derived \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Package iPhone simulator app
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent \
+            build/ios-derived/Build/Products/Debug-iphonesimulator/VYBE.app \
+            build/VYBE-iPhone-Simulator.zip
+
+      - name: Upload iPhone simulator artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: VYBE-iPhone-Simulator
+          path: build/VYBE-iPhone-Simulator.zip
           if-no-files-found: error
           compression-level: 0

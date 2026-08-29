@@ -530,6 +530,19 @@ private fun ConnectedAccountCard(
                 }
             }
 
+            if (account.service == ExternalServiceAccount.YOUTUBE_MUSIC) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        AccountFeaturePill("Library", Modifier.weight(1f))
+                        AccountFeaturePill("Liked music", Modifier.weight(1f))
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        AccountFeaturePill("History", Modifier.weight(1f))
+                        AccountFeaturePill("Playlists", Modifier.weight(1f))
+                    }
+                }
+            }
+
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))
 
             FilledTonalButton(
@@ -545,12 +558,12 @@ private fun ConnectedAccountCard(
                 modifier = Modifier.fillMaxWidth().height(48.dp)
             ) {
                 Icon(
-                    imageVector = if (isComingSoon) Icons.Rounded.Link else Icons.AutoMirrored.Rounded.OpenInNew,
+                    imageVector = if (account.service == ExternalServiceAccount.YOUTUBE_MUSIC) Icons.Rounded.Sync else if (isComingSoon) Icons.Rounded.Link else Icons.AutoMirrored.Rounded.OpenInNew,
                     contentDescription = null
                 )
                 Spacer(modifier = Modifier.size(8.dp))
                 Text(
-                    text = if (isComingSoon) comingSoonShort else openService,
+                    text = if (account.service == ExternalServiceAccount.YOUTUBE_MUSIC) "Sync library now" else if (isComingSoon) comingSoonShort else openService,
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -580,6 +593,23 @@ private fun ConnectedAccountCard(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun AccountFeaturePill(label: String, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = AbsoluteSmoothCornerShape(14.dp, 60),
+        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
+        )
     }
 }
 

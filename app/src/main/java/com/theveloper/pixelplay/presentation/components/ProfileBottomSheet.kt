@@ -52,9 +52,8 @@ fun ProfileBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.92f)
                 .padding(horizontal = 24.dp)
-                .padding(bottom = 32.dp),
+                .padding(bottom = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(

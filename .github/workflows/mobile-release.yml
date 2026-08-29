@@ -1,0 +1,227 @@
+name: Mobile Release (Android + iPhone)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing or new release tag (for example v1.0.0)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mobile-release-${{ github.ref }}-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  android:
+    name: Android APKs
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Install Android release signing key
+        run: |
+          if [[ -z "$ANDROID_KEYSTORE_BASE64" || -z "$ANDROID_KEYSTORE_PASSWORD" || -z "$ANDROID_KEY_ALIAS" || -z "$ANDROID_KEY_PASSWORD" ]]; then
+            echo "Android release-signing secrets are missing. See docs/IOS_RELEASE.md." >&2
+            exit 1
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > ci-release.jks
+          {
+            echo "storeFile=ci-release.jks"
+            echo "storePassword=$ANDROID_KEYSTORE_PASSWORD"
+            echo "keyAlias=$ANDROID_KEY_ALIAS"
+            echo "keyPassword=$ANDROID_KEY_PASSWORD"
+          } > keystore.properties
+
+      - name: Resolve release version
+        id: version
+        shell: bash
+        run: |
+          VERSION="${RELEASE_TAG#v}"
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build signed Android release APKs
+        run: >-
+          ./gradlew :app:assembleRelease
+          -Ppixelplay.enableAbiSplits=true
+          -PAPP_VERSION_NAME=${{ steps.version.outputs.value }}
+          -PAPP_VERSION_CODE=${{ github.run_number }}
+          --no-daemon
+
+      - name: Verify signed Android APKs
+        shell: bash
+        run: |
+          BUILD_TOOLS_VERSION="$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)"
+          mkdir -p release/android
+          shopt -s nullglob
+          apks=(app/build/outputs/apk/release/*-release.apk)
+          if (( ${#apks[@]} < 2 )); then
+            echo "Expected both ARM64 and ARMv7 release APKs." >&2
+            exit 1
+          fi
+          for apk in "${apks[@]}"; do
+            "$ANDROID_HOME/build-tools/$BUILD_TOOLS_VERSION/aapt2" dump badging "$apk" >/dev/null
+            "$ANDROID_HOME/build-tools/$BUILD_TOOLS_VERSION/apksigner" verify --verbose "$apk"
+            case "$apk" in
+              *arm64-v8a*) ABI="arm64-v8a" ;;
+              *armeabi-v7a*) ABI="armeabi-v7a" ;;
+              *) echo "Unknown APK ABI: $apk" >&2; exit 1 ;;
+            esac
+            cp "$apk" "release/android/VYBE-Android-${{ steps.version.outputs.value }}-${ABI}.apk"
+          done
+
+      - name: Upload Android release artifacts
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: vybe-android-${{ steps.version.outputs.value }}
+          path: release/android/*.apk
+          if-no-files-found: error
+          compression-level: 0
+
+  ios:
+    name: iPhone IPA
+    runs-on: macos-latest
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+      P12_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Require Apple signing credentials
+        shell: bash
+        run: |
+          if [[ -z "$P12_BASE64" || -z "$P12_PASSWORD" || -z "$PROFILE_BASE64" || -z "$APPLE_TEAM_ID" ]]; then
+            echo "Apple signing secrets are missing. See docs/IOS_RELEASE.md." >&2
+            exit 1
+          fi
+
+      - name: Resolve release version
+        id: version
+        shell: bash
+        run: |
+          VERSION="${RELEASE_TAG#v}"
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Install temporary Apple signing identity
+        id: signing
+        shell: bash
+        run: |
+          CERTIFICATE_PATH="$RUNNER_TEMP/vybe-distribution.p12"
+          PROFILE_PATH="$RUNNER_TEMP/vybe.mobileprovision"
+          KEYCHAIN_PATH="$RUNNER_TEMP/vybe-signing.keychain-db"
+          echo "$P12_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
+          echo "$PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
+          security create-keychain -p "vybe-ci" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "vybe-ci" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "vybe-ci" "$KEYCHAIN_PATH"
+
+          security cms -D -i "$PROFILE_PATH" > "$RUNNER_TEMP/profile.plist"
+          PROFILE_UUID="$(/usr/libexec/PlistBuddy -c 'Print UUID' "$RUNNER_TEMP/profile.plist")"
+          PROFILE_NAME="$(/usr/libexec/PlistBuddy -c 'Print Name' "$RUNNER_TEMP/profile.plist")"
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+          echo "profile-name=$PROFILE_NAME" >> "$GITHUB_OUTPUT"
+          echo "keychain-path=$KEYCHAIN_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Archive VYBE for iPhone
+        working-directory: iosApp
+        shell: bash
+        run: |
+          xcodebuild archive \
+            -project VYBE.xcodeproj \
+            -scheme VYBE \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/VYBE.xcarchive" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY='Apple Distribution' \
+            PROVISIONING_PROFILE_SPECIFIER='${{ steps.signing.outputs.profile-name }}' \
+            MARKETING_VERSION='${{ steps.version.outputs.value }}' \
+            CURRENT_PROJECT_VERSION='${{ github.run_number }}'
+
+      - name: Export signed IPA
+        shell: bash
+        run: |
+          EXPORT_OPTIONS="$RUNNER_TEMP/ExportOptions.plist"
+          /usr/bin/plutil -create xml1 "$EXPORT_OPTIONS"
+          /usr/libexec/PlistBuddy -c 'Add :method string app-store-connect' "$EXPORT_OPTIONS"
+          /usr/libexec/PlistBuddy -c "Add :teamID string $APPLE_TEAM_ID" "$EXPORT_OPTIONS"
+          /usr/libexec/PlistBuddy -c 'Add :signingStyle string manual' "$EXPORT_OPTIONS"
+          /usr/libexec/PlistBuddy -c 'Add :signingCertificate string Apple Distribution' "$EXPORT_OPTIONS"
+          /usr/libexec/PlistBuddy -c 'Add :provisioningProfiles dict' "$EXPORT_OPTIONS"
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.vybe.musicplayer string '${{ steps.signing.outputs.profile-name }}'" "$EXPORT_OPTIONS"
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/VYBE.xcarchive" \
+            -exportPath "$RUNNER_TEMP/VYBE-export" \
+            -exportOptionsPlist "$EXPORT_OPTIONS"
+          mkdir -p release/ios
+          cp "$RUNNER_TEMP/VYBE-export/"*.ipa "release/ios/VYBE-iOS-${{ steps.version.outputs.value }}.ipa"
+
+      - name: Upload iPhone release artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: vybe-ios-${{ steps.version.outputs.value }}
+          path: release/ios/*.ipa
+          if-no-files-found: error
+          compression-level: 0
+
+  publish:
+    name: Publish GitHub Release
+    needs: [android, ios]
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Download all mobile artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Create or update GitHub Release
+        shell: bash
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" release-assets/* --clobber
+          else
+            gh release create "$RELEASE_TAG" release-assets/* \
+              --title "VYBE $RELEASE_TAG" \
+              --generate-notes
+          fi

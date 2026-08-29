@@ -7,6 +7,8 @@ import android.content.Intent
 import androidx.activity.compose.ReportDrawnWhen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -1012,9 +1014,15 @@ private fun YouTubeMusicHomeRow(
                 Card(
                     modifier = Modifier
                         .width(140.dp)
-                        .clickable {
-                            playerViewModel.playSongs(songs, song, queueName)
-                        },
+                        .clip(RoundedCornerShape(16.dp))
+                        .combinedClickable(
+                            onClick = {
+                                playerViewModel.playSongs(songs, song, queueName)
+                            },
+                            onLongClick = {
+                                contextMenuSong = song
+                            }
+                        ),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
@@ -1056,6 +1064,8 @@ private fun YouTubeMusicHomeRow(
 
     // Context bottom sheet
     contextMenuSong?.let { song ->
+        val favoriteSongIds by playerViewModel.favoriteSongIds.collectAsStateWithLifecycle()
+        val isFav = favoriteSongIds.contains(song.id)
         com.theveloper.pixelplay.presentation.components.SongContextBottomSheet(
             song = song,
             sheetState = contextMenuSheetState,
@@ -1064,6 +1074,15 @@ private fun YouTubeMusicHomeRow(
             onAddToQueue = { playerViewModel.addSongToQueue(song) },
             onAddToPlaylist = {
                 homeSongForPlaylist = song
+            },
+            onDownload = {
+                com.theveloper.pixelplay.data.network.ytmusic.YouTubeDownloadManager
+                    .fromContext(context)
+                    .enqueueDownload(song)
+            },
+            isFavorite = isFav,
+            onToggleFavorite = {
+                playerViewModel.toggleFavoriteSpecificSong(song, removing = isFav)
             },
             onAlbum = if (
                 !song.remoteAlbumBrowseId.isNullOrBlank() || song.albumId > 0L || song.id.startsWith("yt_")

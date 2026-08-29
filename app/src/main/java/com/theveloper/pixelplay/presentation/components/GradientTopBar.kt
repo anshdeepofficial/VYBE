@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -131,7 +132,7 @@ fun HomeGradientTopBar(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(start = 16.dp)
+                modifier = Modifier.offset(x = (-6).dp)
             ) {
                 androidx.compose.foundation.Image(
                     painter = painterResource(R.drawable.vybe_logo_foreground),

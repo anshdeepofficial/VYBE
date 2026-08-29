@@ -32,6 +32,18 @@ private data class ChangelogRelease(
 
 private val VybeChangelog = listOf(
     ChangelogRelease(
+        version = "0.9.1",
+        date = "29 August 2026",
+        changes = listOf(
+            "Quick Picks: Added complete long-press song actions.",
+            "Branding: Refined About and Home logo sizing and alignment.",
+            "Logo modes: Added Restart now and Restart later after changing appearance.",
+            "Splash: Corrected light and dark logo contrast.",
+            "Profile: Removed unused empty sheet space.",
+            "Accounts: Added clearer YouTube Music sync coverage and a dedicated sync action."
+        )
+    ),
+    ChangelogRelease(
         version = "0.8.6",
         date = "28 August 2026",
         changes = listOf(

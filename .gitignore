@@ -4,6 +4,7 @@ hs_err_pid*.log
 *.salive
 *.apk
 *.aab
+*.ipa
 **.jks
 **.p12
 **.keystore
@@ -40,6 +41,11 @@ wear/build/
 wear/release/
 shared/build/
 baselineprofile/build/
+iosApp/build/
+iosApp/DerivedData/
+iosApp/*.xcarchive/
+iosApp/**/*.xcuserstate
+iosApp/**/xcuserdata/
 
 misc.xml
 CLAUDE.md

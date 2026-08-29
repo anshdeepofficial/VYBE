@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string-array name="changelog_091_added">
+        <item>Added complete Quick Picks long-press actions for likes, downloads, queue, playlists, sharing, albums, and artists.</item>
+        <item>Added an apply-now or restart-later prompt when changing the VYBE logo mode.</item>
+    </string-array>
+    <string-array name="changelog_091_improvements">
+        <item>Refined the About, Home, splash, profile, and connected YouTube Music account presentation.</item>
+        <item>Light and dark system splash screens now use the correct contrasting logo and background.</item>
+    </string-array>
+    <string-array name="changelog_091_fixes">
+        <item>Fixed logo cropping, Home logo alignment, and excessive empty space in Profile &amp; Statistics.</item>
+        <item>Fixed logo appearance changes not offering an immediate application restart.</item>
+    </string-array>
     <string-array name="changelog_087_added">
         <item>Added selectable Light, Dark, and Dynamic VYBE logo modes.</item>
         <item>Added temporary mood playlists with optional saving and customizable mood colors.</item>

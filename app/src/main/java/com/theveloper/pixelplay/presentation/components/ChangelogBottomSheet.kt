@@ -64,6 +64,15 @@ data class ChangelogVersion(
 @Composable
 private fun changelogVersions(): List<ChangelogVersion> = listOf(
     ChangelogVersion(
+        version = "0.9.1",
+        date = "2026-08-29",
+        sections = listOf(
+            ChangelogSection(R.string.changelog_sec_added, R.array.changelog_091_added),
+            ChangelogSection(R.string.changelog_sec_improvements, R.array.changelog_091_improvements),
+            ChangelogSection(R.string.changelog_sec_fixes, R.array.changelog_091_fixes)
+        )
+    ),
+    ChangelogVersion(
         version = "0.8.7",
         date = "2026-08-28",
         sections = listOf(
