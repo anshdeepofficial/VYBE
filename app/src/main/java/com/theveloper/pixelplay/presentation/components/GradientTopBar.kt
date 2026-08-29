@@ -138,10 +138,10 @@ fun HomeGradientTopBar(
                     painter = painterResource(R.drawable.vybe_logo_foreground),
                     contentDescription = "VYBE",
                     colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(
-                        com.theveloper.pixelplay.ui.theme.vybeLogoForegroundColor()
+                        if (com.theveloper.pixelplay.ui.theme.LocalPixelPlayDarkTheme.current) Color.White else Color.Black
                     ),
                     contentScale = ContentScale.Fit,
-                    modifier = Modifier.height(44.dp).widthIn(min = 104.dp, max = 140.dp)
+                    modifier = Modifier.height(46.dp).widthIn(min = 108.dp, max = 144.dp)
                 )
             }
         },

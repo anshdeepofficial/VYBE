@@ -440,6 +440,11 @@ fun LibraryScreen(
 ) {
     // La recolección de estados de alto nivel se mantiene mínima.
     val context = LocalContext.current // Added context
+    val libraryDownloadManager = remember(context) {
+        com.theveloper.pixelplay.data.network.ytmusic.YouTubeDownloadManager.fromContext(context)
+    }
+    val libraryDownloadedSongs by libraryDownloadManager.getDownloadedSongs()
+        .collectAsStateWithLifecycle(emptyList())
     val haptic = LocalHapticFeedback.current
     val lastTabIndex by playerViewModel.lastLibraryTabIndexFlow.collectAsStateWithLifecycle()
     val onlineFavoriteSongs by playerViewModel.onlineFavoriteSongs.collectAsStateWithLifecycle()
@@ -467,6 +472,7 @@ fun LibraryScreen(
                     remoteBrowseId = song.remoteAlbumBrowseId,
                 )
             }
+            .filter { it.songCount > 1 }
     }
     val listeningHistoryArtists = remember(listeningHistorySongs) {
         listeningHistorySongs.flatMap { song ->
@@ -747,9 +753,9 @@ fun LibraryScreen(
                 LibraryTabId.ALBUMS -> isAlbumSelectionMode
                 LibraryTabId.SONGS,
                 LibraryTabId.LIKED,
-                LibraryTabId.FOLDERS -> isSelectionMode
-                LibraryTabId.ARTISTS,
-                LibraryTabId.DOWNLOADS -> false
+                LibraryTabId.FOLDERS,
+                LibraryTabId.DOWNLOADS -> isSelectionMode
+                LibraryTabId.ARTISTS -> false
             }
         }
     }
@@ -779,13 +785,13 @@ fun LibraryScreen(
 
                     LibraryTabId.SONGS,
                     LibraryTabId.LIKED,
-                    LibraryTabId.FOLDERS -> {
+                    LibraryTabId.FOLDERS,
+                    LibraryTabId.DOWNLOADS -> {
                         multiSelectionState.clearSelection()
                         showMultiSelectionSheet = false
                     }
 
-                    LibraryTabId.ARTISTS,
-                    LibraryTabId.DOWNLOADS -> Unit
+                    LibraryTabId.ARTISTS -> Unit
                 }
             }
 
@@ -965,21 +971,6 @@ fun LibraryScreen(
                                     )
                                 }
                             }
-                        }
-                        FilledIconButton(
-                            modifier = Modifier.padding(end = 14.dp),
-                            colors = IconButtonDefaults.filledIconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                            ),
-                            onClick = {
-                                navController.navigateSafely(Screen.Settings.route)
-                            }
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.rounded_settings_24),
-                                contentDescription = stringResource(R.string.library_cd_open_settings)
-                            )
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -1303,6 +1294,9 @@ fun LibraryScreen(
                                                         multiSelectionState.selectAll(songsToSelect)
                                                     }
                                                 }
+                                                LibraryTabId.DOWNLOADS -> {
+                                                    multiSelectionState.selectAll(libraryDownloadedSongs)
+                                                }
                                                 else -> Unit
                                             }
                                         },
@@ -1615,12 +1609,16 @@ fun LibraryScreen(
                                         val albumsLazyPagingItems = libraryViewModel.albumsPagingFlow.collectAsLazyPagingItems()
                                         val isLoading = playerUiState.isLoadingLibraryCategories
 
-                                        val stableOnAlbumClick: (Album) -> Unit = remember(navController) {
+                                        val stableOnAlbumClick: (Album) -> Unit = remember(navController, listeningHistoryAlbums) {
                                             { album: Album ->
+                                                val isHistoryOnly = listeningHistoryAlbums.any {
+                                                    it.id == album.id && it.title.equals(album.title, ignoreCase = true)
+                                                }
                                                 navController.navigateSafelyReplacing(
                                                     route = album.remoteBrowseId
                                                         ?.let(Screen.AlbumDetail::createRoute)
-                                                        ?: Screen.AlbumDetail.createRoute(album.id),
+                                                        ?: if (isHistoryOnly) Screen.AlbumDetail.createRoute(album.title)
+                                                        else Screen.AlbumDetail.createRoute(album.id),
                                                     patternToPop = Screen.AlbumDetail.route
                                                 )
                                             }
@@ -1656,10 +1654,14 @@ fun LibraryScreen(
                                             bottomBarHeight = bottomBarHeightDp,
                                             currentArtistSortOption = playerUiState.currentArtistSortOption,
                                             onArtistClick = { artist ->
+                                                val isHistoryOnly = listeningHistoryArtists.any {
+                                                    it.id == artist.id && it.name.equals(artist.name, ignoreCase = true)
+                                                }
                                                 navController.navigateSafelyReplacing(
                                                     route = artist.remoteBrowseId
                                                         ?.let(Screen.ArtistDetail::createRoute)
-                                                        ?: Screen.ArtistDetail.createRoute(artist.id),
+                                                        ?: if (isHistoryOnly) Screen.ArtistDetail.createRoute(artist.name)
+                                                        else Screen.ArtistDetail.createRoute(artist.id),
                                                     patternToPop = Screen.ArtistDetail.route
                                                 )
                                             },
@@ -1775,6 +1777,11 @@ fun LibraryScreen(
                                             onMoreOptionsClick = stableOnMoreOptionsClick,
                                             hasCurrentSong = hasCurrentSong,
                                             isGridView = LibraryTabId.DOWNLOADS.name in gridViewTabsCsv.split(','),
+                                            isSelectionMode = isSelectionMode,
+                                            selectedSongIds = selectedSongIds,
+                                            onSongLongPress = onSongLongPress,
+                                            onSongSelectionToggle = onSongSelectionToggle,
+                                            getSelectionIndex = playerViewModel.multiSelectionStateHolder::getSelectionIndex,
                                         )
                                     }
 
@@ -2059,8 +2066,19 @@ fun LibraryScreen(
                 playerViewModel.shareSelectedAsZip(selectedSongs)
                 showMultiSelectionSheet = false
             },
+            onDownloadAll = {
+                selectedSongs.forEach(libraryDownloadManager::enqueueDownload)
+                showMultiSelectionSheet = false
+            },
             onDeleteAll = { _, onComplete ->
-                activity?.let {
+                if (currentTabId == LibraryTabId.DOWNLOADS) {
+                    scope.launch {
+                        selectedSongs.forEach { libraryDownloadManager.deleteDownload(it.id) }
+                        multiSelectionState.clearSelection()
+                        showMultiSelectionSheet = false
+                        onComplete(true)
+                    }
+                } else activity?.let {
                     playerViewModel.deleteSelectedFromDevice(it, selectedSongs) {
                         showMultiSelectionSheet = false
                         onComplete(true)

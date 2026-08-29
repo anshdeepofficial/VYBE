@@ -1,3 +1,13 @@
+## [0.9.2] - 2026-08-29
+### Added
+- Verified VYBE App Links at `vybetune.vercel.app/watch?v=...` for exact-song sharing and direct in-app playback.
+- Added the website fallback and Android Digital Asset Links declaration for users who do not yet have VYBE installed.
+
+### Fixed
+- YouTube Music search now requests the dedicated Songs filter and ranks exact title/artist matches before loose recommendations.
+- Search requests run concurrently for faster exact and enriched results.
+- Fixed album/artist navigation, library multi-selection, daily recommendations, branded theme presentation, and account sync details.
+
 ## [0.9.0] - 2026-08-28
 ### Fixed
 - **Splash Screen Logo**: Fixed the app launch splash logo being cropped/zoomed in on open, now displayed with proper safe margins and centering.

@@ -1,4 +1,8 @@
 {
+  "rewrites": [
+    { "source": "/play", "destination": "/play.html" },
+    { "source": "/watch", "destination": "/play.html" }
+  ],
   "headers": [
     {
       "source": "/(.*)",

@@ -575,6 +575,11 @@ fun LibraryDownloadsTab(
     onMoreOptionsClick: (Song) -> Unit,
     hasCurrentSong: Boolean,
     isGridView: Boolean = false,
+    isSelectionMode: Boolean = false,
+    selectedSongIds: Set<String> = emptySet(),
+    onSongLongPress: (Song) -> Unit = {},
+    onSongSelectionToggle: (Song) -> Unit = {},
+    getSelectionIndex: (String) -> Int? = { null },
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val downloadManager = remember {
@@ -624,6 +629,10 @@ fun LibraryDownloadsTab(
                             onClick = {
                                 playerViewModel.showAndPlaySong(song, downloadedSongs, "Downloads")
                             },
+                            isSelected = selectedSongIds.contains(song.id),
+                            isSelectionMode = isSelectionMode,
+                            onLongPress = { onSongLongPress(song) },
+                            onSelectionToggle = { onSongSelectionToggle(song) },
                         )
                     }
                 }
@@ -684,16 +693,17 @@ fun LibraryDownloadsTab(
                         song = song,
                         playerViewModel = playerViewModel,
                         onMoreOptionsClick = { onMoreOptionsClick(song) },
-                        isSelected = false,
-                        selectionIndex = null,
-                        isSelectionMode = false,
-                        onLongPress = { onMoreOptionsClick(song) },
+                        isSelected = selectedSongIds.contains(song.id),
+                        selectionIndex = if (isSelectionMode) getSelectionIndex(song.id) else null,
+                        isSelectionMode = isSelectionMode,
+                        onLongPress = { onSongLongPress(song) },
                         onClick = {
-                            playerViewModel.showAndPlaySong(
-                                song = song,
-                                contextSongs = downloadedSongs,
-                                queueName = "Downloads"
-                            )
+                            if (isSelectionMode) onSongSelectionToggle(song)
+                            else playerViewModel.showAndPlaySong(
+                                    song = song,
+                                    contextSongs = downloadedSongs,
+                                    queueName = "Downloads"
+                                )
                         }
                     )
                 }

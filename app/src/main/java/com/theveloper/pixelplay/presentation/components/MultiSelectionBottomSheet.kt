@@ -30,6 +30,7 @@ import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
@@ -105,6 +106,7 @@ fun MultiSelectionBottomSheet(
     onAddToPlaylist: () -> Unit,
     onToggleLikeAll: (shouldLike: Boolean) -> Unit,
     onShareAll: () -> Unit,
+    onDownloadAll: () -> Unit = {},
     onDeleteAll: (activity: Activity, onResult: (Boolean) -> Unit) -> Unit,
     onBatchEdit: () -> Unit
 ) {
@@ -331,6 +333,21 @@ fun MultiSelectionBottomSheet(
                                     contentDescription = stringResource(R.string.song_info_cd_share_all_as_zip)
                                 )
                             }
+                        }
+                    }
+
+                    item {
+                        FilledTonalButton(
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 62.dp),
+                            shape = buttonShape,
+                            onClick = {
+                                onDownloadAll()
+                                onDismiss()
+                            }
+                        ) {
+                            Icon(Icons.Rounded.Download, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Download selected")
                         }
                     }
                     

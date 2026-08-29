@@ -425,8 +425,7 @@ class MainActivity : ComponentActivity() {
             }
 
             intent.action == android.content.Intent.ACTION_VIEW &&
-                ((intent.data?.scheme == "vybe" && intent.data?.host == "play") ||
-                 (intent.data?.scheme == "https" && intent.data?.host == "anshdeepofficial.github.io" && intent.data?.path?.startsWith("/VYBE/play") == true)) -> {
+                intent.data?.let(com.theveloper.pixelplay.data.sharing.VybeSongShareLink::parse) != null -> {
                 intent.data?.let(playerViewModel::playSharedVybeLink)
                 clearExternalIntentPayload(intent)
             }

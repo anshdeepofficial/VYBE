@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.vybe.musicplayer",
+      "sha256_cert_fingerprints": [
+        "E2:8E:17:36:11:62:44:BD:D3:BF:2E:3E:4F:AA:0B:C1:1C:7B:A9:FB:73:38:E6:2F:7C:95:40:F9:63:F3:F0:84"
+      ]
+    }
+  }
+]

@@ -25,6 +25,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import org.json.JSONObject
 
+data class YouTubeLibraryStats(
+    val library: Int = 0,
+    val liked: Int = 0,
+    val playlists: Int = 0,
+    val history: Int = 0,
+)
+
 enum class YouTubeSyncState {
     IDLE,
     SYNCING,
@@ -68,6 +75,8 @@ class YouTubeAccountManager @Inject constructor(
 
     private val _syncedCountFlow = MutableStateFlow(0)
     val syncedCountFlow: StateFlow<Int> = _syncedCountFlow.asStateFlow()
+    private val _libraryStatsFlow = MutableStateFlow(YouTubeLibraryStats())
+    val libraryStatsFlow: StateFlow<YouTubeLibraryStats> = _libraryStatsFlow.asStateFlow()
 
     private val _syncEnabledPlaylistIds = MutableStateFlow<Set<String>>(emptySet())
     val syncEnabledPlaylistIds: StateFlow<Set<String>> = _syncEnabledPlaylistIds.asStateFlow()
@@ -103,6 +112,7 @@ class YouTubeAccountManager @Inject constructor(
         _interestLabelsFlow.value = emptyList()
         _syncStateFlow.value = YouTubeSyncState.IDLE
         _syncedCountFlow.value = 0
+        _libraryStatsFlow.value = YouTubeLibraryStats()
     }
 
     fun syncLibrary() {
@@ -367,6 +377,12 @@ class YouTubeAccountManager @Inject constructor(
             )
         }
         _syncedCountFlow.value = allTracks.size
+        _libraryStatsFlow.value = YouTubeLibraryStats(
+            library = allTracks.size,
+            liked = snapshot.likedSongs.distinctBy { it.videoId }.size,
+            playlists = snapshot.playlists.size,
+            history = snapshot.recentHistory.distinctBy { it.videoId }.size,
+        )
         updateInterestLabels(snapshot)
         refreshEnabledPlaylistIds(playlistRepository.getPlaylistsOnce())
     }

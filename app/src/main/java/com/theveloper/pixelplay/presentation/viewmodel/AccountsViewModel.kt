@@ -33,7 +33,11 @@ data class ExternalAccountUiModel(
     val title: String,
     val accountLabel: String,
     val syncedContentLabel: String,
-    val isLoggingOut: Boolean
+    val isLoggingOut: Boolean,
+    val libraryCount: Int = 0,
+    val likedCount: Int = 0,
+    val playlistCount: Int = 0,
+    val historyCount: Int = 0,
 )
 
 data class AccountsUiState(
@@ -72,8 +76,9 @@ class AccountsViewModel @Inject constructor(
     val uiState: StateFlow<AccountsUiState> = combine(
         youTubeAccountManager.isLoggedInFlow,
         youTubeAccountManager.syncedCountFlow,
+        youTubeAccountManager.libraryStatsFlow,
         loggingOutServices
-    ) { youTubeConnected, youTubeSyncedCount, activeLogouts ->
+    ) { youTubeConnected, youTubeSyncedCount, stats, activeLogouts ->
         val connectedAccounts = buildList {
             if (youTubeConnected) {
                 add(
@@ -86,7 +91,11 @@ class AccountsViewModel @Inject constructor(
                             singular = "synced track",
                             plural = "synced tracks"
                         ),
-                        isLoggingOut = ExternalServiceAccount.YOUTUBE_MUSIC in activeLogouts
+                        isLoggingOut = ExternalServiceAccount.YOUTUBE_MUSIC in activeLogouts,
+                        libraryCount = stats.library,
+                        likedCount = stats.liked,
+                        playlistCount = stats.playlists,
+                        historyCount = stats.history,
                     )
                 )
             }

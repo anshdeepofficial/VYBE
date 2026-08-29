@@ -32,6 +32,17 @@ private data class ChangelogRelease(
 
 private val VybeChangelog = listOf(
     ChangelogRelease(
+        version = "0.9.2",
+        date = "29 August 2026",
+        changes = listOf(
+            "Sharing: Added verified VYBE links that preserve the exact YouTube Music song ID.",
+            "Search: Exact song and artist matches now rank ahead of loosely related results.",
+            "Performance: Exact and enriched YouTube Music searches now run concurrently.",
+            "Library: Refined multi-selection, albums, artists and navigation behavior.",
+            "Personalization: Improved daily recommendations and YouTube Music sync details."
+        )
+    ),
+    ChangelogRelease(
         version = "0.9.1",
         date = "29 August 2026",
         changes = listOf(

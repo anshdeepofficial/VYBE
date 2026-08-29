@@ -240,7 +240,11 @@ fun SearchScreen(
             .distinctUntilChanged()
     }.collectAsStateWithLifecycle(initialValue = SearchUiSlice())
     val currentFilter = searchUiState.selectedSearchFilter
-    val genres by playerViewModel.genres.collectAsStateWithLifecycle()
+    val sourceGenres by playerViewModel.genres.collectAsStateWithLifecycle()
+    val discoveryDay = remember { java.time.LocalDate.now().toEpochDay() }
+    val genres = remember(sourceGenres, discoveryDay) {
+        sourceGenres.shuffled(kotlin.random.Random(discoveryDay))
+    }
     val stablePlayerState by playerViewModel.stablePlayerState.collectAsStateWithLifecycle()
     val favoriteSongIds by playerViewModel.favoriteSongIds.collectAsStateWithLifecycle()
     val selectedSongForInfo by playerViewModel.selectedSongForInfo.collectAsStateWithLifecycle()

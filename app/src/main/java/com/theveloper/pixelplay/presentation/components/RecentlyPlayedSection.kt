@@ -82,28 +82,6 @@ fun RecentlyPlayedSection(
     val visibleSongs = remember(songs) { songs.take(HomeRecentlyPlayedPillsLimit) }
     if (visibleSongs.size < RecentlyPlayedSectionMinSongsToShow) return
 
-    val layoutDirection = LocalLayoutDirection.current
-    val startContentPadding = remember(contentPadding, layoutDirection) {
-        contentPadding.calculateLeftPadding(layoutDirection)
-    }
-    val endContentPadding = remember(contentPadding, layoutDirection) {
-        contentPadding.calculateRightPadding(layoutDirection)
-    }
-    val songRows = remember(visibleSongs, startContentPadding, endContentPadding) {
-        buildRecentlyPlayedPillRows(
-            visibleSongs = visibleSongs,
-            startContentPadding = startContentPadding,
-            endContentPadding = endContentPadding
-        )
-    }
-    val maxRowContentWidth = remember(songRows) {
-        songRows.maxOfOrNull { it.contentWidth } ?: 0.dp
-    }
-    val sharedScrollState = rememberScrollState()
-
-    val sectionHeight = HomeRecentlyPlayedPillHeight * HomeRecentlyPlayedPillsPerColumn +
-            HomeRecentlyPlayedPillSpacing * (HomeRecentlyPlayedPillsPerColumn - 1)
-
     Column(
         modifier = modifier
             .fillMaxWidth(),
@@ -141,54 +119,19 @@ fun RecentlyPlayedSection(
             }
         }
 
-        // Exactly three stacked rows (staggered look with variable-width pills).
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = sectionHeight)
-                .horizontalScroll(state = sharedScrollState)
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(contentPadding),
+            verticalArrangement = Arrangement.spacedBy(HomeRecentlyPlayedPillSpacing)
         ) {
-            Column(
-                modifier = Modifier
-                    .width(maxRowContentWidth)
-                    .height(sectionHeight),
-                verticalArrangement = Arrangement.spacedBy(HomeRecentlyPlayedPillSpacing),
-                horizontalAlignment = Alignment.Start
-            ) {
-                songRows.forEach { row ->
-                    if (row.pills.isEmpty()) {
-                        Spacer(modifier = Modifier.height(HomeRecentlyPlayedPillHeight))
-                    } else {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(HomeRecentlyPlayedPillHeight),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(HomeRecentlyPlayedPillSpacing)
-                        ) {
-                            if (startContentPadding > 0.dp) {
-                                Spacer(modifier = Modifier.width(startContentPadding))
-                            }
-                            row.pills.forEach { cell ->
-                                key(cell.item.song.id) {
-                                    RecentlyPlayedPill(
-                                        item = cell.item,
-                                        isCurrentSong = currentSongId == cell.item.song.id,
-                                        themeStateHolder = themeStateHolder,
-                                        modifier = Modifier.width(cell.width),
-                                        onClick = { onSongClick(cell.item.song) }
-                                    )
-                                }
-                            }
-                            if (endContentPadding > 0.dp) {
-                                Spacer(modifier = Modifier.width(endContentPadding))
-                            }
-                            val trailingGap = (maxRowContentWidth - row.contentWidth).coerceAtLeast(0.dp)
-                            if (trailingGap > 0.dp) {
-                                Spacer(modifier = Modifier.width(trailingGap))
-                            }
-                        }
-                    }
+            visibleSongs.take(8).forEach { item ->
+                key(item.song.id) {
+                    RecentlyPlayedPill(
+                        item = item,
+                        isCurrentSong = currentSongId == item.song.id,
+                        themeStateHolder = themeStateHolder,
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { onSongClick(item.song) }
+                    )
                 }
             }
         }

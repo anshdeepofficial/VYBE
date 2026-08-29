@@ -480,10 +480,9 @@ fun ExpressiveCategoryItem(
     }
 }
 
-private fun getAccountsColors(isDark: Boolean): Pair<Color, Color> {
-    // Return a deeply saturated container color, and white/bright icon tint for high contrast
-    return Color(0xFF311B92) to Color(0xFFFFFFFF) // Deep Purple 900
-}
+@Composable
+private fun getAccountsColors(isDark: Boolean): Pair<Color, Color> =
+    minimalCategoryColors(isDark, 0.10f)
 
 @Composable
 fun ExpressiveSettingsGroup(content: @Composable () -> Unit) {
@@ -497,20 +496,20 @@ fun ExpressiveSettingsGroup(content: @Composable () -> Unit) {
     }
 }
 
+@Composable
 private fun getCategoryColors(category: SettingsCategory, isDark: Boolean): Pair<Color, Color> {
-    // Return a deeply saturated container color, and white/bright icon tint for high contrast
-    return when (category) {
-        SettingsCategory.LIBRARY -> Color(0xFF003366) to Color(0xFFFFFFFF) // Navy
-        SettingsCategory.APPEARANCE -> Color(0xFF4A0E4E) to Color(0xFFFFFFFF) // Deep Purple
-        SettingsCategory.PLAYBACK -> Color(0xFF800020) to Color(0xFFFFFFFF) // Burgundy
-        SettingsCategory.BEHAVIOR -> Color(0xFF004D40) to Color(0xFFFFFFFF) // Saturated Teal
-        SettingsCategory.AI_INTEGRATION -> Color(0xFF006064) to Color(0xFFFFFFFF) // Deep Cyan
-        SettingsCategory.BACKUP_RESTORE -> Color(0xFF3E2723) to Color(0xFFFFFFFF) // Dark Espresso
-        SettingsCategory.DEVELOPER -> Color(0xFF1B5E20) to Color(0xFFFFFFFF) // Forest Green
-        SettingsCategory.EQUALIZER -> Color(0xFFE65100) to Color(0xFFFFFFFF) // Dark Amber/Orange
-        SettingsCategory.DEVICE_CAPABILITIES -> Color(0xFF0D47A1) to Color(0xFFFFFFFF) // Deep Blue
-        SettingsCategory.ABOUT -> Color(0xFF212121) to Color(0xFFFFFFFF) // Graphite
-        // Fallback for any new category, e.g., Artist Recommendations
-        else -> Color(0xFF4A148C) to Color(0xFFFFFFFF) // Dark Violet
-    }
+    val variation = (category.ordinal % 3) * 0.025f
+    return minimalCategoryColors(isDark, 0.08f + variation)
+}
+
+@Composable
+private fun minimalCategoryColors(isDark: Boolean, shade: Float): Pair<Color, Color> {
+    // Material colors already follow the current artwork-derived app palette.
+    val scheme = MaterialTheme.colorScheme
+    val container = androidx.compose.ui.graphics.lerp(
+        scheme.surfaceContainerHigh,
+        scheme.primary,
+        if (isDark) shade * 0.75f else shade
+    )
+    return container to scheme.onSurface
 }

@@ -683,17 +683,19 @@ fun SettingsCategoryScreen(
                                     trailingIcon = { Icon(Icons.Rounded.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                                     onClick = { navController.navigateSafely(Screen.PaletteStyle.route) }
                                 )
-                                ThemeSelectorItem(
-                                    label = stringResource(R.string.settings_carousel_style_title),
-                                    description = stringResource(R.string.settings_carousel_style_subtitle),
-                                    options = mapOf(
-                                        CarouselStyle.NO_PEEK to stringResource(R.string.settings_carousel_no_peek),
-                                        CarouselStyle.ONE_PEEK to stringResource(R.string.settings_carousel_one_peek)
-                                    ),
-                                    selectedKey = uiState.carouselStyle,
-                                    onSelectionChanged = { settingsViewModel.setCarouselStyle(it) },
-                                    leadingIcon = { Icon(painterResource(R.drawable.rounded_view_carousel_24), null, tint = MaterialTheme.colorScheme.secondary) }
-                                )
+                                if (!uiState.immersiveArtworkEnabled) {
+                                    ThemeSelectorItem(
+                                        label = stringResource(R.string.settings_carousel_style_title),
+                                        description = stringResource(R.string.settings_carousel_style_subtitle),
+                                        options = mapOf(
+                                            CarouselStyle.NO_PEEK to stringResource(R.string.settings_carousel_no_peek),
+                                            CarouselStyle.ONE_PEEK to stringResource(R.string.settings_carousel_one_peek)
+                                        ),
+                                        selectedKey = uiState.carouselStyle,
+                                        onSelectionChanged = { settingsViewModel.setCarouselStyle(it) },
+                                        leadingIcon = { Icon(painterResource(R.drawable.rounded_view_carousel_24), null, tint = MaterialTheme.colorScheme.secondary) }
+                                    )
+                                }
                                 SwitchSettingItem(
                                     title = stringResource(R.string.settings_immersive_artwork_title),
                                     subtitle = stringResource(R.string.settings_immersive_artwork_subtitle),

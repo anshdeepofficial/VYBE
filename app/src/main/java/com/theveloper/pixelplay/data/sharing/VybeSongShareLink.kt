@@ -15,18 +15,22 @@ data class SharedVybeSong(
 )
 
 object VybeSongShareLink {
-    private const val VYBE_DOMAIN = "vybe.app"
+    private const val VYBE_HOST = "vybetune.vercel.app"
     
     fun build(song: Song): Uri {
         val portableId = song.id.takeIf(::isPortableProviderId)
         if (portableId != null) {
-            val cleanId = portableId.removePrefix("yt_")
-            return Uri.Builder()
+            val builder = Uri.Builder()
                 .scheme("https")
-                .authority("music.$VYBE_DOMAIN")
-                .appendPath("watch")
-                .appendQueryParameter("v", cleanId)
-                .build()
+                .authority(VYBE_HOST)
+            if (portableId.startsWith("yt_")) {
+                builder.appendPath("watch")
+                    .appendQueryParameter("v", portableId.removePrefix("yt_"))
+            } else {
+                builder.appendPath("play")
+                    .appendQueryParameter("id", portableId)
+            }
+            return builder.build()
         }
         
         // Fallback for non-portable IDs
@@ -45,11 +49,17 @@ object VybeSongShareLink {
     }
 
     fun parse(uri: Uri): SharedVybeSong? {
-        // Parse new https://music.vybe.app/watch?v=ID links
-        if ((uri.scheme == "http" || uri.scheme == "https") && uri.host == "music.$VYBE_DOMAIN" && uri.path?.contains("/watch") == true) {
-            val id = uri.getQueryParameter("v")?.take(100)
-            if (id != null) {
-                return SharedVybeSong(providerId = "yt_$id")
+        // Current website link plus legacy links already shared by older builds.
+        val isWebLink = (uri.scheme == "http" || uri.scheme == "https") && (
+            (uri.host == VYBE_HOST && (uri.path == "/play" || uri.path == "/watch")) ||
+                (uri.host == "music.vybe.app" && uri.path?.contains("/watch") == true) ||
+                (uri.host == "anshdeepofficial.github.io" && uri.path?.startsWith("/VYBE/play") == true)
+            )
+        if (isWebLink) {
+            val portableId = uri.getQueryParameter("id")?.take(100)?.takeIf(::isPortableProviderId)
+                ?: uri.getQueryParameter("v")?.take(100)?.let { "yt_$it" }
+            if (portableId != null) {
+                return SharedVybeSong(providerId = portableId)
             }
         }
         

@@ -1006,14 +1006,14 @@ private fun YouTubeMusicHomeRow(
             return@Column
         }
 
-        androidx.compose.foundation.lazy.LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(songs.take(15), key = { it.id }) { song ->
+            songs.take(8).forEach { song ->
                 Card(
                     modifier = Modifier
-                        .width(140.dp)
+                        .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
                         .combinedClickable(
                             onClick = {
@@ -1028,16 +1028,16 @@ private fun YouTubeMusicHomeRow(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
                     )
                 ) {
-                    Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         AsyncImage(
                             model = song.albumArtUriString,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
-                                .size(140.dp)
-                                .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                                .size(68.dp)
+                                .clip(RoundedCornerShape(16.dp))
                         )
-                        Column(modifier = Modifier.padding(10.dp)) {
+                        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp).weight(1f)) {
                             Text(
                                 text = song.title,
                                 maxLines = 1,
@@ -1113,7 +1113,6 @@ fun MoodsSection(
     onMoodClick: (String) -> Unit
 ) {
     var colorMood by remember { mutableStateOf<String?>(null) }
-    val scrollState = rememberScrollState()
     val visibleMoods = remember(moods) { moods.take(12) }
     Column(modifier = Modifier.padding(bottom = 8.dp)) {
         Text(
@@ -1122,23 +1121,26 @@ fun MoodsSection(
             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
-        Column(
-            modifier = Modifier.fillMaxWidth().horizontalScroll(scrollState).padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            repeat(3) { rowIndex ->
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    visibleMoods.filterIndexed { index, _ -> index % 3 == rowIndex }.forEach { mood ->
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            visibleMoods.chunked(2).forEach { moodRow ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    moodRow.forEach { mood ->
                         val stored = moodColors[mood.lowercase()]
                         val fallback = moodDefaultColor(mood)
                         val background = Color((stored ?: fallback.toLong()).toInt())
                         Surface(
-                            color = background,
+                            color = Color.Transparent,
                             contentColor = if (androidx.core.graphics.ColorUtils.calculateLuminance(background.toArgb()) > 0.5) Color.Black else Color.White,
                             shape = RoundedCornerShape(18.dp),
                             modifier = Modifier
                                 .height(56.dp)
-                                .width(168.dp)
+                                .weight(1f)
+                                .background(
+                                    Brush.linearGradient(
+                                        listOf(background, background.copy(alpha = 0.68f), Color.Black.copy(alpha = 0.16f))
+                                    ),
+                                    RoundedCornerShape(18.dp)
+                                )
                                 .pointerInput(mood) {
                                     detectTapGestures(
                                         onTap = { onMoodClick(mood) },
@@ -1146,7 +1148,7 @@ fun MoodsSection(
                                     )
                                 }
                         ) {
-                            Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Row(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Rounded.MusicNote, null, modifier = Modifier.size(20.dp))
                                 Spacer(Modifier.width(10.dp))
                                 Text(mood, fontWeight = FontWeight.SemiBold, maxLines = 1)

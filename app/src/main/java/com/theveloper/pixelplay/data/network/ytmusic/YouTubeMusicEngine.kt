@@ -23,6 +23,13 @@ class YouTubeMusicEngine @Inject constructor(
     private val okHttpClient: OkHttpClient,
     private val newPipeStreamResolver: NewPipeStreamResolver
 ) {
+    private data class StructuredSearchBuckets(
+        val songs: List<Song>,
+        val albums: List<YouTubeAlbum>,
+        val artists: List<YouTubeArtist>,
+        val videos: List<Song>,
+    )
+
     companion object {
         private const val TAG = "YouTubeMusicEngine"
         private const val INNERTUBE_MUSIC_BASE = "https://music.youtube.com/youtubei/v1"
@@ -64,6 +71,7 @@ class YouTubeMusicEngine @Inject constructor(
         )
         private const val SEARCH_FILTER_ALBUMS = "EgWKAQIYAWoSEAMQBBAKEAUQCRAOEBAQFRAR"
         private const val SEARCH_FILTER_ARTISTS = "EgWKAQIgAWoSEAMQBBAKEAUQCRAOEBAQFRAR"
+        private const val SEARCH_FILTER_SONGS = "EgWKAQIIAWoKEAkQBRAKEAMQBA%3D%3D"
     }
 
     private val streamUrlCache = ConcurrentHashMap<String, Pair<String, Long>>()
@@ -106,15 +114,44 @@ class YouTubeMusicEngine @Inject constructor(
         val artists = mutableListOf<YouTubeArtist>()
         val videos = mutableListOf<Song>()
 
-        // A mixed WEB_REMIX response already contains songs, albums and artists. Keep
-        // interactive search to one bounded request; sequential filtered retries made a
-        // single query take minutes on mobile connections and then appear empty.
-        searchStructuredEndpoint(cleanQuery, region, songs, albums, artists, videos)
+        // Fetch exact song results and the mixed summary concurrently. The filtered
+        // endpoint prevents similarly named uploads from outranking the real song,
+        // while parallel execution keeps the search latency bounded.
+        coroutineScope {
+            val exactSongs = async(Dispatchers.IO) {
+                mutableListOf<Song>().also { filtered ->
+                    searchStructuredEndpoint(
+                        cleanQuery,
+                        region,
+                        filtered,
+                        mutableListOf(),
+                        mutableListOf(),
+                        mutableListOf(),
+                        SEARCH_FILTER_SONGS,
+                    )
+                }
+            }
+            val mixedResults = async(Dispatchers.IO) {
+                val mixedSongs = mutableListOf<Song>()
+                val mixedAlbums = mutableListOf<YouTubeAlbum>()
+                val mixedArtists = mutableListOf<YouTubeArtist>()
+                val mixedVideos = mutableListOf<Song>()
+                searchStructuredEndpoint(cleanQuery, region, mixedSongs, mixedAlbums, mixedArtists, mixedVideos)
+                StructuredSearchBuckets(mixedSongs, mixedAlbums, mixedArtists, mixedVideos)
+            }
+            songs += exactSongs.await()
+            val mixed = mixedResults.await()
+            songs += mixed.songs
+            albums += mixed.albums
+            artists += mixed.artists
+            videos += mixed.videos
+        }
 
         // Filter out non-music items from songs
         val filteredSongs = songs
             .filter(::isMusicOnlySong)
             .distinctBy { it.id }
+            .sortedByDescending { searchRelevanceScore(cleanQuery, it) }
             
         val distinctVideos = videos.distinctBy { it.id }
 
@@ -1778,6 +1815,24 @@ class YouTubeMusicEngine @Inject constructor(
             .count { token -> token in title || token in artist } * 8
         return exactTitle + tokenCoverage + (if (track.isOfficial) 35 else 0) +
             (if (track.resultType == YouTubeMusicEntityType.SONG) 10 else 0)
+    }
+
+    private fun searchRelevanceScore(query: String, song: Song): Int {
+        val wanted = normalizeSearchText(query)
+        val title = normalizeSearchText(song.title)
+        val artist = normalizeSearchText(song.displayArtist)
+        val exactTitle = when {
+            title == wanted -> 1_000
+            title.startsWith(wanted) -> 750
+            title.contains(wanted) -> 550
+            wanted.startsWith(title) && title.length >= 4 -> 400
+            else -> 0
+        }
+        val tokens = wanted.split(' ').filter { it.length > 1 }
+        val coverage = tokens.count { it in title || it in artist } * 45
+        val missingPenalty = tokens.count { it !in title && it !in artist } * 60
+        val providerBonus = if (song.id.startsWith("yt_")) 80 else 0
+        return exactTitle + coverage + providerBonus - missingPenalty
     }
 
     private fun normalizeSearchText(value: String): String = value.lowercase()

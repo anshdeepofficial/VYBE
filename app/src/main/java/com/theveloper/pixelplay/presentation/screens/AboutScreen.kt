@@ -73,6 +73,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
@@ -465,12 +466,14 @@ private fun AboutHeroCard(
                 ) {
                     Surface(
                         shape = CircleShape,
-                        color = com.theveloper.pixelplay.ui.theme.vybeLogoBackgroundColor(),
+                        color = if (com.theveloper.pixelplay.ui.theme.LocalPixelPlayDarkTheme.current) Color.Black else Color.White,
                     ) {
                         androidx.compose.foundation.Image(
                             painter = painterResource(R.drawable.vybe_logo_foreground),
                             contentDescription = null,
-                            colorFilter = ColorFilter.tint(com.theveloper.pixelplay.ui.theme.vybeLogoForegroundColor()),
+                            colorFilter = ColorFilter.tint(
+                                if (com.theveloper.pixelplay.ui.theme.LocalPixelPlayDarkTheme.current) Color.White else Color.Black
+                            ),
                             contentScale = ContentScale.Fit,
                             modifier = Modifier.padding(6.dp).size(40.dp),
                         )

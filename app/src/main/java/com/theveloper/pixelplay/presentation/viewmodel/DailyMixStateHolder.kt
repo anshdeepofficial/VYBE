@@ -157,8 +157,11 @@ class DailyMixStateHolder @Inject constructor(
                 _yourMixSongs.value = yourMix.toImmutableList()
                 userPreferencesRepository.saveYourMixSongIds(yourMix.map { it.id })
 
+                val daySeed = java.time.LocalDate.now().toEpochDay()
                 _quickPickSongs.value = dailyMixManager
-                    .getTopCandidatesForAi(candidateSongs, favoriteIds, limit = 15)
+                    .getTopCandidatesForAi(candidateSongs, favoriteIds, limit = 45)
+                    .shuffled(kotlin.random.Random(daySeed))
+                    .take(15)
                     .toImmutableList()
             } else {
                 _yourMixSongs.value = persistentListOf()

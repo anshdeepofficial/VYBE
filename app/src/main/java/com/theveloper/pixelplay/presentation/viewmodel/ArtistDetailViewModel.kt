@@ -106,17 +106,28 @@ class ArtistDetailViewModel @Inject constructor(
         currentLoadJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
-                val profile = withTimeoutOrNull(ARTIST_PROFILE_TIMEOUT_MS) {
+                val directProfile = withTimeoutOrNull(ARTIST_PROFILE_TIMEOUT_MS) {
                     onlineMusicRepository.getArtistProfile(browseId)
+                }
+                val matchedArtist = if (directProfile == null) {
+                    withTimeoutOrNull(ARTIST_PROFILE_TIMEOUT_MS) {
+                        onlineMusicRepository.searchMusicStructured(browseId).artists
+                            .firstOrNull { it.name.equals(browseId, ignoreCase = true) }
+                            ?: onlineMusicRepository.searchMusicStructured(browseId).artists.firstOrNull()
+                    }
+                } else null
+                val resolvedBrowseId = matchedArtist?.browseId ?: browseId
+                val profile = directProfile ?: withTimeoutOrNull(ARTIST_PROFILE_TIMEOUT_MS) {
+                    matchedArtist?.let { onlineMusicRepository.getArtistProfile(it.browseId) }
                 }
                 if (profile != null) {
                     val artist = Artist(
-                        id = browseId.hashCode().toLong(),
+                        id = resolvedBrowseId.hashCode().toLong(),
                         name = profile.name,
                         songCount = profile.topSongs.size,
                         imageUrl = profile.avatarUrl ?: profile.bannerUrl,
                         customImageUri = null,
-                        remoteBrowseId = browseId,
+                        remoteBrowseId = resolvedBrowseId,
                     )
                     val effectiveUrl = profile.bannerUrl ?: profile.avatarUrl
                     _uiState.value = ArtistDetailUiState(
@@ -129,7 +140,7 @@ class ArtistDetailViewModel @Inject constructor(
                     )
                     warmArtistPalette(effectiveUrl)
                     currentEnrichmentJob = launch {
-                        loadOnlineDiscography(browseId, profile, emptyList())
+                        loadOnlineDiscography(resolvedBrowseId, profile, emptyList())
                     }
                 } else {
                     _uiState.value = ArtistDetailUiState(

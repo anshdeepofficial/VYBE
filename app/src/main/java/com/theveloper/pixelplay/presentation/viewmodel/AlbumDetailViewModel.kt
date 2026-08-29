@@ -55,7 +55,15 @@ class AlbumDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
-                val details = onlineMusicRepository.getAlbumDetails(browseId)
+                val directDetails = runCatching { onlineMusicRepository.getAlbumDetails(browseId) }.getOrNull()
+                val matchedAlbum = if (directDetails == null) {
+                    onlineMusicRepository.searchMusicStructured(browseId).albums
+                        .firstOrNull { it.title.equals(browseId, ignoreCase = true) }
+                        ?: onlineMusicRepository.searchMusicStructured(browseId).albums.firstOrNull()
+                } else null
+                val resolvedBrowseId = matchedAlbum?.browseId ?: browseId
+                val details = directDetails
+                    ?: matchedAlbum?.let { onlineMusicRepository.getAlbumDetails(it.browseId) }
                 if (details != null) {
                     val resolvedCover = details.coverUrl
                         ?: details.tracks.firstNotNullOfOrNull { it.albumArtUriString?.takeIf(String::isNotBlank) }
@@ -74,14 +82,15 @@ class AlbumDetailViewModel @Inject constructor(
                         )
                     }
                     val album = Album(
-                        id = browseId.hashCode().toLong(),
+                        id = resolvedBrowseId.hashCode().toLong(),
                         title = resolvedTitle,
                         artist = resolvedArtist,
                         year = details.year ?: 0,
                         dateAdded = System.currentTimeMillis(),
                         albumArtUriString = resolvedCover,
                         songCount = resolvedTracks.size,
-                        albumArtist = resolvedArtist
+                        albumArtist = resolvedArtist,
+                        remoteBrowseId = resolvedBrowseId,
                     )
                     _uiState.value = AlbumDetailUiState(
                         album = album,

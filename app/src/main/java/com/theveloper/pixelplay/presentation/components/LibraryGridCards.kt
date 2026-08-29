@@ -1,5 +1,8 @@
 package com.theveloper.pixelplay.presentation.components
 
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.border
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -27,15 +30,26 @@ import com.theveloper.pixelplay.data.model.Artist
 import com.theveloper.pixelplay.data.model.Playlist
 import com.theveloper.pixelplay.data.model.Song
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LibrarySongGridCard(
     song: Song,
     onClick: () -> Unit,
     progress: Int? = null,
     progressLabel: String? = null,
+    isSelected: Boolean = false,
+    isSelectionMode: Boolean = false,
+    onLongPress: () -> Unit = {},
+    onSelectionToggle: () -> Unit = {},
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (isSelected) Modifier.border(3.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(18.dp)) else Modifier)
+            .combinedClickable(
+                onClick = { if (isSelectionMode) onSelectionToggle() else onClick() },
+                onLongClick = onLongPress,
+            ),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {

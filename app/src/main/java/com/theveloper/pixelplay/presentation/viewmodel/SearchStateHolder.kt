@@ -164,9 +164,9 @@ class SearchStateHolder @Inject constructor(
                                 .distinctBy(::searchResultKey)
                         }
 
-                        // Sort: prioritize Song/Album matches over Artist/Playlist matches.
+                        // Rank exact title/artist matches first inside each media type.
                         val sortedResults = resultsList.sortedWith(
-                            compareBy { result ->
+                            compareBy<SearchResultItem> { result ->
                                 when (result) {
                                     is SearchResultItem.SongItem -> 0
                                     is SearchResultItem.VideoItem -> 1
@@ -174,7 +174,7 @@ class SearchStateHolder @Inject constructor(
                                     is SearchResultItem.ArtistItem -> 3
                                     is SearchResultItem.PlaylistItem -> 4
                                 }
-                            }
+                            }.thenByDescending { result -> searchResultRelevance(normalizedQuery, result) }
                         )
 
                         if (request.requestId != latestSearchRequestId.get()) {
@@ -285,4 +285,32 @@ class SearchStateHolder @Inject constructor(
         is SearchResultItem.ArtistItem -> "artist:${result.artist.remoteBrowseId ?: result.artist.id}"
         is SearchResultItem.PlaylistItem -> "playlist:${result.playlist.id}"
     }
+
+    private fun searchResultRelevance(query: String, result: SearchResultItem): Int {
+        val wanted = normalizeSearchText(query)
+        val (title, subtitle, providerBonus) = when (result) {
+            is SearchResultItem.SongItem -> Triple(result.song.title, result.song.displayArtist, if (result.song.id.startsWith("yt_")) 80 else 0)
+            is SearchResultItem.VideoItem -> Triple(result.song.title, result.song.displayArtist, 20)
+            is SearchResultItem.AlbumItem -> Triple(result.album.title, result.album.artist, 0)
+            is SearchResultItem.ArtistItem -> Triple(result.artist.name, "", 0)
+            is SearchResultItem.PlaylistItem -> Triple(result.playlist.name, "", 0)
+        }
+        val normalizedTitle = normalizeSearchText(title)
+        val normalizedSubtitle = normalizeSearchText(subtitle)
+        val titleScore = when {
+            normalizedTitle == wanted -> 1_000
+            normalizedTitle.startsWith(wanted) -> 750
+            normalizedTitle.contains(wanted) -> 550
+            wanted.startsWith(normalizedTitle) && normalizedTitle.length >= 4 -> 400
+            else -> 0
+        }
+        val tokens = wanted.split(' ').filter { it.length > 1 }
+        val coverage = tokens.count { it in normalizedTitle || it in normalizedSubtitle } * 45
+        val missingPenalty = tokens.count { it !in normalizedTitle && it !in normalizedSubtitle } * 60
+        return titleScore + coverage + providerBonus - missingPenalty
+    }
+
+    private fun normalizeSearchText(value: String): String = value.lowercase()
+        .replace(Regex("[^\\p{L}\\p{N}]+"), " ")
+        .trim()
 }

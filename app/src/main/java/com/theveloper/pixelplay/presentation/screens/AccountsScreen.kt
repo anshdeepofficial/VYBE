@@ -533,12 +533,12 @@ private fun ConnectedAccountCard(
             if (account.service == ExternalServiceAccount.YOUTUBE_MUSIC) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        AccountFeaturePill("Library", Modifier.weight(1f))
-                        AccountFeaturePill("Liked music", Modifier.weight(1f))
+                        AccountFeaturePill("Library ${account.libraryCount}", Modifier.weight(1f))
+                        AccountFeaturePill("Liked ${account.likedCount}", Modifier.weight(1f))
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        AccountFeaturePill("History", Modifier.weight(1f))
-                        AccountFeaturePill("Playlists", Modifier.weight(1f))
+                        AccountFeaturePill("History ${account.historyCount}", Modifier.weight(1f))
+                        AccountFeaturePill("Playlists ${account.playlistCount}", Modifier.weight(1f))
                     }
                 }
             }

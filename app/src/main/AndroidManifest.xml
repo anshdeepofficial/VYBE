@@ -83,8 +83,19 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="vybe" android:host="play" />
+            </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="vybetune.vercel.app" android:pathPrefix="/play" />
+                <data android:scheme="https" android:host="vybetune.vercel.app" android:pathPrefix="/watch" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="music.vybe.app" android:pathPrefix="/watch" />
-                <data android:scheme="http" android:host="music.vybe.app" android:pathPrefix="/watch" />
             </intent-filter>
             <meta-data
                 android:name="android.app.shortcuts"
