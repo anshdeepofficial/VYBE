@@ -331,3 +331,77 @@ main,.footer{position:relative;z-index:2}
 .button,.icon-button,.menu-button,.quick-link,.material-fab,.phone-button{position:relative;overflow:hidden;isolation:isolate}
 .ripple{position:absolute!important;border-radius:50%;pointer-events:none;background:currentColor;opacity:.14;transform:translate(-50%,-50%) scale(0);animation:vybeRipple .56s ease-out forwards;z-index:-1}@keyframes vybeRipple{to{transform:translate(-50%,-50%) scale(5.5);opacity:0}}
 .topbar.scrolled{background:color-mix(in srgb,var(--surface) 95%,transparent);box-shadow:var(--shadow-soft)}
+
+
+/* === Clean interactive hero screenshot stack: no text overlays === */
+.hero-visual{
+  min-height:700px!important;
+  grid-template-rows:560px auto!important;
+  align-items:start!important;
+}
+.hero-stage{
+  position:relative!important;
+  width:min(100%,760px)!important;
+  height:560px!important;
+  overflow:visible!important;
+  isolation:isolate!important;
+}
+.hero-stage .phone{
+  position:absolute!important;
+  top:50%!important;
+  left:50%!important;
+  margin:0!important;
+  border:0!important;
+  cursor:pointer!important;
+  transform-origin:center!important;
+  transition:transform .38s cubic-bezier(.2,0,0,1),opacity .28s ease,filter .28s ease,box-shadow .28s ease!important;
+}
+.hero-stage .phone-main{width:258px!important;height:552px!important;z-index:4!important;transform:translate(-50%,-50%) translateY(-4px)!important}
+.hero-stage .phone-left{width:226px!important;height:486px!important;z-index:2!important;transform:translate(-50%,-50%) translate(-178px,34px) rotate(-11deg) scale(.93)!important}
+.hero-stage .phone-right{width:226px!important;height:486px!important;z-index:2!important;transform:translate(-50%,-50%) translate(178px,38px) rotate(11deg) scale(.93)!important}
+.hero-stage .phone-screen{height:100%!important;border-radius:29px!important;overflow:hidden!important;background:#fff!important}
+.hero-stage .phone-screen img{width:100%!important;height:100%!important;object-fit:contain!important;object-position:center top!important;background:#fff!important}
+.hero-stage .screen-label{display:none!important}
+
+.hero-stage.is-interacting .phone:not(.active):not(.hovered){opacity:.44!important;filter:brightness(.56) saturate(.72)!important}
+.hero-stage .phone.hovered,.hero-stage .phone.active{opacity:1!important;filter:none!important;z-index:24!important;box-shadow:0 48px 110px rgba(0,0,0,.38),0 0 0 2px color-mix(in srgb,var(--primary) 44%,transparent)!important}
+.hero-stage .phone-left.hovered,.hero-stage .phone-left.active{transform:translate(-50%,-50%) translate(-210px,8px) rotate(-7deg) scale(1.085)!important}
+.hero-stage .phone-main.hovered,.hero-stage .phone-main.active{transform:translate(-50%,-50%) translateY(-18px) scale(1.075)!important}
+.hero-stage .phone-right.hovered,.hero-stage .phone-right.active{transform:translate(-50%,-50%) translate(210px,10px) rotate(7deg) scale(1.085)!important}
+
+.screen-detail-card{
+  position:relative!important;
+  inset:auto!important;
+  transform:none!important;
+  width:min(100%,610px)!important;
+  min-height:120px!important;
+  margin:20px auto 0!important;
+  padding:18px 22px!important;
+  z-index:30!important;
+  text-align:left!important;
+  opacity:1!important;
+  pointer-events:none!important;
+}
+
+@media(max-width:760px){
+  .hero-visual{min-height:620px!important;grid-template-rows:455px auto!important}
+  .hero-stage{height:455px!important;width:100%!important}
+  .hero-stage .phone-main{width:206px!important;height:442px!important}
+  .hero-stage .phone-left,.hero-stage .phone-right{width:166px!important;height:358px!important}
+  .hero-stage .phone-left{transform:translate(-50%,-50%) translate(-112px,38px) rotate(-8deg) scale(.93)!important}
+  .hero-stage .phone-right{transform:translate(-50%,-50%) translate(112px,42px) rotate(8deg) scale(.93)!important}
+  .hero-stage .phone-left.hovered,.hero-stage .phone-left.active{transform:translate(-50%,-50%) translate(-130px,20px) rotate(-5deg) scale(1.045)!important}
+  .hero-stage .phone-main.hovered,.hero-stage .phone-main.active{transform:translate(-50%,-50%) translateY(-8px) scale(1.04)!important}
+  .hero-stage .phone-right.hovered,.hero-stage .phone-right.active{transform:translate(-50%,-50%) translate(130px,22px) rotate(5deg) scale(1.045)!important}
+  .screen-detail-card{width:100%!important;margin-top:18px!important}
+}
+@media(max-width:430px){
+  .hero-visual{min-height:565px!important;grid-template-rows:405px auto!important}
+  .hero-stage{height:405px!important}
+  .hero-stage .phone-main{width:184px!important;height:397px!important}
+  .hero-stage .phone-left,.hero-stage .phone-right{width:144px!important;height:312px!important}
+  .hero-stage .phone-left{transform:translate(-50%,-50%) translate(-91px,36px) rotate(-7deg)!important}
+  .hero-stage .phone-right{transform:translate(-50%,-50%) translate(91px,40px) rotate(7deg)!important}
+  .hero-stage .phone-left.hovered,.hero-stage .phone-left.active{transform:translate(-50%,-50%) translate(-104px,24px) rotate(-5deg) scale(1.03)!important}
+  .hero-stage .phone-right.hovered,.hero-stage .phone-right.active{transform:translate(-50%,-50%) translate(104px,26px) rotate(5deg) scale(1.03)!important}
+}

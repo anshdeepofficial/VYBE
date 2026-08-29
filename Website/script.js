@@ -29,38 +29,41 @@ const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entr
 function updateScrollUI(){topbar?.classList.toggle('scrolled',scrollY>18);fab?.classList.toggle('show',scrollY>620);if(footer&&fab){fab.classList.toggle('near-footer',footer.getBoundingClientRect().top<innerHeight-20)}}
 addEventListener('scroll',updateScrollUI,{passive:true});updateScrollUI();fab?.addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));
 
-// Interactive 3-screen showcase.
+// Interactive 3-screen showcase: hover previews, click pins the chosen screen in front.
 const stage=document.querySelector('.hero-stage');
-const phones=[...document.querySelectorAll('.phone-button[data-screen-id]')];
+const phones=[...document.querySelectorAll('.hero-stage .phone-button[data-screen-id]')];
 const screenTitle=document.getElementById('screenTitle');
 const screenDescription=document.getElementById('screenDescription');
 const screenEyebrow=document.getElementById('screenEyebrow');
 const screenData={
   home:{eyebrow:'Personalized home',title:'Home',description:'Quick Picks, mixes, recent music and recommendations come together in one starting point built around your listening.'},
-  search:{eyebrow:'Fast discovery',title:'Search',description:'Find songs, albums and artists quickly, then move straight into the catalog through a clean Material 3 discovery flow.'},
-  player:{eyebrow:'Focused playback',title:'Player',description:'Artwork, playback controls, queue actions and synced lyrics stay together in a focused player designed for active listening.'}
+  search:{eyebrow:'Fast discovery',title:'Search',description:'Find songs, albums, artists and releases quickly with a clean Material 3 discovery experience.'},
+  player:{eyebrow:'Focused playback',title:'Player',description:'Artwork, playback controls, queue actions and synced lyrics stay together in a focused player.'}
 };
-let locked=null;
-function showScreen(id,lock=false){
+let pinnedScreen='search';
+function paintScreen(id,mode='pinned'){
   if(!stage||!screenData[id])return;
   stage.classList.add('is-interacting');
-  phones.forEach(p=>{const active=p.dataset.screenId===id;p.classList.toggle('active',active);p.setAttribute('aria-pressed',String(active))});
+  phones.forEach(phone=>{
+    const same=phone.dataset.screenId===id;
+    phone.classList.toggle('hovered',mode==='hover'&&same);
+    phone.classList.toggle('active',mode==='pinned'&&same);
+    phone.setAttribute('aria-pressed',String(mode==='pinned'&&same));
+  });
   if(screenEyebrow)screenEyebrow.textContent=screenData[id].eyebrow;
   if(screenTitle)screenTitle.textContent=screenData[id].title;
   if(screenDescription)screenDescription.textContent=screenData[id].description;
-  if(lock)locked=id;
 }
-function clearScreen(){
-  if(!stage)return;
-  if(locked){showScreen(locked);return}
-  stage.classList.remove('is-interacting');
-  phones.forEach(p=>{p.classList.remove('active');p.setAttribute('aria-pressed','false')});
-  if(screenEyebrow)screenEyebrow.textContent='Interactive preview';
-  if(screenTitle)screenTitle.textContent='Explore the VYBE interface';
-  if(screenDescription)screenDescription.textContent='Hover any screen to spread the preview, highlight that screen and see what the area is designed to do.';
-}
-phones.forEach(p=>{p.addEventListener('mouseenter',()=>showScreen(p.dataset.screenId));p.addEventListener('focus',()=>showScreen(p.dataset.screenId));p.addEventListener('click',()=>showScreen(p.dataset.screenId,true))});
-stage?.addEventListener('mouseleave',clearScreen);clearScreen();
+function restorePinnedScreen(){paintScreen(pinnedScreen,'pinned')}
+phones.forEach(phone=>{
+  const id=phone.dataset.screenId;
+  phone.addEventListener('mouseenter',()=>paintScreen(id,'hover'));
+  phone.addEventListener('focus',()=>paintScreen(id,'hover'));
+  phone.addEventListener('click',()=>{pinnedScreen=id;paintScreen(id,'pinned')});
+  phone.addEventListener('blur',restorePinnedScreen);
+});
+stage?.addEventListener('mouseleave',restorePinnedScreen);
+restorePinnedScreen();
 
 const api='https://api.github.com/repos/anshdeepofficial/VYBE/releases/latest',fallback='https://github.com/anshdeepofficial/VYBE/releases/latest';
 const humanSize=b=>Number.isFinite(b)?`${(b/1024/1024).toFixed(1)} MB · ARM64 APK`:'ARM64 APK';
