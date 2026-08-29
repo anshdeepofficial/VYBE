@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://vybe-azure.vercel.app/sitemap.xml
