@@ -23,3 +23,7 @@ Static multi-page Material 3 website for VYBE. Deploy this folder as the Vercel 
 Canonical base URL is currently `https://vybe-azure.vercel.app`. If you connect a custom domain later, replace this base URL in all HTML canonical/OG tags plus `sitemap.xml` and `robots.txt`.
 
 The site fetches the latest GitHub Release client-side and points all `[data-download]` buttons to the newest ARM64 APK when available.
+
+## Latest content update
+- Pricing wording is future-proofed: permanent pricing claims were removed, including fixed $0 structured-data offers.
+- Added visible “iPhone — Coming soon” platform messaging on Home, Download, About, and the shared footer.
