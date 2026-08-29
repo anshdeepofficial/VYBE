@@ -1,73 +1,278 @@
-const root=document.documentElement;
-const mobileLite=matchMedia('(max-width:760px)').matches;
-const themeToggle=document.getElementById('themeToggle');
-const menuButton=document.getElementById('menuButton');
-const mobileNav=document.getElementById('mobileNav');
-const topbar=document.querySelector('.topbar');
-const fab=document.getElementById('backToTop');
-const footer=document.querySelector('.footer');
+(() => {
+  const root = document.documentElement;
+  const body = document.body;
+  const themeToggle = document.getElementById('themeToggle');
+  const menuButton = document.getElementById('menuButton');
+  const mobileNav = document.getElementById('mobileNav');
+  const backToTop = document.getElementById('backToTop');
+  const toast = document.getElementById('toast');
 
-const savedTheme=localStorage.getItem('vybe-theme');
-root.dataset.theme=savedTheme||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
-function updateThemeMeta(){
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content',root.dataset.theme==='dark'?'#1E1234':'#F7F2FF');
-  const icon=themeToggle?.querySelector('[data-theme-icon]');
-  if(icon) icon.innerHTML=root.dataset.theme==='dark'
-    ?'<path d="M12 2.75V5m0 14v2.25M4.75 12H2.5m19 0h-2.25M5.6 5.6 4 4m16 16-1.6-1.6M18.4 5.6 20 4M4 20l1.6-1.6M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"/>'
-    :'<path d="M12.5 2.2a9.8 9.8 0 1 0 9.3 13 8.2 8.2 0 0 1-9.3-13Z"/>';
-}
-updateThemeMeta();
-function ripple(el,e){const r=el.getBoundingClientRect(),s=document.createElement('span'),size=Math.max(r.width,r.height);s.className='ripple';s.style.width=s.style.height=`${size}px`;s.style.left=`${(e?.clientX||r.left+r.width/2)-r.left}px`;s.style.top=`${(e?.clientY||r.top+r.height/2)-r.top}px`;el.appendChild(s);setTimeout(()=>s.remove(),640)}
-themeToggle?.addEventListener('click',e=>{ripple(e.currentTarget,e);const swap=()=>{root.dataset.theme=root.dataset.theme==='dark'?'light':'dark';localStorage.setItem('vybe-theme',root.dataset.theme);updateThemeMeta()};document.startViewTransition?document.startViewTransition(swap):swap()});
-if(!mobileLite)document.querySelectorAll('.button,.icon-button,.menu-button,.quick-link,.material-fab,.phone-button').forEach(el=>el.addEventListener('pointerdown',e=>ripple(el,e)));
+  const releaseApi = 'https://api.github.com/repos/anshdeepofficial/VYBE/releases/latest';
+  const releaseFallback = 'https://github.com/anshdeepofficial/VYBE/releases/latest';
+  const defaultVersion = 'v0.9.1';
 
-menuButton?.addEventListener('click',()=>{const open=mobileNav?.classList.toggle('open');menuButton.setAttribute('aria-expanded',String(Boolean(open)))});
-document.addEventListener('click',e=>{if(!mobileNav?.classList.contains('open'))return;if(mobileNav.contains(e.target)||menuButton?.contains(e.target))return;mobileNav.classList.remove('open');menuButton?.setAttribute('aria-expanded','false')});
-const current=location.pathname.split('/').pop()||'index.html';
-document.querySelectorAll('[data-nav]').forEach(a=>{if(a.getAttribute('href')===current||(current===''&&a.getAttribute('href')==='index.html'))a.classList.add('active')});
+  const systemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const storedTheme = localStorage.getItem('vybe-theme');
+  root.dataset.theme = storedTheme || (systemDark ? 'dark' : 'light');
 
-if(mobileLite){document.querySelectorAll('.reveal').forEach(el=>el.classList.add('visible'))}else{const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('visible');observer.unobserve(entry.target)}}),{threshold:.08,rootMargin:'0px 0px -20px'});document.querySelectorAll('.reveal').forEach(el=>observer.observe(el))}
-function updateScrollUI(){topbar?.classList.toggle('scrolled',scrollY>18);fab?.classList.toggle('show',scrollY>620);if(footer&&fab){fab.classList.toggle('near-footer',footer.getBoundingClientRect().top<innerHeight-20)}}
-addEventListener('scroll',updateScrollUI,{passive:true});updateScrollUI();fab?.addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));
+  function updateThemeMeta() {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', root.dataset.theme === 'dark' ? '#1c1230' : '#F7F2FF');
+  }
 
-// Interactive 3-screen showcase: hover previews, click pins the chosen screen in front.
-const stage=document.querySelector('.hero-stage');
-const phones=[...document.querySelectorAll('.hero-stage .phone-button[data-screen-id]')];
-const screenTitle=document.getElementById('screenTitle');
-const screenDescription=document.getElementById('screenDescription');
-const screenEyebrow=document.getElementById('screenEyebrow');
-const screenData={
-  home:{eyebrow:'Personalized home',title:'Home',description:'Quick Picks, mixes, recent music and recommendations come together in one starting point built around your listening.'},
-  search:{eyebrow:'Fast discovery',title:'Search',description:'Find songs, albums, artists and releases quickly with a clean Material 3 discovery experience.'},
-  player:{eyebrow:'Focused playback',title:'Player',description:'Artwork, playback controls, queue actions and synced lyrics stay together in a focused player.'}
-};
-let pinnedScreen='search';
-function paintScreen(id,mode='pinned'){
-  if(!stage||!screenData[id])return;
-  stage.classList.add('is-interacting');
-  phones.forEach(phone=>{
-    const same=phone.dataset.screenId===id;
-    phone.classList.toggle('hovered',mode==='hover'&&same);
-    phone.classList.toggle('active',mode==='pinned'&&same);
-    phone.setAttribute('aria-pressed',String(mode==='pinned'&&same));
+  function renderThemeIcon() {
+    const icon = document.querySelector('[data-theme-icon]');
+    if (!icon) return;
+    const path = icon.querySelector('path');
+    if (!path) return;
+    if (root.dataset.theme === 'dark') {
+      path.setAttribute('d', 'M12 3a1 1 0 0 1 1 1v1.4a1 1 0 1 1-2 0V4a1 1 0 0 1 1-1Zm0 13.6a1 1 0 0 1 1 1V20a1 1 0 1 1-2 0v-2.4a1 1 0 0 1 1-1Zm8-5.6a1 1 0 0 1 0 2h-2.4a1 1 0 1 1 0-2H20ZM6.4 12a1 1 0 0 1-1 1H3a1 1 0 1 1 0-2h2.4a1 1 0 0 1 1 1Zm9.26-5.86a1 1 0 0 1 1.42 0l1 1a1 1 0 0 1-1.42 1.42l-1-1a1 1 0 0 1 0-1.42ZM5.92 15.9a1 1 0 0 1 1.42 0l1 1a1 1 0 1 1-1.42 1.42l-1-1a1 1 0 0 1 0-1.42Zm12.16 1.42a1 1 0 0 1-1.42 0l-1-1a1 1 0 1 1 1.42-1.42l1 1a1 1 0 0 1 0 1.42ZM8.34 7.16a1 1 0 0 1-1.42 0l-1-1a1 1 0 0 1 1.42-1.42l1 1a1 1 0 0 1 0 1.42ZM12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10Z');
+    } else {
+      path.setAttribute('d', 'M12.5 2.2a9.8 9.8 0 1 0 9.3 13 8.2 8.2 0 0 1-9.3-13Z');
+    }
+  }
+
+  updateThemeMeta();
+  renderThemeIcon();
+
+  themeToggle?.addEventListener('click', () => {
+    root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('vybe-theme', root.dataset.theme);
+    updateThemeMeta();
+    renderThemeIcon();
   });
-  if(screenEyebrow)screenEyebrow.textContent=screenData[id].eyebrow;
-  if(screenTitle)screenTitle.textContent=screenData[id].title;
-  if(screenDescription)screenDescription.textContent=screenData[id].description;
-}
-function restorePinnedScreen(){paintScreen(pinnedScreen,'pinned')}
-phones.forEach(phone=>{
-  const id=phone.dataset.screenId;
-  phone.addEventListener('mouseenter',()=>paintScreen(id,'hover'));
-  phone.addEventListener('focus',()=>paintScreen(id,'hover'));
-  phone.addEventListener('click',()=>{pinnedScreen=id;paintScreen(id,'pinned')});
-  phone.addEventListener('blur',restorePinnedScreen);
-});
-stage?.addEventListener('mouseleave',restorePinnedScreen);
-restorePinnedScreen();
 
-const api='https://api.github.com/repos/anshdeepofficial/VYBE/releases/latest',fallback='https://github.com/anshdeepofficial/VYBE/releases/latest';
-const humanSize=b=>Number.isFinite(b)?`${(b/1024/1024).toFixed(1)} MB · ARM64 APK`:'ARM64 APK';
-const formatDate=v=>v?new Intl.DateTimeFormat(undefined,{day:'numeric',month:'short',year:'numeric'}).format(new Date(v)):'Latest stable release';
-async function hydrateRelease(){try{const response=await fetch(api,{headers:{Accept:'application/vnd.github+json'}});if(!response.ok)throw new Error(`GitHub API ${response.status}`);const release=await response.json(),version=release.tag_name||'Latest',assets=Array.isArray(release.assets)?release.assets:[],arm64=assets.find(a=>/arm64|arm64-v8a/i.test(a.name)&&/\.apk$/i.test(a.name))||assets.find(a=>/\.apk$/i.test(a.name)),url=arm64?.browser_download_url||release.html_url||fallback;document.querySelectorAll('[data-download]').forEach(a=>a.href=url);document.querySelectorAll('[data-version]').forEach(el=>el.textContent=version);const set=(id,t)=>{const el=document.getElementById(id);if(el)el.textContent=t};set('apkSize',humanSize(arm64?.size));set('releaseDate',formatDate(release.published_at));set('assetName',arm64?.name||'Latest APK');set('releaseNotes',release.body||'Latest stable VYBE release.')}catch(error){document.querySelectorAll('[data-download]').forEach(a=>a.href=fallback);console.info('Using release fallback',error.message)}}if(mobileLite&&'requestIdleCallback'in window){requestIdleCallback(()=>hydrateRelease(),{timeout:1200})}else{hydrateRelease()}
-const faqSearch=document.getElementById('faqSearch');faqSearch?.addEventListener('input',()=>{const q=faqSearch.value.trim().toLowerCase();document.querySelectorAll('.faq-item').forEach(item=>{const match=item.textContent.toLowerCase().includes(q);item.classList.toggle('hidden',!match);if(q&&match)item.open=true})});
+  menuButton?.addEventListener('click', () => {
+    const open = mobileNav?.classList.toggle('is-open');
+    menuButton.setAttribute('aria-expanded', String(!!open));
+    body.classList.toggle('menu-open', !!open);
+  });
+
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 860 && mobileNav?.classList.contains('is-open')) {
+      mobileNav.classList.remove('is-open');
+      menuButton?.setAttribute('aria-expanded', 'false');
+      body.classList.remove('menu-open');
+    }
+  });
+
+  const currentPage = location.pathname.split('/').pop() || 'index.html';
+  document.querySelectorAll('[data-nav]').forEach((link) => {
+    const href = link.getAttribute('href') || '';
+    const active = href === currentPage || (currentPage === '' && href === 'index.html');
+    link.classList.toggle('active', active);
+    if (active) link.setAttribute('aria-current', 'page');
+  });
+
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!reduceMotion && 'IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: .12, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+  } else {
+    document.querySelectorAll('.reveal').forEach((el) => el.classList.add('visible'));
+  }
+
+  const screenData = {
+    home: {
+      eyebrow: 'Made for your VYBE',
+      title: 'Home',
+      description: 'Personalized discovery with Quick Picks, mixes and recommendations based on your listening.'
+    },
+    search: {
+      eyebrow: 'Fast discovery',
+      title: 'Search',
+      description: 'Find songs, albums, artists and releases quickly with a clean Material 3 discovery experience.'
+    },
+    player: {
+      eyebrow: 'Synced playback',
+      title: 'Player',
+      description: 'Immersive playback with synced lyrics, queue controls and a focused now-playing experience.'
+    }
+  };
+
+  const heroStage = document.querySelector('.hero-stage');
+  const phoneButtons = Array.from(document.querySelectorAll('.phone-button'));
+  const screenEyebrow = document.getElementById('screenEyebrow');
+  const screenTitle = document.getElementById('screenTitle');
+  const screenDescription = document.getElementById('screenDescription');
+
+  function setActiveScreen(id) {
+    if (!heroStage || !screenData[id]) return;
+    heroStage.dataset.active = id;
+    phoneButtons.forEach((button) => {
+      const active = button.dataset.screenId === id;
+      button.setAttribute('aria-pressed', String(active));
+    });
+    if (screenEyebrow) screenEyebrow.textContent = screenData[id].eyebrow;
+    if (screenTitle) screenTitle.textContent = screenData[id].title;
+    if (screenDescription) screenDescription.textContent = screenData[id].description;
+  }
+
+  if (heroStage && phoneButtons.length) {
+    setActiveScreen('search');
+    phoneButtons.forEach((button) => {
+      button.addEventListener('mouseenter', () => {
+        if (window.matchMedia('(hover: hover)').matches) setActiveScreen(button.dataset.screenId);
+      });
+      button.addEventListener('focus', () => setActiveScreen(button.dataset.screenId));
+      button.addEventListener('click', () => setActiveScreen(button.dataset.screenId));
+    });
+  }
+
+  backToTop?.addEventListener('click', () => window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' }));
+  const toggleFab = () => {
+    if (!backToTop) return;
+    backToTop.classList.toggle('visible', window.scrollY > 520 && window.innerWidth > 860);
+  };
+  toggleFab();
+  window.addEventListener('scroll', toggleFab, { passive: true });
+  window.addEventListener('resize', toggleFab);
+
+  const faqSearch = document.getElementById('faqSearch');
+  faqSearch?.addEventListener('input', () => {
+    const term = faqSearch.value.trim().toLowerCase();
+    document.querySelectorAll('.faq-item').forEach((item) => {
+      const text = item.textContent.toLowerCase();
+      item.hidden = !!term && !text.includes(term);
+    });
+  });
+
+  function humanSize(bytes) {
+    if (!Number.isFinite(bytes)) return 'ARM64 APK';
+    const mib = bytes / 1024 / 1024;
+    return `${mib.toFixed(1)} MB`;
+  }
+
+  function formatDate(value) {
+    if (!value) return 'Latest stable release';
+    const d = new Date(value);
+    return new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' }).format(d);
+  }
+
+  function showToast(message) {
+    if (!toast || !message) return;
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(showToast._timer);
+    showToast._timer = setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+
+  function simpleMarkdownToHtml(markdown) {
+    if (!markdown) return '<p>No release notes were provided for this release.</p>';
+    const lines = markdown.replace(/\r/g, '').split('\n');
+    const blocks = [];
+    let list = [];
+    const flushList = () => {
+      if (!list.length) return;
+      blocks.push(`<ul>${list.map(item => `<li>${item}</li>`).join('')}</ul>`);
+      list = [];
+    };
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (!line) {
+        flushList();
+        continue;
+      }
+      if (/^[-*+]\s+/.test(line)) {
+        list.push(line.replace(/^[-*+]\s+/, ''));
+        continue;
+      }
+      flushList();
+      if (/^#{1,6}\s+/.test(line)) {
+        const level = Math.min(4, (line.match(/^#+/) || ['#'])[0].length + 1);
+        blocks.push(`<h${level}>${line.replace(/^#{1,6}\s+/, '')}</h${level}>`);
+      } else {
+        blocks.push(`<p>${line}</p>`);
+      }
+    }
+    flushList();
+    return blocks.join('');
+  }
+
+  async function hydrateRelease() {
+    const versionTargets = document.querySelectorAll('[data-version]');
+    versionTargets.forEach((el) => { if (!el.textContent.trim()) el.textContent = defaultVersion; });
+
+    try {
+      const controller = new AbortController();
+      const abortTimer = setTimeout(() => controller.abort(), 5000);
+      const response = await fetch(releaseApi, {
+        headers: { Accept: 'application/vnd.github+json' },
+        signal: controller.signal
+      });
+      clearTimeout(abortTimer);
+      if (!response.ok) throw new Error(`GitHub API ${response.status}`);
+      const release = await response.json();
+
+      const version = release.tag_name || defaultVersion;
+      const assets = Array.isArray(release.assets) ? release.assets : [];
+      const apkAsset = assets.find((asset) => /arm64|arm64-v8a/i.test(asset.name) && /\.apk$/i.test(asset.name)) || assets.find((asset) => /\.apk$/i.test(asset.name));
+      const downloadUrl = apkAsset?.browser_download_url || release.html_url || releaseFallback;
+
+      document.querySelectorAll('[data-download]').forEach((link) => {
+        link.href = downloadUrl;
+      });
+      document.querySelectorAll('[data-version]').forEach((el) => {
+        el.textContent = version;
+      });
+      const assetName = document.getElementById('assetName');
+      if (assetName) assetName.textContent = apkAsset?.name || 'ARM64 APK';
+      const apkSize = document.getElementById('apkSize');
+      if (apkSize) apkSize.textContent = humanSize(apkAsset?.size);
+      const releaseDate = document.getElementById('releaseDate');
+      if (releaseDate) releaseDate.textContent = formatDate(release.published_at);
+      const notes = document.getElementById('releaseNotes');
+      if (notes) notes.innerHTML = simpleMarkdownToHtml(release.body || '');
+    } catch (error) {
+      document.querySelectorAll('[data-version]').forEach((el) => {
+        if (!el.textContent.trim() || /loading/i.test(el.textContent)) el.textContent = defaultVersion;
+      });
+      document.querySelectorAll('[data-download]').forEach((link) => { link.href = releaseFallback; });
+      const assetName = document.getElementById('assetName');
+      if (assetName && /checking/i.test(assetName.textContent)) assetName.textContent = 'ARM64 APK';
+      const apkSize = document.getElementById('apkSize');
+      if (apkSize && /checking/i.test(apkSize.textContent)) apkSize.textContent = 'GitHub release';
+      const releaseDate = document.getElementById('releaseDate');
+      if (releaseDate && /loading|checking/i.test(releaseDate.textContent)) releaseDate.textContent = 'Latest stable release';
+      const notes = document.getElementById('releaseNotes');
+      if (notes && /loading/i.test(notes.textContent)) {
+        notes.innerHTML = '<p>Release notes could not be loaded right now. Use the official GitHub release page for the latest details.</p>';
+      }
+      console.info('Using VYBE release fallback:', error.message);
+    }
+  }
+
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => hydrateRelease(), { timeout: 1800 });
+  } else {
+    setTimeout(hydrateRelease, 700);
+  }
+
+  document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+    anchor.addEventListener('click', (event) => {
+      const hash = anchor.getAttribute('href');
+      if (!hash || hash === '#') return;
+      const target = document.querySelector(hash);
+      if (!target) return;
+      event.preventDefault();
+      target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+      if (mobileNav?.classList.contains('is-open')) {
+        mobileNav.classList.remove('is-open');
+        menuButton?.setAttribute('aria-expanded', 'false');
+      }
+    });
+  });
+
+  document.querySelectorAll('[data-download]').forEach((link) => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth <= 860) showToast('Opening latest VYBE release…');
+    });
+  });
+})();
