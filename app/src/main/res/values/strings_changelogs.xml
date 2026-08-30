@@ -2,6 +2,7 @@
 <resources>
     <string-array name="changelog_0101">
         <item>Skip now suppresses the selected update until a newer release or manual check.</item>
+        <item>Made Android versionCode authoritative so an installed build is never offered again.</item>
         <item>Quick Picks now use real listening history and explicit likes.</item>
         <item>Release Radar now validates provider dates and enforces the latest 30 days.</item>
         <item>Refined mood cards with richer premium visual elements.</item>

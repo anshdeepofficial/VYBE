@@ -29,6 +29,7 @@ data class GitHubReleaseUpdate(
     val tagName: String,
     val title: String,
     val notes: String,
+    val versionCode: Long?,
     val apkName: String,
     val apkUrl: String,
     val apkSizeBytes: Long,
@@ -61,10 +62,18 @@ class GitHubUpdateService {
                 // Use Android's installed package metadata as the source of truth. BuildConfig can
                 // differ from it in upgraded/split installs, which previously made VYBE offer the
                 // already-installed GitHub release again.
-                val installedName = installedVersionName(context).orEmpty()
-                if (tag.isBlank() || !isNewerVersion(tag, installedName)) return@runCatching null
                 val releaseVersionCode = releaseVersionCode(releaseNotes)
-                if (releaseVersionCode != null && releaseVersionCode <= installedVersionCode(context)) {
+                val installedCode = installedVersionCode(context)
+                val installedName = installedVersionName(context).orEmpty()
+                if (tag.isBlank()) return@runCatching null
+                // Android's versionCode is the authoritative upgrade identity. Only fall back to
+                // semantic versionName comparison for legacy releases that omit versionCode.
+                val isActualUpgrade = if (releaseVersionCode != null) {
+                    releaseVersionCode > installedCode
+                } else {
+                    isNewerVersion(tag, installedName)
+                }
+                if (!isActualUpgrade) {
                     return@runCatching null
                 }
 
@@ -94,6 +103,7 @@ class GitHubUpdateService {
                     tagName = tag,
                     title = release.optString("name").ifBlank { "VYBE $tag" },
                     notes = releaseNotes.take(MAX_NOTES_LENGTH),
+                    versionCode = releaseVersionCode,
                     apkName = selected.first,
                     apkUrl = selected.second,
                     apkSizeBytes = selected.third,
@@ -106,6 +116,12 @@ class GitHubUpdateService {
         update: GitHubReleaseUpdate,
         onProgress: (Float) -> Unit,
     ): Result<File> = withContext(Dispatchers.IO) {
+        if (update.versionCode != null && update.versionCode <= installedVersionCode(context)) {
+            dismiss(context, update)
+            return@withContext Result.failure(
+                IllegalStateException("VYBE is already fully up to date")
+            )
+        }
         
         val channelId = "vybe_update_channel"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

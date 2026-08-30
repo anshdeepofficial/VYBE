@@ -36,6 +36,7 @@ private val VybeChangelog = listOf(
         date = "30 August 2026",
         changes = listOf(
             "Updates: Skip now suppresses the selected version's popup and notification until a newer release or a manual check.",
+            "Updates: Made Android versionCode authoritative so an installed build can never be offered as its own update.",
             "Quick Picks: Recommendations now use actual listening history and explicit likes instead of unrelated cached searches.",
             "Release Radar: Added authoritative provider-date validation and a second strict 30-day filter.",
             "Moods: Added richer visual elements and contextual labels to the mood cards."
