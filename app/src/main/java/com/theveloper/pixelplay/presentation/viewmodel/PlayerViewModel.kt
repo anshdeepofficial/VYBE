@@ -649,6 +649,9 @@ class PlayerViewModel @Inject constructor(
     val immersiveArtworkEnabled: StateFlow<Boolean> = userPreferencesRepository.immersiveArtworkEnabledFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val animatedArtworkEnabled: StateFlow<Boolean> = userPreferencesRepository.animatedArtworkEnabledFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     fun setLyricsSyncOffset(songId: String, offsetMs: Int) {
         lyricsStateHolder.setSyncOffset(songId, offsetMs)
     }

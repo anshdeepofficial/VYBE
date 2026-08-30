@@ -19,6 +19,10 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -270,6 +274,7 @@ fun FullPlayerContent(
     val lyricsSyncOffset = fullPlayerSlice.lyricsSyncOffset
     val albumArtQuality = fullPlayerSlice.albumArtQuality
     val immersiveArtworkEnabled = fullPlayerSlice.immersiveArtworkEnabled
+    val animatedArtworkEnabled by playerViewModel.animatedArtworkEnabled.collectAsStateWithLifecycle()
     val playbackAudioMetadata = fullPlayerSlice.audioMetadata
     val showPlayerFileInfo = fullPlayerSlice.showPlayerFileInfo
     val immersiveLyricsEnabled = fullPlayerSlice.immersiveLyricsEnabled
@@ -540,6 +545,7 @@ fun FullPlayerContent(
             placeholderOnColor = placeholderOnColor,
             albumArtQuality = albumArtQuality,
             immersiveArtworkEnabled = immersiveArtworkEnabled,
+            animatedArtworkEnabled = animatedArtworkEnabled,
             requestedScrollIndex = pendingCarouselIndex,
             onSongSelected = onAlbumSongSelected,
             onAlbumClick = {
@@ -659,6 +665,7 @@ fun FullPlayerContent(
             ImmersiveArtworkBackground(
                 song = song,
                 albumArtQuality = albumArtQuality,
+                animated = animatedArtworkEnabled,
             )
         }
 
@@ -1132,6 +1139,7 @@ private fun FullPlayerAlbumCoverSection(
     placeholderOnColor: Color,
     albumArtQuality: AlbumArtQuality,
     immersiveArtworkEnabled: Boolean,
+    animatedArtworkEnabled: Boolean,
     requestedScrollIndex: Int?,
     onSongSelected: (Song, Int) -> Unit,
     onAlbumClick: (Song) -> Unit,
@@ -1147,6 +1155,16 @@ private fun FullPlayerAlbumCoverSection(
         targetValue = if (shouldApplyPausedScale) 0.95f else 1f,
         animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
         label = "AlbumArtScale"
+    )
+    val artworkMotion = rememberInfiniteTransition(label = "ArtworkMotion")
+    val cinematicScale by artworkMotion.animateFloat(
+        initialValue = 1f,
+        targetValue = if (animatedArtworkEnabled && isPlayingProvider()) 1.035f else 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(8_000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "ArtworkCinematicScale",
     )
 
     BoxWithConstraints(
@@ -1234,6 +1252,10 @@ private fun FullPlayerAlbumCoverSection(
                             .graphicsLayer {
                                 scaleX = albumArtScale
                                 scaleY = albumArtScale
+                                if (animatedArtworkEnabled) {
+                                    scaleX *= cinematicScale
+                                    scaleY *= cinematicScale
+                                }
                             },
                         albumArtQuality = albumArtQuality
                     )
@@ -1247,6 +1269,7 @@ private fun FullPlayerAlbumCoverSection(
 private fun ImmersiveArtworkBackground(
     song: Song,
     albumArtQuality: AlbumArtQuality,
+    animated: Boolean,
 ) {
     val artwork = song.albumArtUriString?.takeIf { it.isNotBlank() } ?: return
     val targetSize = remember(albumArtQuality) {
@@ -1258,6 +1281,16 @@ private fun ImmersiveArtworkBackground(
     }
     var artworkAspectRatio by remember(artwork) { mutableFloatStateOf(1f) }
     val isLandscapeArtwork = artworkAspectRatio > 1.12f
+    val transition = rememberInfiniteTransition(label = "ImmersiveArtworkMotion")
+    val motionScale by transition.animateFloat(
+        initialValue = 1.02f,
+        targetValue = if (animated) 1.10f else 1.02f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(10_000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "ImmersiveArtworkScale",
+    )
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         AnimatedContent(
             targetState = song,
@@ -1275,7 +1308,11 @@ private fun ImmersiveArtworkBackground(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxSize()
-                    .blur(18.dp),
+                    .blur(18.dp)
+                    .graphicsLayer {
+                        scaleX = motionScale
+                        scaleY = motionScale
+                    },
             )
         }
 

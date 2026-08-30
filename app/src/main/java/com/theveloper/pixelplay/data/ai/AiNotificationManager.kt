@@ -41,7 +41,7 @@ class AiNotificationManager @Inject constructor(
 
     fun showProgress(title: String, message: String, progress: Int, max: Int = 100) {
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.stat_notify_sync)
+            .setSmallIcon(R.drawable.monochrome_player)
             .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -55,7 +55,7 @@ class AiNotificationManager @Inject constructor(
         notificationManager.cancel(PROGRESS_NOTIFICATION_ID)
         
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.stat_sys_download_done)
+            .setSmallIcon(R.drawable.monochrome_player)
             .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)

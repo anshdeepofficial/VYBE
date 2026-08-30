@@ -32,6 +32,18 @@ private data class ChangelogRelease(
 
 private val VybeChangelog = listOf(
     ChangelogRelease(
+        version = "0.9.3",
+        date = "30 August 2026",
+        changes = listOf(
+            "Home: Added Release Radar, Top Charts, Listen Again, related recommendations and Fresh Finds.",
+            "Recognition: Added a fifth customizable navigation destination with no user API key.",
+            "Playback: Added animated artwork, data saver, high-refresh controls and promoted Now Playing support.",
+            "Updates: Added APK size, downloaded size, progress and selectable reminder times.",
+            "AI: Fixed provider-name matching so configured DeepSeek and Gemini keys reach Daily Mix.",
+            "Notifications: Standardized VYBE branding across notification types."
+        )
+    ),
+    ChangelogRelease(
         version = "0.9.2",
         date = "29 August 2026",
         changes = listOf(

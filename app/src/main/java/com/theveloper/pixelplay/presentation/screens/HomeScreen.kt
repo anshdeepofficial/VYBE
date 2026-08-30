@@ -168,6 +168,7 @@ fun HomeScreen(
     val dailyMixSongs by playerViewModel.dailyMixSongs.collectAsStateWithLifecycle()
     val curatedYourMixSongs by playerViewModel.yourMixSongs.collectAsStateWithLifecycle()
     val quickPickSongs by playerViewModel.quickPickSongs.collectAsStateWithLifecycle()
+    val latestReleaseSongs by playerViewModel.latestReleaseSongs.collectAsStateWithLifecycle()
     val homeMixPreviewSongs by playerViewModel.homeMixPreviewSongs.collectAsStateWithLifecycle()
     val playbackHistory by playerViewModel.playbackHistory.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -314,6 +315,18 @@ fun HomeScreen(
     val recentlyPlayedQueue = remember(recentlyPlayedSongs) {
         recentlyPlayedSongs.map { it.song }.toImmutableList()
     }
+    val historySeed = recentlyPlayedQueue.firstOrNull()
+    val relatedSongs = remember(historySeed, quickPickSongs, dailyMixSongs) {
+        val artist = historySeed?.artist.orEmpty()
+        (quickPickSongs + dailyMixSongs)
+            .filter { it.id != historySeed?.id && (artist.isBlank() || it.artist.contains(artist, true)) }
+            .distinctBy { it.id }.take(10)
+    }
+    val discoverySongs = remember(quickPickSongs, dailyMixSongs, latestReleaseSongs, recentlyPlayedQueue) {
+        val heard = recentlyPlayedQueue.map { it.id }.toSet()
+        (quickPickSongs + dailyMixSongs + latestReleaseSongs)
+            .distinctBy { it.id }.filterNot { it.id in heard }.take(10)
+    }
 
     ReportDrawnWhen {
         yourMixSongs.isNotEmpty() || hasHomeLoadingMinimumElapsed || isBenchmarkMode
@@ -442,7 +455,7 @@ fun HomeScreen(
                 ) {
                     YouTubeMusicHomeRow(
                         title = "Quick Picks",
-                        songs = quickPickSongs,
+                        songs = quickPickSongs.take(10),
                         queueName = "Quick Picks",
                         playerViewModel = playerViewModel,
                     )
@@ -514,6 +527,38 @@ fun HomeScreen(
                                 playerViewModel.showAndPlaySong(song, yourMixSongs, "Your Mix")
                             }
                         )
+                    }
+                }
+
+                if (recentlyPlayedQueue.isNotEmpty()) {
+                    item(key = "listen_again_section", contentType = "youtube_music_row") {
+                        YouTubeMusicHomeRow(
+                            title = "Listen Again",
+                            songs = recentlyPlayedQueue.take(10),
+                            queueName = "Listen Again",
+                            playerViewModel = playerViewModel,
+                        )
+                    }
+                }
+
+                if (latestReleaseSongs.isNotEmpty()) {
+                    item(key = "release_radar", contentType = "youtube_music_row") {
+                        YouTubeMusicHomeRow("New Releases & Release Radar", latestReleaseSongs.take(10), "Release Radar", playerViewModel)
+                    }
+                }
+                if (quickPickSongs.isNotEmpty()) {
+                    item(key = "top_charts", contentType = "youtube_music_row") {
+                        YouTubeMusicHomeRow("Top Charts & Trending", quickPickSongs.take(10), "Top Charts", playerViewModel)
+                    }
+                }
+                if (historySeed != null && relatedSongs.isNotEmpty()) {
+                    item(key = "because_you_listened", contentType = "youtube_music_row") {
+                        YouTubeMusicHomeRow("Because You Listened to ${historySeed.artist}", relatedSongs, "Because You Listened", playerViewModel)
+                    }
+                }
+                if (discoverySongs.isNotEmpty()) {
+                    item(key = "discover_weekly", contentType = "youtube_music_row") {
+                        YouTubeMusicHomeRow("Discover Weekly & Fresh Finds", discoverySongs, "Discover Weekly", playerViewModel)
                     }
                 }
 
@@ -1006,14 +1051,14 @@ private fun YouTubeMusicHomeRow(
             return@Column
         }
 
-        Column(
-            modifier = Modifier.padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            songs.take(8).forEach { song ->
+            items(songs.take(10), key = { it.id }) { song ->
                 Card(
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .width(280.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .combinedClickable(
                             onClick = {

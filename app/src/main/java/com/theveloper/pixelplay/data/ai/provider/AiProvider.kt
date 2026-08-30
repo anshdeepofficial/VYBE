@@ -18,7 +18,11 @@ enum class AiProvider(val displayName: String, val requiresApiKey: Boolean, val 
     
     companion object {
         fun fromString(value: String): AiProvider {
-            return entries.find { it.name == value } ?: GEMINI
+            val normalized = value.trim()
+            return entries.find {
+                it.name.equals(normalized, ignoreCase = true) ||
+                    it.displayName.equals(normalized, ignoreCase = true)
+            } ?: GEMINI
         }
     }
 }

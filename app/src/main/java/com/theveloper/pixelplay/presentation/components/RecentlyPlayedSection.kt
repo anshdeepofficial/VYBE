@@ -119,17 +119,17 @@ fun RecentlyPlayedSection(
             }
         }
 
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(contentPadding),
-            verticalArrangement = Arrangement.spacedBy(HomeRecentlyPlayedPillSpacing)
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(contentPadding),
+            horizontalArrangement = Arrangement.spacedBy(HomeRecentlyPlayedPillSpacing)
         ) {
-            visibleSongs.take(8).forEach { item ->
+            visibleSongs.take(10).forEach { item ->
                 key(item.song.id) {
                     RecentlyPlayedPill(
                         item = item,
                         isCurrentSong = currentSongId == item.song.id,
                         themeStateHolder = themeStateHolder,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.width(220.dp),
                         onClick = { onSongClick(item.song) }
                     )
                 }

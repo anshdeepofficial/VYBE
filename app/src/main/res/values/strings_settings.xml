@@ -294,8 +294,8 @@
     <string name="settings_cast_autoplay_title">Auto-play on cast connect/disconnect</string>
     <string name="settings_cast_autoplay_subtitle">Start playing immediately after switching cast connections.</string>
     <string name="settings_headphones_section">Headphones</string>
-    <string name="settings_headphones_resume_title">Resume when headphones reconnect</string>
-    <string name="settings_headphones_resume_subtitle">If playback paused because headphones were removed, resume automatically when they connect again.</string>
+    <string name="settings_headphones_resume_title">Resume on Bluetooth or headset reconnect</string>
+    <string name="settings_headphones_resume_subtitle">If VYBE paused after an audio device disconnected, resume automatically when it reconnects.</string>
     <string name="settings_queue_transitions_section">Queue and Transitions</string>
     <string name="settings_crossfade_title">Crossfade</string>
     <string name="settings_crossfade_subtitle">Enable smooth transition between songs.</string>

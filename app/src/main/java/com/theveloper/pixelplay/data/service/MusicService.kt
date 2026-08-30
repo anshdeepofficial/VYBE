@@ -55,6 +55,7 @@ import com.theveloper.pixelplay.data.preferences.ThemePreferencesRepository
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.data.preferences.NotificationPlayerAction
 import com.theveloper.pixelplay.data.repository.MusicRepository
+import com.theveloper.pixelplay.data.network.ytmusic.YouTubeMusicEngine
 import com.theveloper.pixelplay.data.service.player.DualPlayerEngine
 import com.theveloper.pixelplay.data.service.player.TransitionController
 import com.theveloper.pixelplay.ui.glancewidget.PlayerActions
@@ -175,6 +176,8 @@ class MusicService : MediaLibraryService() {
     @Inject
     lateinit var mediaMapper: MediaMapper
     @Inject
+    lateinit var youTubeMusicEngine: YouTubeMusicEngine
+    @Inject
     @AppScope
     lateinit var appScope: CoroutineScope
 
@@ -246,6 +249,8 @@ class MusicService : MediaLibraryService() {
     private var pauseOnVolumeZeroEnabled = false
     private var pausedByVolumeZero = false
     private var temporaryForegroundStartedInOnCreate = false
+    private var playbackNotificationProvider: LocalOnlyMediaNotificationProvider? = null
+    private var dynamicIslandPromotedEnabled = true
 
     // Observes the device's media stream volume and pauses playback when it
     // reaches 0, if the user has enabled the "pause on volume zero" preference.
@@ -312,7 +317,7 @@ class MusicService : MediaLibraryService() {
         private const val AUTO_CONTEXT_PLAYLIST = "playlist"
         private const val DEFAULT_STREAM_BUFFER_SIZE = 8 * 1024
         private const val WIDGET_ART_FAILURE_RETRY_MS = 30_000L
-        private const val HEADSET_RECONNECT_RESUME_WINDOW_MS = 15_000L
+        private const val HEADSET_RECONNECT_RESUME_WINDOW_MS = 120_000L
 
         fun markPendingMediaButtonForegroundStart() {
             pendingMediaButtonForegroundStarts.incrementAndGet()
@@ -526,6 +531,20 @@ class MusicService : MediaLibraryService() {
         serviceScope.launch {
             userPreferencesRepository.hiFiModeEnabledFlow.collect { enabled ->
                 engine.setHiFiMode(enabled)
+            }
+        }
+
+        serviceScope.launch {
+            userPreferencesRepository.dataSaverEnabledFlow.collect { enabled ->
+                youTubeMusicEngine.setDataSaverEnabled(enabled)
+            }
+        }
+
+        serviceScope.launch {
+            userPreferencesRepository.dynamicIslandEnabledFlow.collect { enabled ->
+                dynamicIslandPromotedEnabled = enabled
+                playbackNotificationProvider?.setPromotedOngoingEnabled(enabled)
+                mediaSession?.let { refreshMediaSessionUi(it, force = true) }
             }
         }
 
@@ -951,7 +970,9 @@ class MusicService : MediaLibraryService() {
 
         val localOnlyProvider = LocalOnlyMediaNotificationProvider(this).also {
             it.setSmallIcon(R.drawable.monochrome_player)
+            it.setPromotedOngoingEnabled(dynamicIslandPromotedEnabled)
         }
+        playbackNotificationProvider = localOnlyProvider
         setMediaNotificationProvider(localOnlyProvider)
         if (temporaryForegroundStartedInOnCreate) {
             serviceScope.launch {

@@ -253,12 +253,43 @@ class SettingsViewModel @Inject constructor(
             viewModelScope, SharingStarted.WhileSubscribed(5_000), false
         )
 
+    val dataSaverEnabled = userPreferencesRepository.dataSaverEnabledFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+    val dynamicIslandEnabled = userPreferencesRepository.dynamicIslandEnabledFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+    val animatedArtworkEnabled = userPreferencesRepository.animatedArtworkEnabledFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+    val highRefreshRateEnabled = userPreferencesRepository.highRefreshRateEnabledFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+    val uiDensityScale = userPreferencesRepository.uiDensityScaleFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 1f)
+
     fun setScreenshotPrivacy(enabled: Boolean) = viewModelScope.launch {
         userPreferencesRepository.setScreenshotPrivacy(enabled)
     }
 
     fun setSponsorBlockEnabled(enabled: Boolean) = viewModelScope.launch {
         userPreferencesRepository.setSponsorBlockEnabled(enabled)
+    }
+
+    fun setDataSaverEnabled(enabled: Boolean) = viewModelScope.launch {
+        userPreferencesRepository.setDataSaverEnabled(enabled)
+    }
+
+    fun setDynamicIslandEnabled(enabled: Boolean) = viewModelScope.launch {
+        userPreferencesRepository.setDynamicIslandEnabled(enabled)
+    }
+
+    fun setAnimatedArtworkEnabled(enabled: Boolean) = viewModelScope.launch {
+        userPreferencesRepository.setAnimatedArtworkEnabled(enabled)
+    }
+
+    fun setHighRefreshRateEnabled(enabled: Boolean) = viewModelScope.launch {
+        userPreferencesRepository.setHighRefreshRateEnabled(enabled)
+    }
+
+    fun setUiDensityScale(scale: Float) = viewModelScope.launch {
+        userPreferencesRepository.setUiDensityScale(scale)
     }
 
     val searchHistoryEnabled: StateFlow<Boolean> =

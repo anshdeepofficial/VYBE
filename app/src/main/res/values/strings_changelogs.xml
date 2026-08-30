@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string-array name="changelog_093_added">
+        <item>Added Release Radar, Top Charts, Listen Again, related recommendations, Fresh Finds, and song recognition.</item>
+        <item>Added data saver, high-refresh UI controls, animated artwork, and promoted Now Playing support.</item>
+    </string-array>
+    <string-array name="changelog_093_fixes">
+        <item>Fixed AI provider matching and expanded update size, progress, and reminder information.</item>
+        <item>Standardized the VYBE notification icon across app notifications.</item>
+    </string-array>
     <string-array name="changelog_091_added">
         <item>Added complete Quick Picks long-press actions for likes, downloads, queue, playlists, sharing, albums, and artists.</item>
         <item>Added an apply-now or restart-later prompt when changing the VYBE logo mode.</item>

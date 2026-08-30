@@ -298,6 +298,11 @@ class UserPreferencesRepository @Inject constructor(
         val SHOW_SCROLLBAR = booleanPreferencesKey("show_scrollbar")
         val SCREENSHOT_PRIVACY = booleanPreferencesKey("screenshot_privacy")
         val SPONSOR_BLOCK_ENABLED = booleanPreferencesKey("sponsor_block_enabled")
+        val DATA_SAVER_ENABLED = booleanPreferencesKey("data_saver_enabled")
+        val DYNAMIC_ISLAND_ENABLED = booleanPreferencesKey("dynamic_island_enabled")
+        val ANIMATED_ARTWORK_ENABLED = booleanPreferencesKey("animated_artwork_enabled")
+        val HIGH_REFRESH_RATE_ENABLED = booleanPreferencesKey("high_refresh_rate_enabled")
+        val UI_DENSITY_SCALE = floatPreferencesKey("ui_density_scale")
     }
 
     // ─── Private helpers ─────────────────────────────────────────────────────
@@ -485,6 +490,41 @@ class UserPreferencesRepository @Inject constructor(
 
     suspend fun setResumeOnHeadsetReconnect(enabled: Boolean) {
         dataStore.edit { it[PreferencesKeys.RESUME_ON_HEADSET_RECONNECT] = enabled }
+    }
+
+    val dataSaverEnabledFlow: Flow<Boolean> =
+        pref { it[PreferencesKeys.DATA_SAVER_ENABLED] ?: false }
+
+    suspend fun setDataSaverEnabled(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.DATA_SAVER_ENABLED] = enabled }
+    }
+
+    val dynamicIslandEnabledFlow: Flow<Boolean> =
+        pref { it[PreferencesKeys.DYNAMIC_ISLAND_ENABLED] ?: true }
+
+    suspend fun setDynamicIslandEnabled(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.DYNAMIC_ISLAND_ENABLED] = enabled }
+    }
+
+    val animatedArtworkEnabledFlow: Flow<Boolean> =
+        pref { it[PreferencesKeys.ANIMATED_ARTWORK_ENABLED] ?: false }
+
+    suspend fun setAnimatedArtworkEnabled(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.ANIMATED_ARTWORK_ENABLED] = enabled }
+    }
+
+    val highRefreshRateEnabledFlow: Flow<Boolean> =
+        pref { it[PreferencesKeys.HIGH_REFRESH_RATE_ENABLED] ?: true }
+
+    suspend fun setHighRefreshRateEnabled(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.HIGH_REFRESH_RATE_ENABLED] = enabled }
+    }
+
+    val uiDensityScaleFlow: Flow<Float> =
+        pref { (it[PreferencesKeys.UI_DENSITY_SCALE] ?: 1f).coerceIn(0.90f, 1.10f) }
+
+    suspend fun setUiDensityScale(scale: Float) {
+        dataStore.edit { it[PreferencesKeys.UI_DENSITY_SCALE] = scale.coerceIn(0.90f, 1.10f) }
     }
 
     val showQueueHistoryFlow: Flow<Boolean> =

@@ -91,6 +91,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerSheetState
 
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.core.net.toUri
@@ -233,6 +234,11 @@ class MainActivity : ComponentActivity() {
                     else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
                 }
         }
+        lifecycleScope.launch {
+            userPreferencesRepository.highRefreshRateEnabledFlow
+                .distinctUntilChanged()
+                .collect { enabled -> applyPreferredRefreshRate(enabled) }
+        }
 
         // MD3 Optimization: Release Splash Screen immediately to render UI skeleton.
         // Data loading is handled via optimistic UI and smooth transitions.
@@ -261,6 +267,14 @@ class MainActivity : ComponentActivity() {
             val appThemeMode by themePreferencesRepository.appThemeModeFlow.collectAsStateWithLifecycle(initialValue = AppThemeMode.FOLLOW_SYSTEM)
             val logoMode by themePreferencesRepository.logoModeFlow.collectAsStateWithLifecycle(initialValue = LogoMode.DYNAMIC)
             val showScrollbar by userPreferencesRepository.showScrollbarFlow.collectAsStateWithLifecycle(initialValue = true)
+            val uiDensityScale by userPreferencesRepository.uiDensityScaleFlow.collectAsStateWithLifecycle(initialValue = 1f)
+            val baseDensity = LocalDensity.current
+            val scaledDensity = remember(baseDensity, uiDensityScale) {
+                Density(
+                    density = baseDensity.density * uiDensityScale,
+                    fontScale = baseDensity.fontScale
+                )
+            }
             val useDarkTheme = when (appThemeMode) {
                 AppThemeMode.DARK -> true
                 AppThemeMode.AMOLED -> true
@@ -310,7 +324,8 @@ class MainActivity : ComponentActivity() {
 
             CompositionLocalProvider(
                 LocalShowScrollbar provides showScrollbar,
-                LocalVybeLogoMode provides logoMode
+                LocalVybeLogoMode provides logoMode,
+                LocalDensity provides scaledDensity
             ) {
                 PixelPlayTheme(
                     darkTheme = useDarkTheme,
@@ -377,6 +392,21 @@ class MainActivity : ComponentActivity() {
             }
         }
         handleIntent(intent)
+    }
+
+    private fun applyPreferredRefreshRate(enabled: Boolean) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
+        val modes = display?.supportedModes.orEmpty()
+        val preferredMode = if (enabled) {
+            modes.maxByOrNull { it.refreshRate }
+        } else {
+            modes.minByOrNull { kotlin.math.abs(it.refreshRate - 60f) }
+        }
+        preferredMode?.let { mode ->
+            window.attributes = window.attributes.apply {
+                preferredDisplayModeId = mode.modeId
+            }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -661,6 +691,7 @@ class MainActivity : ComponentActivity() {
                 BottomNavItem("Home", R.string.nav_bar_home, R.drawable.rounded_home_24, R.drawable.round_home_24, Screen.Home),
                 BottomNavItem("Search", R.string.nav_bar_search, R.drawable.rounded_search_24, R.drawable.rounded_search_24, Screen.OnlineSearch),
                 BottomNavItem("Library", R.string.nav_bar_library, R.drawable.rounded_library_music_24, R.drawable.round_library_music_24, Screen.Library),
+                BottomNavItem("Recognize", R.string.nav_bar_recognize, R.drawable.pop_mic, R.drawable.pop_mic, Screen.SongRecognition),
                 BottomNavItem("Settings", R.string.common_settings, R.drawable.rounded_settings_24, R.drawable.rounded_settings_24, Screen.Settings)
             )
         }

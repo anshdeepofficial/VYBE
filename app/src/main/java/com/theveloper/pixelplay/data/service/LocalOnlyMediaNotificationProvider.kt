@@ -21,6 +21,13 @@ class LocalOnlyMediaNotificationProvider(
         DefaultMediaNotificationProvider.Builder(context).build(),
 ) : MediaNotification.Provider {
 
+    @Volatile
+    private var promotedOngoingEnabled: Boolean = true
+
+    fun setPromotedOngoingEnabled(enabled: Boolean) {
+        promotedOngoingEnabled = enabled
+    }
+
     fun setSmallIcon(iconResId: Int) {
         delegate.setSmallIcon(iconResId)
     }
@@ -40,6 +47,11 @@ class LocalOnlyMediaNotificationProvider(
         val localOnlyNotification = runCatching {
             Notification.Builder.recoverBuilder(context, notification.notification)
                 .setLocalOnly(true)
+                .apply {
+                    if (android.os.Build.VERSION.SDK_INT >= 36) {
+                        setRequestPromotedOngoing(promotedOngoingEnabled)
+                    }
+                }
                 .build()
         }.getOrElse {
             notification.notification

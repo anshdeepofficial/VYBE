@@ -37,7 +37,7 @@ class UpdateCheckWorker(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_music_placeholder)
+            .setSmallIcon(R.drawable.monochrome_player)
             .setContentTitle("VYBE update available")
             .setContentText("${update.tagName} is ready. Tap to review the update.")
             .setContentIntent(pendingIntent)

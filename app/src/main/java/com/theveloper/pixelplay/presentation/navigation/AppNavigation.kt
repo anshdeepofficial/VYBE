@@ -141,6 +141,11 @@ fun AppNavigation(
                     )
                 }
             }
+            composable(Screen.SongRecognition.route) {
+                ScreenWrapper(navController = navController, playerViewModel = playerViewModel, animatedVisibilityScope = this) {
+                    com.theveloper.pixelplay.presentation.screens.SongRecognitionScreen(paddingValues)
+                }
+            }
             composable(
                 Screen.Search.route,
                 enterTransition = {

@@ -229,6 +229,11 @@ fun SettingsCategoryScreen(
     val listenTogetherState by playerViewModel.listenTogetherState.collectAsStateWithLifecycle()
     val screenshotPrivacyEnabled by settingsViewModel.screenshotPrivacyEnabled.collectAsStateWithLifecycle()
     val sponsorBlockEnabled by settingsViewModel.sponsorBlockEnabled.collectAsStateWithLifecycle()
+    val dataSaverEnabled by settingsViewModel.dataSaverEnabled.collectAsStateWithLifecycle()
+    val dynamicIslandEnabled by settingsViewModel.dynamicIslandEnabled.collectAsStateWithLifecycle()
+    val animatedArtworkEnabled by settingsViewModel.animatedArtworkEnabled.collectAsStateWithLifecycle()
+    val highRefreshRateEnabled by settingsViewModel.highRefreshRateEnabled.collectAsStateWithLifecycle()
+    val uiDensityScale by settingsViewModel.uiDensityScale.collectAsStateWithLifecycle()
     val currentAiApiKey by settingsViewModel.currentAiApiKey.collectAsStateWithLifecycle()
     val currentAiModel by settingsViewModel.currentAiModel.collectAsStateWithLifecycle()
     val currentAiSystemPrompt by settingsViewModel.currentAiSystemPrompt.collectAsStateWithLifecycle()
@@ -634,6 +639,29 @@ fun SettingsCategoryScreen(
                                     onCheckedChange = settingsViewModel::setUseSmoothCorners,
                                     leadingIcon = { Icon(painterResource(R.drawable.rounded_rounded_corner_24), null, tint = MaterialTheme.colorScheme.secondary) }
                                 )
+                                ThemeSelectorItem(
+                                    label = "Interface density",
+                                    description = "Choose how compact controls and lists appear",
+                                    options = mapOf(
+                                        "0.9" to "Compact",
+                                        "1.0" to "Standard",
+                                        "1.1" to "Comfortable"
+                                    ),
+                                    selectedKey = when {
+                                        uiDensityScale < 0.95f -> "0.9"
+                                        uiDensityScale > 1.05f -> "1.1"
+                                        else -> "1.0"
+                                    },
+                                    onSelectionChanged = { settingsViewModel.setUiDensityScale(it.toFloat()) },
+                                    leadingIcon = { Icon(Icons.Outlined.Style, null, tint = MaterialTheme.colorScheme.secondary) }
+                                )
+                                SwitchSettingItem(
+                                    title = "High refresh rate",
+                                    subtitle = "Use the fastest display mode available for smoother scrolling and animations",
+                                    checked = highRefreshRateEnabled,
+                                    onCheckedChange = settingsViewModel::setHighRefreshRateEnabled,
+                                    leadingIcon = { Icon(Icons.Rounded.UnfoldMore, null, tint = MaterialTheme.colorScheme.secondary) }
+                                )
                                 SwitchSettingItem(
                                     title = stringResource(R.string.settings_disable_blur_all_over_title),
                                     subtitle = stringResource(R.string.settings_disable_blur_all_over_subtitle),
@@ -785,6 +813,16 @@ fun SettingsCategoryScreen(
                                 )
                             }
 
+                            SettingsSubsection(title = "Motion artwork") {
+                                SwitchSettingItem(
+                                    title = "Animated artwork",
+                                    subtitle = "Add a subtle cinematic pan and zoom to full-player artwork",
+                                    checked = animatedArtworkEnabled,
+                                    onCheckedChange = settingsViewModel::setAnimatedArtworkEnabled,
+                                    leadingIcon = { Icon(Icons.Outlined.PlayCircle, null, tint = MaterialTheme.colorScheme.secondary) }
+                                )
+                            }
+
                             SettingsSubsection(title = stringResource(R.string.settings_lyrics_screen_section)) {
                                 SwitchSettingItem(
                                     title = stringResource(R.string.settings_immersive_lyrics_title),
@@ -848,6 +886,20 @@ fun SettingsCategoryScreen(
                                     checked = sponsorBlockEnabled,
                                     onCheckedChange = settingsViewModel::setSponsorBlockEnabled,
                                     leadingIcon = { Icon(Icons.Rounded.MusicNote, null, tint = MaterialTheme.colorScheme.secondary) }
+                                )
+                                SwitchSettingItem(
+                                    title = "Data saver",
+                                    subtitle = "Prefer efficient audio streams and reduce bandwidth while preserving music playback",
+                                    checked = dataSaverEnabled,
+                                    onCheckedChange = settingsViewModel::setDataSaverEnabled,
+                                    leadingIcon = { Icon(Icons.Rounded.MusicNote, null, tint = MaterialTheme.colorScheme.secondary) }
+                                )
+                                SwitchSettingItem(
+                                    title = "Now Playing Island",
+                                    subtitle = "Request Android's promoted ongoing playback chip on supported devices",
+                                    checked = dynamicIslandEnabled,
+                                    onCheckedChange = settingsViewModel::setDynamicIslandEnabled,
+                                    leadingIcon = { Icon(Icons.Outlined.PlayCircle, null, tint = MaterialTheme.colorScheme.secondary) }
                                 )
                             }
                             SettingsSubsection(title = "Notification player controls") {

@@ -80,6 +80,15 @@ class YouTubeMusicEngine @Inject constructor(
     @Volatile
     private var webRemixConfig: WebRemixConfig? = null
 
+    @Volatile
+    private var dataSaverEnabled: Boolean = false
+
+    fun setDataSaverEnabled(enabled: Boolean) {
+        if (dataSaverEnabled == enabled) return
+        dataSaverEnabled = enabled
+        streamUrlCache.clear()
+    }
+
     // Persistent visitor data token — YouTube uses this for session continuity.
     // InnerTune/OuterTune/Meld all send this in payload + header.
     @Volatile
@@ -491,7 +500,7 @@ class YouTubeMusicEngine @Inject constructor(
         // YouTube changes its player clients and signature rules frequently. NewPipe's
         // maintained extractor handles those changes (including signature/n-parameter
         // deciphering) and gives us an audio-only progressive URL Media3 can consume.
-        val extractorUrl = newPipeStreamResolver.resolve(cleanId)
+        val extractorUrl = newPipeStreamResolver.resolve(cleanId, preferLowBitrate = dataSaverEnabled)
         if (!extractorUrl.isNullOrBlank()) {
             Log.d(TAG, "Resolved stream via NewPipe for $cleanId")
             streamUrlCache[cleanId] = extractorUrl to System.currentTimeMillis()
@@ -719,13 +728,15 @@ class YouTubeMusicEngine @Inject constructor(
                 val body = JSONObject(response.body?.string().orEmpty())
                 val audioStreams = body.optJSONArray("audioStreams") ?: return null
                 var bestUrl: String? = null
-                var highestBitrate = 0
+                var selectedBitrate = if (dataSaverEnabled) Int.MAX_VALUE else 0
                 for (i in 0 until audioStreams.length()) {
                     val stream = audioStreams.getJSONObject(i)
                     val bitrate = stream.optInt("bitrate", 0)
                     val url = stream.optString("url")
-                    if (url.isNotBlank() && bitrate >= highestBitrate) {
-                        highestBitrate = bitrate
+                    if (url.isNotBlank() && bitrate > 0 &&
+                        (if (dataSaverEnabled) bitrate <= selectedBitrate else bitrate >= selectedBitrate)
+                    ) {
+                        selectedBitrate = bitrate
                         bestUrl = url
                     }
                 }
@@ -748,15 +759,17 @@ class YouTubeMusicEngine @Inject constructor(
                 val body = JSONObject(response.body?.string().orEmpty())
                 val adaptiveFormats = body.optJSONArray("adaptiveFormats") ?: return null
                 var bestUrl: String? = null
-                var highestBitrate = 0
+                var selectedBitrate = if (dataSaverEnabled) Int.MAX_VALUE else 0
                 for (i in 0 until adaptiveFormats.length()) {
                     val stream = adaptiveFormats.getJSONObject(i)
                     val type = stream.optString("type", "")
                     if (type.startsWith("audio/")) {
                         val bitrate = stream.optInt("bitrate", 0)
                         val url = stream.optString("url")
-                        if (url.isNotBlank() && bitrate >= highestBitrate) {
-                            highestBitrate = bitrate
+                        if (url.isNotBlank() && bitrate > 0 &&
+                            (if (dataSaverEnabled) bitrate <= selectedBitrate else bitrate >= selectedBitrate)
+                        ) {
+                            selectedBitrate = bitrate
                             bestUrl = url
                         }
                     }
@@ -773,7 +786,7 @@ class YouTubeMusicEngine @Inject constructor(
         val formats = streamingData.optJSONArray("adaptiveFormats") ?: streamingData.optJSONArray("formats") ?: return null
 
         var bestUrl: String? = null
-        var maxBitrate = 0
+        var selectedBitrate = if (dataSaverEnabled) Int.MAX_VALUE else 0
 
         for (i in 0 until formats.length()) {
             val format = formats.getJSONObject(i)
@@ -783,8 +796,10 @@ class YouTubeMusicEngine @Inject constructor(
 
             // Skip formats with blank URL (e.g. signatureCipher/cipher formats) since we don't support JS signature deciphering
             if (mimeType.startsWith("audio/") && url.isNotBlank()) {
-                if (bitrate > maxBitrate) {
-                    maxBitrate = bitrate
+                if (bitrate > 0 &&
+                    (if (dataSaverEnabled) bitrate < selectedBitrate else bitrate > selectedBitrate)
+                ) {
+                    selectedBitrate = bitrate
                     bestUrl = url
                 }
             }
