@@ -166,6 +166,7 @@ import kotlin.math.roundToInt
 fun CastBottomSheet(
     playerViewModel: PlayerViewModel,
     onDismiss: () -> Unit,
+    onOpenEqualizer: () -> Unit,
     onExpansionChanged: (Float) -> Unit = {}
 ) {
     val routes by playerViewModel.castRoutes.collectAsStateWithLifecycle()
@@ -426,11 +427,10 @@ fun CastBottomSheet(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    runCatching {
-                        context.startActivity(Intent(android.media.audiofx.AudioEffect.ACTION_DISPLAY_AUDIO_EFFECT_CONTROL_PANEL).apply {
-                            putExtra(android.media.audiofx.AudioEffect.EXTRA_PACKAGE_NAME, context.packageName)
-                        })
-                    }
+                    playerViewModel.selectEqualizerOutputProfile(deviceName)
+                    bluetoothControlDevice = null
+                    onDismiss()
+                    onOpenEqualizer()
                 }) { Text("Equalizer") }
             },
             dismissButton = { TextButton(onClick = { bluetoothControlDevice = null }) { Text("Done") } },

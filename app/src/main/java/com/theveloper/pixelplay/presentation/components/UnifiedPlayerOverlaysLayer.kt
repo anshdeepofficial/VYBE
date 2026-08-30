@@ -481,6 +481,7 @@ internal fun UnifiedPlayerCastLayer(
     albumColorScheme: ColorScheme,
     playerViewModel: PlayerViewModel,
     onDismiss: () -> Unit,
+    onOpenEqualizer: () -> Unit,
     onExpansionChanged: (Float) -> Unit
 ) {
     if (!showCastSheet || internalIsKeyboardVisible) return
@@ -496,10 +497,10 @@ internal fun UnifiedPlayerCastLayer(
             CastBottomSheet(
                 playerViewModel = playerViewModel,
                 onDismiss = onDismiss,
+                onOpenEqualizer = onOpenEqualizer,
                 onExpansionChanged = onExpansionChanged
             )
         }
     }
 }
-
 

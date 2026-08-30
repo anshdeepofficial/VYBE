@@ -55,6 +55,7 @@ import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Menu
@@ -554,6 +555,19 @@ fun SongInfoBottomSheet(
                                             isDownloaded = isDownloaded,
                                             onDownloadToggle = { songInfoViewModel.toggleDownload(song) }
                                         )
+
+                                        TextButton(
+                                            onClick = {
+                                                songInfoViewModel.refetchOnlineMetadata(song) { message ->
+                                                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                                }
+                                            },
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Icon(Icons.Rounded.Refresh, contentDescription = null)
+                                            Spacer(Modifier.width(8.dp))
+                                            Text("Re-fetch metadata")
+                                        }
 
                                         val shouldRenderWatchTransferRow =
                                             currentSongTransfer != null ||

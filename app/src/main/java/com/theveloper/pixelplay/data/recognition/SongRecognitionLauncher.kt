@@ -1,24 +1,19 @@
 package com.theveloper.pixelplay.data.recognition
 
-import android.content.Context
 import android.content.Intent
+import android.speech.RecognizerIntent
 
-/** Uses the device's installed music-recognition provider; VYBE needs no user API key. */
+/** Returns recognition text to VYBE instead of opening a Google results page. */
 object SongRecognitionLauncher {
-    private val actions = listOf(
-        "com.google.android.googlequicksearchbox.MUSIC_SEARCH",
-        "android.intent.action.MUSIC_SEARCH",
-    )
-
-    fun launch(context: Context): Boolean {
-        for (action in actions) {
-            try {
-                context.startActivity(Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                return true
-            } catch (_: Exception) {
-                // Try the next provider available on this device.
-            }
-        }
-        return false
+    fun createIntent(): Intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+        putExtra(RecognizerIntent.EXTRA_PROMPT, "Say the song title or artist")
+        putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
     }
+
+    fun results(intent: Intent?): List<String> =
+        intent?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+            ?.map(String::trim)
+            ?.filter(String::isNotBlank)
+            .orEmpty()
 }

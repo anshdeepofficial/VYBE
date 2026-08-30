@@ -27,7 +27,9 @@ class SpotifyLoginActivity : ComponentActivity() {
     }
 
     private fun handleIntent(intent: Intent) {
-        val callback = intent.data?.takeIf { it.scheme == "pixelplayer" }
+        val callback = intent.data?.takeIf {
+            it.toString().startsWith(SpotifyAccountRepository.REDIRECT_URI.substringBefore('?'))
+        }
         if (callback != null) {
             lifecycleScope.launch {
                 repository.completeAuthorization(callback)

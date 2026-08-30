@@ -129,7 +129,12 @@ android {
             .orEmpty()
         val spotifyClientId = localProperties.getProperty("SPOTIFY_CLIENT_ID")
             ?.trim()
-            .orEmpty()
+            ?.takeIf(String::isNotBlank)
+            ?: "49848691b37b4bc6b5d1c9b57a75aeed"
+        val spotifyRedirectUri = localProperties.getProperty("SPOTIFY_REDIRECT_URI")
+            ?.trim()
+            ?.takeIf(String::isNotBlank)
+            ?: "https://vybetune.vercel.app/auth/spotify/callback"
         val vybeGitHubOwner = localProperties.getProperty("VYBE_GITHUB_OWNER")
             ?.trim()
             ?.takeIf(String::isNotBlank)
@@ -142,6 +147,7 @@ android {
         buildConfigField("String", "TELEGRAM_API_HASH", "\"$telegramApiHash\"")
         buildConfigField("String", "GOOGLE_DRIVE_WEB_CLIENT_ID", "\"$googleDriveWebClientId\"")
         buildConfigField("String", "SPOTIFY_CLIENT_ID", "\"$spotifyClientId\"")
+        buildConfigField("String", "SPOTIFY_REDIRECT_URI", "\"$spotifyRedirectUri\"")
         buildConfigField("String", "VYBE_GITHUB_OWNER", "\"$vybeGitHubOwner\"")
         buildConfigField("String", "VYBE_GITHUB_REPO", "\"$vybeGitHubRepo\"")
     }

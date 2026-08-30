@@ -415,7 +415,8 @@ class YouTubeMusicEngine @Inject constructor(
 
         // Still uses the YouTube Music search endpoint and typed music renderers only.
         if (tracks.isEmpty()) {
-            tracks += search("new music releases", region)
+            val currentYear = java.time.Year.now().value
+            tracks += search("new music releases $currentYear", region)
         }
         tracks
             .filter { track -> NON_MUSIC_KEYWORDS.none { track.title.lowercase().contains(it) } }

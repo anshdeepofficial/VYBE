@@ -84,11 +84,11 @@ VYBE combines a traditional device music player with online discovery and deeply
 
 ## Download
 
-The current release is **VYBE 0.9.4**.
+The current release is **VYBE 0.9.5**.
 
 | Device architecture | APK |
 | --- | --- |
-| Most modern Android phones (ARM64) | [Download VYBE 0.9.4 ARM64](https://github.com/anshdeepofficial/VYBE/releases/download/v0.9.4/VYBE-v0.9.4-arm64-v8a-release.apk) |
+| Most modern Android phones (ARM64) | [Download VYBE 0.9.5 ARM64](https://github.com/anshdeepofficial/VYBE/releases/download/v0.9.5/VYBE-v0.9.5-arm64-v8a-release.apk) |
 
 If you are unsure, choose the ARM64 build. Android may ask to allow installation from your browser or file manager when installing outside Google Play.
 
@@ -154,7 +154,7 @@ Keep all private credentials outside version control.
 - UI: Jetpack Compose/Material 3 on Android; SwiftUI on iPhone
 - Playback: AndroidX Media3 on Android; AVFoundation on iPhone
 - Platform sources remain separate under `app/` and `iosApp/`
-- Latest published version: 0.9.4 (version code 39)
+- Latest published version: 0.9.5 (version code 40)
 
 ## Feedback and issues
 

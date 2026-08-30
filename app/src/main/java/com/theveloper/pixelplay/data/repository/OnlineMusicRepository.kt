@@ -169,12 +169,39 @@ suspend fun getFastPersonalizedDiscovery(interestLabels: List<String>): List<Son
             }
         }
 
-        val rawList = listOf(seed) + (providerContinuation + relatedFallback)
+        val continuation = keepSeedStyle(seed, providerContinuation + relatedFallback)
+        val rawList = listOf(seed) + continuation
             .filterNot { it.id == seed.id }
             .distinctBy { it.id }
             .take(49)
             
         filterAndPrioritizeRecommendations(rawList)
+    }
+
+    /** Prevents autoplay from jumping between unrelated languages/styles. */
+    private fun keepSeedStyle(seed: Song, candidates: List<Song>): List<Song> {
+        val seedText = "${seed.title} ${seed.artist} ${seed.album} ${seed.genre.orEmpty()}".lowercase()
+        val styleTerms = listOf(
+            "punjabi" to listOf("punjabi", "ਪੰਜਾਬੀ", "sidhu", "diljit", "karan aujla", "ap dhillon", "shubh"),
+            "haryanvi" to listOf("haryanvi", "हरियाणवी"),
+            "funk" to listOf("funk", "phonk"),
+            "lofi" to listOf("lofi", "lo-fi"),
+            "sufi" to listOf("sufi", "qawwali"),
+            "kpop" to listOf("k-pop", "kpop"),
+        )
+        val detected = styleTerms.firstOrNull { (_, terms) -> terms.any(seedText::contains) }?.second
+        val seedArtist = seed.artist.substringBefore(',').substringBefore('&').trim()
+        if (detected == null && seedArtist.isBlank()) return candidates
+        val strict = candidates.filter { song ->
+            val text = "${song.title} ${song.artist} ${song.album} ${song.genre.orEmpty()}".lowercase()
+            (detected?.any(text::contains) == true) ||
+                seedArtist.length >= 3 && song.artist.contains(seedArtist, ignoreCase = true)
+        }
+        return if (strict.size >= 5) strict else candidates.sortedByDescending { song ->
+            val text = "${song.title} ${song.artist} ${song.album} ${song.genre.orEmpty()}".lowercase()
+            (detected?.count(text::contains) ?: 0) * 10 +
+                if (seedArtist.length >= 3 && song.artist.contains(seedArtist, true)) 5 else 0
+        }
     }
 
     private fun normalizedRegion(region: String): String =

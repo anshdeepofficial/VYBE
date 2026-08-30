@@ -873,6 +873,7 @@ fun UnifiedPlayerSheetV2(
         albumColorScheme = albumColorScheme,
         playerViewModel = playerViewModel,
         onDismiss = castSheetState.dismissCastSheet,
+        onOpenEqualizer = { navController.navigate(com.theveloper.pixelplay.presentation.navigation.Screen.Equalizer.route) },
         onExpansionChanged = castSheetState.onCastExpansionChanged
     )
 

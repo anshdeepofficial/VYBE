@@ -188,11 +188,15 @@
             android:name=".presentation.spotify.auth.SpotifyLoginActivity"
             android:exported="true"
             android:theme="@style/Theme.PixelPlay">
-            <intent-filter>
+            <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="pixelplayer" android:host="spotify-callback" />
+                <data android:scheme="vybe" android:host="spotify-callback" />
+                <data
+                    android:scheme="https"
+                    android:host="vybetune.vercel.app"
+                    android:pathPrefix="/auth/spotify/callback" />
             </intent-filter>
         </activity>
 

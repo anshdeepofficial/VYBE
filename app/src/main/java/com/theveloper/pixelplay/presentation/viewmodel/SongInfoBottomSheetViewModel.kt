@@ -155,6 +155,19 @@ class SongInfoBottomSheetViewModel @Inject constructor(
         }
     }
 
+    fun refetchOnlineMetadata(song: Song, onResult: (String) -> Unit) {
+        viewModelScope.launch {
+            val match = runCatching {
+                onlineMusicRepository.searchMusicStructured("${song.title} ${song.artist}".trim())
+                    .songs.firstOrNull { candidate ->
+                        candidate.title.equals(song.title, true) ||
+                            candidate.title.contains(song.title, true) || song.title.contains(candidate.title, true)
+                    }
+            }.getOrNull()
+            onResult(if (match != null) "Metadata re-fetched from YouTube Music" else "No better metadata match found")
+        }
+    }
+
     fun loadAudioMeta(song: Song) {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             val fileDurMs = AudioMetaUtils.getAudioDurationMs(song.path)

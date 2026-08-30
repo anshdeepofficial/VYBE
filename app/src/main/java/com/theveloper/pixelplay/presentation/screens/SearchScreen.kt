@@ -398,9 +398,7 @@ fun SearchScreen(
                                         Row {
                                         IconButton(
                                             onClick = {
-                                                if (!com.theveloper.pixelplay.data.recognition.SongRecognitionLauncher.launch(context)) {
-                                                    android.widget.Toast.makeText(context, "Song recognition is not available on this device", android.widget.Toast.LENGTH_SHORT).show()
-                                                }
+                                                navController.navigateSafely(Screen.SongRecognition.route)
                                             },
                                             modifier = Modifier.size(40.dp)
                                         ) {

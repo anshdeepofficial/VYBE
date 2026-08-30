@@ -200,6 +200,7 @@ class PlayerViewModel @Inject constructor(
     private val listenTogetherRepository: ListenTogetherRepository,
     private val sponsorBlockRepository: SponsorBlockRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val equalizerPreferencesRepository: com.theveloper.pixelplay.data.preferences.EqualizerPreferencesRepository,
     private val aiPreferencesRepository: AiPreferencesRepository,
     private val themePreferencesRepository: ThemePreferencesRepository,
     val syncManager: SyncManager, // Inyectar SyncManager
@@ -233,6 +234,10 @@ class PlayerViewModel @Inject constructor(
     private val sessionToken: SessionToken,
     private val mediaControllerFactory: com.theveloper.pixelplay.data.media.MediaControllerFactory
 ) : ViewModel() {
+
+    fun selectEqualizerOutputProfile(deviceName: String) {
+        viewModelScope.launch { equalizerPreferencesRepository.switchOutputProfile(deviceName) }
+    }
 
     val savedPlaybackQueues: StateFlow<List<SavedPlaybackQueue>> =
         userPreferencesRepository.savedPlaybackQueuesFlow.stateIn(

@@ -98,7 +98,7 @@ class SpotifyAccountRepository @Inject constructor(
         return Uri.parse(AUTHORIZE_URL).buildUpon()
             .appendQueryParameter("client_id", BuildConfig.SPOTIFY_CLIENT_ID)
             .appendQueryParameter("response_type", "code")
-            .appendQueryParameter("redirect_uri", REDIRECT_URI)
+            .appendQueryParameter("redirect_uri", BuildConfig.SPOTIFY_REDIRECT_URI)
             .appendQueryParameter("code_challenge_method", "S256")
             .appendQueryParameter("code_challenge", challenge)
             .appendQueryParameter("state", state)
@@ -123,7 +123,7 @@ class SpotifyAccountRepository @Inject constructor(
                     .add("client_id", BuildConfig.SPOTIFY_CLIENT_ID)
                     .add("grant_type", "authorization_code")
                     .add("code", code)
-                    .add("redirect_uri", REDIRECT_URI)
+                    .add("redirect_uri", BuildConfig.SPOTIFY_REDIRECT_URI)
                     .add("code_verifier", verifier)
                     .build()
             )
@@ -296,13 +296,13 @@ class SpotifyAccountRepository @Inject constructor(
     }
 
     companion object {
-        const val REDIRECT_URI = "pixelplayer://spotify-callback"
+        val REDIRECT_URI: String get() = BuildConfig.SPOTIFY_REDIRECT_URI
         private const val AUTHORIZE_URL = "https://accounts.spotify.com/authorize"
         private const val TOKEN_URL = "https://accounts.spotify.com/api/token"
         private const val API_BASE = "https://api.spotify.com/v1"
         private const val PLAYLIST_PAGE_SIZE = 50
         private const val TRACK_PAGE_SIZE = 50
-        private const val SCOPES = "playlist-read-private user-library-read user-top-read user-read-private"
+        private const val SCOPES = "playlist-read-private playlist-read-collaborative user-library-read user-top-read user-read-private"
         private const val PREFS_NAME = "spotify_account_secure_prefs"
         private const val KEY_ACCESS_TOKEN = "access_token"
         private const val KEY_REFRESH_TOKEN = "refresh_token"

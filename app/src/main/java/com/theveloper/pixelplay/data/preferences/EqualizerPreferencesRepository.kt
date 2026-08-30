@@ -37,6 +37,51 @@ class EqualizerPreferencesRepository @Inject constructor(
         val VIEW_MODE = stringPreferencesKey("equalizer_view_mode")
         val CUSTOM_PRESETS = stringPreferencesKey("custom_presets_json")
         val PINNED_PRESETS = stringPreferencesKey("pinned_presets_json")
+        val ACTIVE_OUTPUT_PROFILE = stringPreferencesKey("equalizer_active_output_profile")
+        val OUTPUT_PROFILES = stringPreferencesKey("equalizer_output_profiles_json")
+    }
+
+    /** Saves the current EQ under its output and restores the selected output's EQ. */
+    suspend fun switchOutputProfile(outputName: String) = dataStore.edit { preferences ->
+        val target = outputName.trim().ifBlank { "This device" }
+        val active = preferences[Keys.ACTIVE_OUTPUT_PROFILE] ?: "This device"
+        val profiles = runCatching { org.json.JSONObject(preferences[Keys.OUTPUT_PROFILES] ?: "{}") }
+            .getOrDefault(org.json.JSONObject())
+        profiles.put(active, org.json.JSONObject().apply {
+            put("enabled", preferences[Keys.EQUALIZER_ENABLED] ?: false)
+            put("preset", preferences[Keys.EQUALIZER_PRESET] ?: "flat")
+            put("bands", preferences[Keys.EQUALIZER_CUSTOM_BANDS] ?: "[0,0,0,0,0,0,0,0,0,0]")
+            put("bassEnabled", preferences[Keys.BASS_BOOST_ENABLED] ?: false)
+            put("bass", preferences[Keys.BASS_BOOST_STRENGTH] ?: 0)
+            put("virtualizerEnabled", preferences[Keys.VIRTUALIZER_ENABLED] ?: false)
+            put("virtualizer", preferences[Keys.VIRTUALIZER_STRENGTH] ?: 0)
+            put("loudnessEnabled", preferences[Keys.LOUDNESS_ENHANCER_ENABLED] ?: false)
+            put("loudness", preferences[Keys.LOUDNESS_ENHANCER_STRENGTH] ?: 0)
+        })
+        val saved = profiles.optJSONObject(target)
+        if (saved != null) {
+            preferences[Keys.EQUALIZER_ENABLED] = saved.optBoolean("enabled", false)
+            preferences[Keys.EQUALIZER_PRESET] = saved.optString("preset", "flat")
+            preferences[Keys.EQUALIZER_CUSTOM_BANDS] = saved.optString("bands", "[0,0,0,0,0,0,0,0,0,0]")
+            preferences[Keys.BASS_BOOST_ENABLED] = saved.optBoolean("bassEnabled", false)
+            preferences[Keys.BASS_BOOST_STRENGTH] = saved.optInt("bass", 0)
+            preferences[Keys.VIRTUALIZER_ENABLED] = saved.optBoolean("virtualizerEnabled", false)
+            preferences[Keys.VIRTUALIZER_STRENGTH] = saved.optInt("virtualizer", 0)
+            preferences[Keys.LOUDNESS_ENHANCER_ENABLED] = saved.optBoolean("loudnessEnabled", false)
+            preferences[Keys.LOUDNESS_ENHANCER_STRENGTH] = saved.optInt("loudness", 0)
+        } else {
+            preferences[Keys.EQUALIZER_ENABLED] = false
+            preferences[Keys.EQUALIZER_PRESET] = "flat"
+            preferences[Keys.EQUALIZER_CUSTOM_BANDS] = "[0,0,0,0,0,0,0,0,0,0]"
+            preferences[Keys.BASS_BOOST_ENABLED] = false
+            preferences[Keys.BASS_BOOST_STRENGTH] = 0
+            preferences[Keys.VIRTUALIZER_ENABLED] = false
+            preferences[Keys.VIRTUALIZER_STRENGTH] = 0
+            preferences[Keys.LOUDNESS_ENHANCER_ENABLED] = false
+            preferences[Keys.LOUDNESS_ENHANCER_STRENGTH] = 0
+        }
+        preferences[Keys.ACTIVE_OUTPUT_PROFILE] = target
+        preferences[Keys.OUTPUT_PROFILES] = profiles.toString()
     }
 
     val equalizerViewModeFlow: Flow<EqualizerViewMode> = dataStore.data.map { preferences ->

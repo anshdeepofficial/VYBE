@@ -4,7 +4,6 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,7 +19,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material3.Card
@@ -119,9 +117,9 @@ fun RecentlyPlayedSection(
             }
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(contentPadding),
-            horizontalArrangement = Arrangement.spacedBy(HomeRecentlyPlayedPillSpacing)
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(contentPadding),
+            verticalArrangement = Arrangement.spacedBy(HomeRecentlyPlayedPillSpacing)
         ) {
             visibleSongs.take(10).forEach { item ->
                 key(item.song.id) {
@@ -129,7 +127,7 @@ fun RecentlyPlayedSection(
                         item = item,
                         isCurrentSong = currentSongId == item.song.id,
                         themeStateHolder = themeStateHolder,
-                        modifier = Modifier.width(220.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         onClick = { onSongClick(item.song) }
                     )
                 }

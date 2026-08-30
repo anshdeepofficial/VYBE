@@ -32,6 +32,19 @@ private data class ChangelogRelease(
 
 private val VybeChangelog = listOf(
     ChangelogRelease(
+        version = "0.9.5",
+        date = "30 August 2026",
+        changes = listOf(
+            "Spotify: Added PKCE account sign-in for private, collaborative, followed, and public playlist imports.",
+            "Spotify: Added playlist selection, import progress, secure token refresh, and optional YouTube Music sync.",
+            "Recognition: Results now return to VYBE search and play inside the app instead of opening Google results.",
+            "Recommendations: Autoplay now prioritizes the current language, artist, and music style.",
+            "Discovery: Uses YouTube Music charts and current-year release discovery.",
+            "Equalizer: Connected outputs now open VYBE EQ with separate saved profiles per device.",
+            "Metadata: Added a Re-fetch metadata action to song menus."
+        )
+    ),
+    ChangelogRelease(
         version = "0.9.4",
         date = "30 August 2026",
         changes = listOf(
