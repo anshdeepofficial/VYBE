@@ -60,14 +60,30 @@
 - Configurable notification actions and volume-button playback controls.
 - In-app update checks backed by GitHub Releases.
 
+## Why VYBE is different
+
+VYBE combines a traditional device music player with online discovery and deeply personalized listening. The comparison below describes VYBE's product direction without targeting any individual application.
+
+| VYBE | Other open-source music players |
+| --- | --- |
+| Combines local files, offline downloads, YouTube Music discovery, and imported public playlists in one library. | Commonly focus mainly on either local playback or a single online source. |
+| Works without signing in, while an optional YouTube Music connection adds personalized history, playlists, and recommendations. | Online personalization and account-linked recommendations are often limited or unavailable. |
+| Includes Quick Picks, Listen Again, Release Radar, Top Charts, Daily Mix, related recommendations, and Fresh Finds. | Discovery is commonly based on folders, tags, radio, or manually managed libraries. |
+| Provides automatic synchronized lyrics plus saving, editing, AI translation, and romanization. | Usually provide basic lyrics display or rely on a single lyrics source. |
+| Offers no-user-key song recognition through a compatible device recognition service. | Song recognition is not normally integrated into the main navigation. |
+| Supports public Spotify playlist URL import without requiring Spotify login. | Playlist migration between different music ecosystems is often a separate process. |
+| Includes listening statistics, habits, artist/album insights, and personalized mixes. | Statistics are frequently limited to play counts or external scrobbling services. |
+| Provides immersive and animated artwork, Material You theming, configurable navigation, UI density, and notification actions. | Customization commonly centers on themes, layouts, and conventional player controls. |
+| Includes Data Saver, high-refresh controls, Bluetooth resume, download progress, and in-app GitHub updates. | These capabilities vary and may require separate tools or manual APK updates. |
+| Designed as a music-only experience; podcasts and shows are intentionally excluded. | Some players combine music with podcasts, radio, or other media types. |
+
 ## Download
 
-The current release is **VYBE 0.8.6**.
+The current release is **VYBE 0.9.3**.
 
 | Device architecture | APK |
 | --- | --- |
-| Most modern Android phones (ARM64) | [Download VYBE 0.8.6 ARM64](https://github.com/anshdeepofficial/VYBE/releases/download/v0.8.6/VYBE-v0.8.6-arm64-v8a-release.apk) |
-| Older 32-bit ARM devices | [Download VYBE 0.8.6 ARMv7](https://github.com/anshdeepofficial/VYBE/releases/download/v0.8.6/VYBE-v0.8.6-armeabi-v7a-release.apk) |
+| Most modern Android phones (ARM64) | [Download VYBE 0.9.3 ARM64](https://github.com/anshdeepofficial/VYBE/releases/download/v0.9.3/VYBE-v0.9.3-arm64-v8a-release.apk) |
 
 If you are unsure, choose the ARM64 build. Android may ask to allow installation from your browser or file manager when installing outside Google Play.
 
@@ -133,7 +149,7 @@ Keep all private credentials outside version control.
 - UI: Jetpack Compose/Material 3 on Android; SwiftUI on iPhone
 - Playback: AndroidX Media3 on Android; AVFoundation on iPhone
 - Platform sources remain separate under `app/` and `iosApp/`
-- Latest published version: 0.8.6 (version code 32)
+- Latest published version: 0.9.3 (version code 38)
 
 ## Feedback and issues
 
