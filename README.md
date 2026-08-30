@@ -5,6 +5,11 @@
 <h1 align="center">VYBE</h1>
 
 <p align="center">
+  <a href="https://github.com/sponsors/anshdeepofficial"><img src="https://img.shields.io/badge/Sponsor-%E2%9D%A4-EA4AAA?style=for-the-badge&logo=githubsponsors&logoColor=white" alt="Sponsor on GitHub" height="40" /></a>
+  <a href="https://buymeacoffee.com/anshdeepofficial"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="40" /></a>
+</p>
+
+<p align="center">
   A modern Android and iPhone music experience for discovery, local playback, lyrics, and personal listening.
 </p>
 
@@ -154,13 +159,6 @@ Keep all private credentials outside version control.
 ## Feedback and issues
 
 Found a reproducible problem or have a focused feature request? Open a [GitHub issue](https://github.com/anshdeepofficial/VYBE/issues) with the app version, operating-system version, device model, and clear reproduction steps.
-
-## Support Development
-
-VYBE is free and open source. If you enjoy the project and want to support continued development, you can contribute through:
-
-- [GitHub Sponsors](https://github.com/sponsors/anshdeepofficial)
-- [Buy Me a Coffee](https://buymeacoffee.com/anshdeepofficial)
 
 ## License
 
