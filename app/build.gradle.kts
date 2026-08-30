@@ -82,6 +82,7 @@ val copyThirdPartyNotices = tasks.register<CopyThirdPartyNotices>("copyThirdPart
 android {
     namespace = "com.theveloper.pixelplay"
     compileSdk = 37
+    ndkVersion = "27.0.12077973"
 
     sourceSets {
         getByName("androidTest") {
@@ -150,6 +151,11 @@ android {
         buildConfigField("String", "SPOTIFY_REDIRECT_URI", "\"$spotifyRedirectUri\"")
         buildConfigField("String", "VYBE_GITHUB_OWNER", "\"$vybeGitHubOwner\"")
         buildConfigField("String", "VYBE_GITHUB_REPO", "\"$vybeGitHubRepo\"")
+        buildConfigField("String", "ACOUSTID_CLIENT_KEY", "\"05gzX3uQQv\"")
+
+        externalNativeBuild {
+            cmake { cppFlags += "-std=c++14" }
+        }
     }
 
     signingConfigs {
@@ -196,6 +202,13 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
 
     testOptions {

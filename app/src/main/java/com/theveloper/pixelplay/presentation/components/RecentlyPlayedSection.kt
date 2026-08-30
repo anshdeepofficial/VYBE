@@ -4,6 +4,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -117,19 +119,23 @@ fun RecentlyPlayedSection(
             }
         }
 
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(contentPadding),
-            verticalArrangement = Arrangement.spacedBy(HomeRecentlyPlayedPillSpacing)
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(contentPadding),
+            horizontalArrangement = Arrangement.spacedBy(HomeRecentlyPlayedPillSpacing)
         ) {
-            visibleSongs.take(10).forEach { item ->
-                key(item.song.id) {
-                    RecentlyPlayedPill(
-                        item = item,
-                        isCurrentSong = currentSongId == item.song.id,
-                        themeStateHolder = themeStateHolder,
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = { onSongClick(item.song) }
-                    )
+            visibleSongs.take(10).chunked(HomeRecentlyPlayedPillsPerColumn).forEachIndexed { columnIndex, columnSongs ->
+                Column(verticalArrangement = Arrangement.spacedBy(HomeRecentlyPlayedPillSpacing)) {
+                    columnSongs.forEach { item ->
+                        key("recent_${columnIndex}_${item.song.id}") {
+                            RecentlyPlayedPill(
+                                item = item,
+                                isCurrentSong = currentSongId == item.song.id,
+                                themeStateHolder = themeStateHolder,
+                                modifier = Modifier.width(220.dp),
+                                onClick = { onSongClick(item.song) }
+                            )
+                        }
+                    }
                 }
             }
         }

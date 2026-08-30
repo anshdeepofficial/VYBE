@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string-array name="changelog_096">
+        <item>Added real microphone song recognition using local Chromaprint fingerprints and AcoustID.</item>
+        <item>Recognition results now search and play inside VYBE instead of opening Google.</item>
+        <item>Kept Spotify authentication inside VYBE and refined the Recently Played layout.</item>
+    </string-array>
     <string-array name="changelog_094_added">
         <item>Added configurable song-recognition visibility, Bluetooth audio controls, custom update reminders, and developer support links.</item>
     </string-array>

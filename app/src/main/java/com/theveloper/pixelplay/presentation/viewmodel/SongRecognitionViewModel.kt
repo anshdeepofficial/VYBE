@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.repository.OnlineMusicRepository
+import com.theveloper.pixelplay.data.recognition.AcoustIdRecognizer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,6 +44,17 @@ class SongRecognitionViewModel @Inject constructor(
                 }
                 .onFailure { error ->
                     _state.value = SongRecognitionUiState(query = query, message = error.message ?: "Recognition search failed")
+                }
+        }
+    }
+
+    fun listen() {
+        viewModelScope.launch {
+            _state.value = SongRecognitionUiState(isSearching = true, message = "Listening for 12 seconds…")
+            runCatching { AcoustIdRecognizer.listenAndIdentify() }
+                .onSuccess { resolve(listOf(it)) }
+                .onFailure { error ->
+                    _state.value = SongRecognitionUiState(message = error.message ?: "Recognition failed")
                 }
         }
     }
