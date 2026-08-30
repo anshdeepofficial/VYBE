@@ -32,6 +32,18 @@ private data class ChangelogRelease(
 
 private val VybeChangelog = listOf(
     ChangelogRelease(
+        version = "0.9.4",
+        date = "30 August 2026",
+        changes = listOf(
+            "Library: Fixed exact album and artist navigation, multi-artist selection, and persistent tab order/visibility.",
+            "Home: Restored square Quick Picks and Listen Again artwork cards.",
+            "Recognition: Prevented automatic launch and added a user-controlled navigation setting.",
+            "Devices: Added focused Bluetooth audio controls and removed the unrelated Wi-Fi shortcut.",
+            "Updates: Added custom reminder timing and clear up-to-date confirmation.",
+            "Support: Added optional GitHub Sponsors and Buy Me a Coffee links."
+        )
+    ),
+    ChangelogRelease(
         version = "0.9.3",
         date = "30 August 2026",
         changes = listOf(

@@ -518,6 +518,7 @@ fun LibraryScreen(
 
     var showSongInfoBottomSheet by remember { mutableStateOf(false) }
     var showPlaylistBottomSheet by remember { mutableStateOf(false) }
+    var pendingArtistChoices by remember { mutableStateOf<List<Artist>>(emptyList()) }
     var playlistSheetSongs by remember { mutableStateOf<List<Song>>(emptyList()) }
     val selectedSongForInfo by playerViewModel.selectedSongForInfo.collectAsStateWithLifecycle()
     val tabTitles by playerViewModel.libraryTabsFlow.collectAsStateWithLifecycle()
@@ -1611,14 +1612,10 @@ fun LibraryScreen(
 
                                         val stableOnAlbumClick: (Album) -> Unit = remember(navController, listeningHistoryAlbums) {
                                             { album: Album ->
-                                                val isHistoryOnly = listeningHistoryAlbums.any {
-                                                    it.id == album.id && it.title.equals(album.title, ignoreCase = true)
-                                                }
                                                 navController.navigateSafelyReplacing(
-                                                    route = album.remoteBrowseId
+                                                    route = album.remoteBrowseId?.takeIf(String::isNotBlank)
                                                         ?.let(Screen.AlbumDetail::createRoute)
-                                                        ?: if (isHistoryOnly) Screen.AlbumDetail.createRoute(album.title)
-                                                        else Screen.AlbumDetail.createRoute(album.id),
+                                                        ?: Screen.AlbumDetail.createRoute(album.id),
                                                     patternToPop = Screen.AlbumDetail.route
                                                 )
                                             }
@@ -1654,16 +1651,32 @@ fun LibraryScreen(
                                             bottomBarHeight = bottomBarHeightDp,
                                             currentArtistSortOption = playerUiState.currentArtistSortOption,
                                             onArtistClick = { artist ->
-                                                val isHistoryOnly = listeningHistoryArtists.any {
-                                                    it.id == artist.id && it.name.equals(artist.name, ignoreCase = true)
+                                                val linkedArtists = listeningHistoryArtists.filter { candidate ->
+                                                    candidate.id != artist.id &&
+                                                        artist.name.contains(candidate.name, ignoreCase = true)
                                                 }
-                                                navController.navigateSafelyReplacing(
-                                                    route = artist.remoteBrowseId
-                                                        ?.let(Screen.ArtistDetail::createRoute)
-                                                        ?: if (isHistoryOnly) Screen.ArtistDetail.createRoute(artist.name)
-                                                        else Screen.ArtistDetail.createRoute(artist.id),
-                                                    patternToPop = Screen.ArtistDetail.route
-                                                )
+                                                val splitArtists = artist.name
+                                                    .split(Regex("\\s*(?:,|&|/|;|\\bfeat\\.?\\b|\\bft\\.?\\b|\\band\\b)\\s*", RegexOption.IGNORE_CASE))
+                                                    .map(String::trim)
+                                                    .filter(String::isNotBlank)
+                                                    .distinctBy(String::lowercase)
+                                                    .map { name ->
+                                                        linkedArtists.firstOrNull { it.name.equals(name, ignoreCase = true) }
+                                                            ?: Artist(id = -1L, name = name, songCount = 0)
+                                                    }
+                                                val choices = (listOf(artist) + linkedArtists)
+                                                    .distinctBy { it.remoteBrowseId ?: "${it.id}:${it.name.lowercase()}" }
+                                                    .let { if (it.size > 1) it else splitArtists }
+                                                if (choices.size > 1) {
+                                                    pendingArtistChoices = choices
+                                                } else {
+                                                    navController.navigateSafelyReplacing(
+                                                        route = artist.remoteBrowseId?.takeIf(String::isNotBlank)
+                                                            ?.let(Screen.ArtistDetail::createRoute)
+                                                            ?: Screen.ArtistDetail.createRoute(artist.id),
+                                                        patternToPop = Screen.ArtistDetail.route
+                                                    )
+                                                }
                                             },
                                             isRefreshing = isRefreshing,
                                             onRefresh = onRefresh,
@@ -2283,6 +2296,34 @@ fun LibraryScreen(
                     coverArtUpdate = coverArtUpdate
                 )
             }
+        )
+    }
+
+    if (pendingArtistChoices.isNotEmpty()) {
+        AlertDialog(
+            onDismissRequest = { pendingArtistChoices = emptyList() },
+            title = { Text("Choose an artist") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    pendingArtistChoices.forEach { artist ->
+                        TextButton(
+                            onClick = {
+                                val route = artist.remoteBrowseId?.takeIf(String::isNotBlank)
+                                    ?.let(Screen.ArtistDetail::createRoute)
+                                    ?: artist.id.takeIf { it > 0L }?.let(Screen.ArtistDetail::createRoute)
+                                    ?: Screen.ArtistDetail.createRoute(Uri.encode(artist.name))
+                                pendingArtistChoices = emptyList()
+                                navController.navigateSafelyReplacing(route, Screen.ArtistDetail.route)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { Text(artist.name, modifier = Modifier.fillMaxWidth()) }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { pendingArtistChoices = emptyList() }) { Text("Cancel") }
+            },
         )
     }
 }

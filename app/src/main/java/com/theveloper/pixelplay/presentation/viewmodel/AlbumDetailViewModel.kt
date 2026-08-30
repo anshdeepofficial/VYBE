@@ -59,7 +59,6 @@ class AlbumDetailViewModel @Inject constructor(
                 val matchedAlbum = if (directDetails == null) {
                     onlineMusicRepository.searchMusicStructured(browseId).albums
                         .firstOrNull { it.title.equals(browseId, ignoreCase = true) }
-                        ?: onlineMusicRepository.searchMusicStructured(browseId).albums.firstOrNull()
                 } else null
                 val resolvedBrowseId = matchedAlbum?.browseId ?: browseId
                 val details = directDetails

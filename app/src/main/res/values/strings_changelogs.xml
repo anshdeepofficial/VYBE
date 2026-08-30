@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string-array name="changelog_094_added">
+        <item>Added configurable song-recognition visibility, Bluetooth audio controls, custom update reminders, and developer support links.</item>
+    </string-array>
+    <string-array name="changelog_094_fixes">
+        <item>Fixed exact album and artist navigation, multi-artist selection, and persistent Library tab order and visibility.</item>
+        <item>Restored square Home artwork cards and added clear up-to-date feedback.</item>
+    </string-array>
     <string-array name="changelog_093_added">
         <item>Added Release Radar, Top Charts, Listen Again, related recommendations, Fresh Finds, and song recognition.</item>
         <item>Added data saver, high-refresh UI controls, animated artwork, and promoted Now Playing support.</item>

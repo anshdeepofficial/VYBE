@@ -1104,18 +1104,7 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
     }
 
     suspend fun migrateTabOrder() {
-        dataStore.edit { preferences ->
-            val orderJson = preferences[PreferencesKeys.LIBRARY_TABS_ORDER] ?: return@edit
-            val order = runCatching {
-                json.decodeFromString<MutableList<String>>(orderJson)
-            }.getOrNull() ?: return@edit  // Abort on malformed data; don't overwrite user data.
-
-            if ("FOLDERS" !in order) {
-                val insertAfter = order.indexOf("LIKED").takeIf { it != -1 } ?: order.lastIndex
-                order.add(insertAfter + 1, "FOLDERS")
-                preferences[PreferencesKeys.LIBRARY_TABS_ORDER] = json.encodeToString(order)
-            }
-        }
+        // Retired: missing tabs may be intentionally hidden by the user.
     }
 
     val isFolderFilterActiveFlow: Flow<Boolean> =

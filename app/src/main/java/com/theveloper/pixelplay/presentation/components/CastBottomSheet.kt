@@ -67,6 +67,7 @@ import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material.icons.rounded.WifiOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -83,6 +84,7 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -181,6 +183,7 @@ fun CastBottomSheet(
     val trackVolume by playerViewModel.trackVolume.collectAsStateWithLifecycle()
     val isPlaying = playerViewModel.stablePlayerState.collectAsStateWithLifecycle().value.isPlaying
     val context = LocalContext.current
+    var bluetoothControlDevice by remember { mutableStateOf<String?>(null) }
 
     val requiredPermissions = remember {
         buildList {
@@ -372,9 +375,7 @@ fun CastBottomSheet(
                         onSelectDevice = { id ->
                             when {
                                 id.startsWith("bluetooth_") -> {
-                                    val intent = Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
-                                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    context.startActivity(intent)
+                                    bluetoothControlDevice = devices.firstOrNull { it.id == id }?.name
                                 }
                                 else -> routes.firstOrNull { it.id == id }?.let { playerViewModel.selectRoute(it) }
                             }
@@ -409,6 +410,31 @@ fun CastBottomSheet(
                 }
             }
         }
+    }
+
+    bluetoothControlDevice?.let { deviceName ->
+        AlertDialog(
+            onDismissRequest = { bluetoothControlDevice = null },
+            title = { Text(deviceName) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Audio output controls", style = MaterialTheme.typography.titleSmall)
+                    Text("Volume ${(trackVolume * 100).roundToInt()}%")
+                    Slider(value = trackVolume, onValueChange = playerViewModel::setTrackVolume)
+                    Text("Open the audio equalizer to tune this output without leaving VYBE for Bluetooth settings.", style = MaterialTheme.typography.bodySmall)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    runCatching {
+                        context.startActivity(Intent(android.media.audiofx.AudioEffect.ACTION_DISPLAY_AUDIO_EFFECT_CONTROL_PANEL).apply {
+                            putExtra(android.media.audiofx.AudioEffect.EXTRA_PACKAGE_NAME, context.packageName)
+                        })
+                    }
+                }) { Text("Equalizer") }
+            },
+            dismissButton = { TextButton(onClick = { bluetoothControlDevice = null }) { Text("Done") } },
+        )
     }
 }
 
@@ -663,7 +689,7 @@ private fun CastSheetContent(
                         onDisconnect = onDisconnect,
                         onVolumeChange = onVolumeChange,
                         onTurnOnWifi = onTurnOnWifi,
-                        onOpenBluetoothSettings = onOpenBluetoothSettings,
+                        onOpenBluetoothSettings = { scope.launch { pagerState.animateScrollToPage(1) } },
                         onRefresh = onRefresh,
                         bottomSpacing = 20.dp,
                     )
@@ -1756,18 +1782,6 @@ private fun QuickSettingsRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         QuickSettingTile(
-            label = if (wifiConnected && !wifiSsid.isNullOrEmpty()) wifiSsid else stringResource(R.string.cast_wifi),
-            subtitle = when {
-                !wifiOn -> stringResource(R.string.cast_wifi_off)
-                wifiConnected -> stringResource(R.string.cast_wifi_connected)
-                else -> stringResource(R.string.cast_wifi_on)
-            },
-            icon = if (wifiOn) Icons.Rounded.Wifi else Icons.Rounded.WifiOff,
-            isActive = wifiOn,
-            onClick = onWifiClick,
-            modifier = Modifier.weight(1f)
-        )
-        QuickSettingTile(
             label = if (bluetoothEnabled && !bluetoothName.isNullOrEmpty()) bluetoothName else stringResource(R.string.cast_bluetooth),
             subtitle = if (bluetoothEnabled) {
                 if (!bluetoothName.isNullOrEmpty()) stringResource(R.string.cast_bt_connected) else stringResource(R.string.cast_bt_on)
@@ -1775,7 +1789,7 @@ private fun QuickSettingsRow(
             icon = if (bluetoothEnabled) Icons.Rounded.Bluetooth else Icons.Rounded.BluetoothDisabled,
             isActive = bluetoothEnabled,
             onClick = onBluetoothClick,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }

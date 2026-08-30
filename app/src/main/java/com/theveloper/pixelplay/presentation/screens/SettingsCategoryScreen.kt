@@ -88,6 +88,7 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Restore
 import androidx.compose.material.icons.rounded.Science
 import androidx.compose.material.icons.rounded.Search
@@ -1165,6 +1166,24 @@ fun SettingsCategoryScreen(
                         }
                         SettingsCategory.BEHAVIOR -> {
                             val searchHistoryEnabled by settingsViewModel.searchHistoryEnabled.collectAsStateWithLifecycle()
+                            val recognitionPreferences = remember {
+                                context.getSharedPreferences("vybe_feature_preferences", android.content.Context.MODE_PRIVATE)
+                            }
+                            var recognitionEnabled by remember {
+                                mutableStateOf(recognitionPreferences.getBoolean("song_recognition_enabled", true))
+                            }
+                            SettingsSubsection(title = "Recognition") {
+                                SwitchSettingItem(
+                                    title = "Song recognition",
+                                    subtitle = "Show the Recognize destination and allow song listening recognition.",
+                                    checked = recognitionEnabled,
+                                    onCheckedChange = { enabled ->
+                                        recognitionEnabled = enabled
+                                        recognitionPreferences.edit().putBoolean("song_recognition_enabled", enabled).apply()
+                                    },
+                                    leadingIcon = { Icon(Icons.Rounded.Mic, null, tint = MaterialTheme.colorScheme.secondary) }
+                                )
+                            }
                             SettingsSubsection(title = "Search") {
                                 SwitchSettingItem(
                                     title = "Save search history",
@@ -1223,6 +1242,18 @@ fun SettingsCategoryScreen(
 
                             // AI Provider Selection
                             SettingsSubsection(title = stringResource(R.string.settings_ai_provider_section)) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.secondaryContainer,
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text(
+                                        "Your selected provider key powers Daily Mix generation, AI playlists, lyric translation and romanization, metadata assistance, mood analysis, and AI recommendations. The key remains stored in VYBE settings.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        modifier = Modifier.padding(14.dp),
+                                    )
+                                }
                                 ThemeSelectorItem(
                                     label = stringResource(R.string.settings_ai_provider_title),
                                     description = stringResource(R.string.settings_ai_provider_subtitle),

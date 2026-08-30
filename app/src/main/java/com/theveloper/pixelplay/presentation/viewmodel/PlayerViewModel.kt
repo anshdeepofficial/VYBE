@@ -1234,7 +1234,7 @@ class PlayerViewModel @Inject constructor(
         }
         .stateIn(
             viewModelScope,
-            SharingStarted.WhileSubscribed(5000),
+            SharingStarted.Eagerly,
             listOf("DOWNLOADS", "SONGS", "ALBUMS", "ARTIST", "PLAYLISTS", "FOLDERS", "LIKED")
         )
 
@@ -1754,10 +1754,6 @@ class PlayerViewModel @Inject constructor(
         }
 
 
-
-        viewModelScope.launch {
-            userPreferencesRepository.migrateTabOrder()
-        }
 
         viewModelScope.launch {
             userPreferencesRepository.ensureLibrarySortDefaults()

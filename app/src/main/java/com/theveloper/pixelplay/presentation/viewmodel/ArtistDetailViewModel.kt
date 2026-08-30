@@ -113,7 +113,6 @@ class ArtistDetailViewModel @Inject constructor(
                     withTimeoutOrNull(ARTIST_PROFILE_TIMEOUT_MS) {
                         onlineMusicRepository.searchMusicStructured(browseId).artists
                             .firstOrNull { it.name.equals(browseId, ignoreCase = true) }
-                            ?: onlineMusicRepository.searchMusicStructured(browseId).artists.firstOrNull()
                     }
                 } else null
                 val resolvedBrowseId = matchedArtist?.browseId ?: browseId

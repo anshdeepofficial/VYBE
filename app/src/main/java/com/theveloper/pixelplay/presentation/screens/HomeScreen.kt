@@ -13,6 +13,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -461,6 +462,17 @@ fun HomeScreen(
                     )
                 }
 
+                if (recentlyPlayedQueue.isNotEmpty()) {
+                    item(key = "listen_again_section", contentType = "youtube_music_row") {
+                        YouTubeMusicHomeRow(
+                            title = "Listen Again",
+                            songs = recentlyPlayedQueue.take(10),
+                            queueName = "Listen Again",
+                            playerViewModel = playerViewModel,
+                        )
+                    }
+                }
+
                 if (yourMixSongs.isEmpty()) {
                     item(
                         key = "your_mix_placeholder",
@@ -526,17 +538,6 @@ fun HomeScreen(
                             onSongClick = { song ->
                                 playerViewModel.showAndPlaySong(song, yourMixSongs, "Your Mix")
                             }
-                        )
-                    }
-                }
-
-                if (recentlyPlayedQueue.isNotEmpty()) {
-                    item(key = "listen_again_section", contentType = "youtube_music_row") {
-                        YouTubeMusicHomeRow(
-                            title = "Listen Again",
-                            songs = recentlyPlayedQueue.take(10),
-                            queueName = "Listen Again",
-                            playerViewModel = playerViewModel,
                         )
                     }
                 }
@@ -1058,7 +1059,7 @@ private fun YouTubeMusicHomeRow(
             items(songs.take(10), key = { it.id }) { song ->
                 Card(
                     modifier = Modifier
-                        .width(280.dp)
+                        .width(164.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .combinedClickable(
                             onClick = {
@@ -1073,16 +1074,17 @@ private fun YouTubeMusicHomeRow(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
                     )
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column {
                         AsyncImage(
                             model = song.albumArtUriString,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
-                                .size(68.dp)
+                                .fillMaxWidth()
+                                .aspectRatio(1f)
                                 .clip(RoundedCornerShape(16.dp))
                         )
-                        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp).weight(1f)) {
+                        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
                             Text(
                                 text = song.title,
                                 maxLines = 1,
@@ -1092,7 +1094,7 @@ private fun YouTubeMusicHomeRow(
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = song.artist,
+                                text = song.displayArtist,
                                 maxLines = 1,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,

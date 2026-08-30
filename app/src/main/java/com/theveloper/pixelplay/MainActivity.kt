@@ -65,6 +65,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -686,12 +687,28 @@ class MainActivity : ComponentActivity() {
     private fun MainUI(playerViewModel: PlayerViewModel, navController: NavHostController) {
         Trace.beginSection("MainActivity.MainUI")
 
-        val commonNavItems = remember {
+        val navPreferencesContext = LocalContext.current
+        val recognitionPreferences = remember {
+            navPreferencesContext.getSharedPreferences("vybe_feature_preferences", Context.MODE_PRIVATE)
+        }
+        var recognitionEnabled by remember {
+            mutableStateOf(recognitionPreferences.getBoolean("song_recognition_enabled", true))
+        }
+        DisposableEffect(recognitionPreferences) {
+            val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { preferences, key ->
+                if (key == "song_recognition_enabled") {
+                    recognitionEnabled = preferences.getBoolean(key, true)
+                }
+            }
+            recognitionPreferences.registerOnSharedPreferenceChangeListener(listener)
+            onDispose { recognitionPreferences.unregisterOnSharedPreferenceChangeListener(listener) }
+        }
+        val commonNavItems = remember(recognitionEnabled) {
             persistentListOf(
                 BottomNavItem("Home", R.string.nav_bar_home, R.drawable.rounded_home_24, R.drawable.round_home_24, Screen.Home),
                 BottomNavItem("Search", R.string.nav_bar_search, R.drawable.rounded_search_24, R.drawable.rounded_search_24, Screen.OnlineSearch),
                 BottomNavItem("Library", R.string.nav_bar_library, R.drawable.rounded_library_music_24, R.drawable.round_library_music_24, Screen.Library),
-                BottomNavItem("Recognize", R.string.nav_bar_recognize, R.drawable.pop_mic, R.drawable.pop_mic, Screen.SongRecognition),
+                *if (recognitionEnabled) arrayOf(BottomNavItem("Recognize", R.string.nav_bar_recognize, R.drawable.pop_mic, R.drawable.pop_mic, Screen.SongRecognition)) else emptyArray(),
                 BottomNavItem("Settings", R.string.common_settings, R.drawable.rounded_settings_24, R.drawable.rounded_settings_24, Screen.Settings)
             )
         }

@@ -36,6 +36,8 @@ fun GitHubUpdateDialog(
     onSkipVersion: () -> Unit = onDismiss,
 ) {
     var showReminderMenu by remember { mutableStateOf(false) }
+    var showCustomReminder by remember { mutableStateOf(false) }
+    var customHours by remember { mutableStateOf("1") }
     val totalSize = formatBytes(update.apkSizeBytes)
     val downloadedSize = formatBytes((update.apkSizeBytes * downloadProgress.coerceIn(0f, 1f)).toLong())
     AlertDialog(
@@ -93,6 +95,10 @@ fun GitHubUpdateDialog(
                                 onClick = { showReminderMenu = false; onRemindLater(hours * 60L * 60L * 1_000L) },
                             )
                         }
+                        DropdownMenuItem(
+                            text = { Text("Custom…") },
+                            onClick = { showReminderMenu = false; showCustomReminder = true },
+                        )
                     }
                 }
                 TextButton(onClick = onSkipVersion, enabled = !isDownloading) {
@@ -101,6 +107,28 @@ fun GitHubUpdateDialog(
             }
         },
     )
+    if (showCustomReminder) {
+        AlertDialog(
+            onDismissRequest = { showCustomReminder = false },
+            title = { Text("Custom reminder") },
+            text = {
+                androidx.compose.material3.OutlinedTextField(
+                    value = customHours,
+                    onValueChange = { value -> customHours = value.filter(Char::isDigit).take(3) },
+                    label = { Text("Hours") },
+                    singleLine = true,
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    val hours = customHours.toLongOrNull()?.coerceIn(1L, 720L) ?: 1L
+                    showCustomReminder = false
+                    onRemindLater(hours * 60L * 60L * 1_000L)
+                }) { Text("Set reminder") }
+            },
+            dismissButton = { TextButton(onClick = { showCustomReminder = false }) { Text("Cancel") } },
+        )
+    }
 }
 
 private fun formatBytes(bytes: Long): String = when {

@@ -15,7 +15,6 @@ import com.theveloper.pixelplay.data.recognition.SongRecognitionLauncher
 fun SongRecognitionScreen(paddingValues: PaddingValues) {
     val context = LocalContext.current
     var launched by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { launched = SongRecognitionLauncher.launch(context) }
     Column(
         Modifier.fillMaxSize().padding(paddingValues).padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -24,8 +23,8 @@ fun SongRecognitionScreen(paddingValues: PaddingValues) {
         Icon(Icons.Rounded.Mic, null, Modifier.size(72.dp), tint = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.height(18.dp))
         Text("Recognize a song", style = MaterialTheme.typography.headlineMedium)
-        Text(if (launched) "Listening through your device recognition service" else "No compatible recognition service was found")
+        Text(if (launched) "Listening through your device recognition service" else "Tap Listen when you are ready")
         Spacer(Modifier.height(18.dp))
-        Button(onClick = { launched = SongRecognitionLauncher.launch(context) }) { Text("Listen again") }
+        Button(onClick = { launched = SongRecognitionLauncher.launch(context) }) { Text("Listen") }
     }
 }
