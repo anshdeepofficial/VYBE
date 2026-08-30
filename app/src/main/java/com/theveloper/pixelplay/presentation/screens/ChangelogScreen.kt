@@ -32,6 +32,16 @@ private data class ChangelogRelease(
 
 private val VybeChangelog = listOf(
     ChangelogRelease(
+        version = "0.10.2",
+        date = "30 August 2026",
+        changes = listOf(
+            "Updates: Replaced release-note parsing with a machine-readable update manifest.",
+            "Updates: Adopted monotonic Android version codes so same-version and downgrade collisions cannot recur.",
+            "Updates: Added SHA-256 verification before an APK can reach Android's installer.",
+            "Updates: Prevented cached or same-version APK assets from being offered as updates."
+        )
+    ),
+    ChangelogRelease(
         version = "0.10.1",
         date = "30 August 2026",
         changes = listOf(

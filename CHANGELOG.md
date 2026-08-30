@@ -1,3 +1,11 @@
+## [0.10.2] - 2026-08-30
+### Fixed
+- Permanently fixed false update offers and the “Downloaded update is not newer” loop.
+- Switched update discovery to a machine-readable manifest with Android `versionCode` as the authoritative comparison.
+- Adopted monotonic release code `10200`, safely above all previous VYBE builds.
+- Added APK SHA-256, package-name, version-code, and signing-certificate verification before installation.
+- Added cache-busting update checks so replaced or stale GitHub assets are never selected.
+
 ## [0.9.2] - 2026-08-29
 ### Added
 - Verified VYBE App Links at `vybetune.vercel.app/watch?v=...` for exact-song sharing and direct in-app playback.

@@ -33,6 +33,7 @@ data class GitHubReleaseUpdate(
     val apkName: String,
     val apkUrl: String,
     val apkSizeBytes: Long,
+    val apkSha256: String? = null,
 )
 
 class GitHubUpdateService {
@@ -46,6 +47,13 @@ class GitHubUpdateService {
                 val owner = BuildConfig.VYBE_GITHUB_OWNER.trim()
                 val repo = BuildConfig.VYBE_GITHUB_REPO.trim()
                 if (owner.isBlank() || repo.isBlank()) return@runCatching null
+
+                // The manifest is the authoritative update source. It avoids parsing human-written
+                // release notes and prevents stale/replaced GitHub assets from being offered.
+                val manifest = runCatching {
+                    manifestUpdate(context, owner, repo, respectDismissal)
+                }.getOrNull()
+                if (manifest?.available == true) return@runCatching manifest.update
 
                 val connection = openConnection(
                     "https://api.github.com/repos/$owner/$repo/releases/latest",
@@ -107,6 +115,7 @@ class GitHubUpdateService {
                     apkName = selected.first,
                     apkUrl = selected.second,
                     apkSizeBytes = selected.third,
+                    apkSha256 = null,
                 )
             }
         }
@@ -170,6 +179,11 @@ class GitHubUpdateService {
             check(partial.length() > 4L) { "Downloaded APK is empty" }
             if (update.apkSizeBytes > 0L) {
                 check(partial.length() == update.apkSizeBytes) { "Downloaded update size does not match" }
+            }
+            update.apkSha256?.takeIf(String::isNotBlank)?.let { expected ->
+                check(fileSha256(partial).equals(expected, ignoreCase = true)) {
+                    "Downloaded update failed its integrity check"
+                }
             }
             partial.inputStream().use { stream ->
                 check(stream.read() == 'P'.code && stream.read() == 'K'.code) { "Downloaded file is not a valid APK" }
@@ -319,6 +333,74 @@ class GitHubUpdateService {
             ?.getOrNull(1)
             ?.toLongOrNull()
 
+    private data class ManifestLookup(
+        val available: Boolean,
+        val update: GitHubReleaseUpdate?,
+    )
+
+    private fun manifestUpdate(
+        context: Context,
+        owner: String,
+        repo: String,
+        respectDismissal: Boolean,
+    ): ManifestLookup {
+        val url = "https://raw.githubusercontent.com/$owner/$repo/main/update-manifest.json?t=${System.currentTimeMillis()}"
+        val response = openConnection(url, accept = "application/json").apply {
+            useCaches = false
+            setRequestProperty("Cache-Control", "no-cache, no-store")
+            setRequestProperty("Pragma", "no-cache")
+        }.useResponse()
+        if (response.code == HttpURLConnection.HTTP_NOT_FOUND) return ManifestLookup(false, null)
+        check(response.code in 200..299) { "VYBE update manifest failed (${response.code})" }
+
+        val manifest = JSONObject(response.body)
+        check(manifest.optInt("schemaVersion", 0) == 1) { "Unsupported VYBE update manifest" }
+        check(manifest.optString("packageName") == context.packageName) {
+            "Update manifest package does not match VYBE"
+        }
+        val remoteCode = manifest.optLong("versionCode", -1L)
+        check(remoteCode > 0L) { "Update manifest has no valid Android version code" }
+        // Numeric Android versionCode is the sole upgrade authority.
+        if (remoteCode <= installedVersionCode(context)) return ManifestLookup(true, null)
+
+        val tag = manifest.optString("tag").trim()
+        check(tag.isNotBlank()) { "Update manifest has no release tag" }
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        if (respectDismissal && versionKey(prefs.getString(KEY_DISMISSED_TAG, null).orEmpty()) == versionKey(tag)) {
+            return ManifestLookup(true, null)
+        }
+        if (respectDismissal && System.currentTimeMillis() < prefs.getLong(KEY_REMIND_AFTER, 0L)) {
+            return ManifestLookup(true, null)
+        }
+
+        val assets = manifest.optJSONArray("assets") ?: error("Update manifest has no APK assets")
+        val candidates = buildList {
+            for (index in 0 until assets.length()) {
+                val asset = assets.optJSONObject(index) ?: continue
+                val name = asset.optString("name")
+                val downloadUrl = asset.optString("url")
+                if (name.endsWith(".apk", true) && downloadUrl.startsWith("https://")) {
+                    add(asset)
+                }
+            }
+        }
+        val selected = candidates.maxByOrNull { apkScore(it.optString("name")) }
+            ?: error("Update manifest has no compatible APK")
+        return ManifestLookup(
+            available = true,
+            update = GitHubReleaseUpdate(
+                tagName = tag,
+                title = manifest.optString("title").ifBlank { "VYBE $tag" },
+                notes = manifest.optString("notes").trim().take(MAX_NOTES_LENGTH),
+                versionCode = remoteCode,
+                apkName = selected.optString("name"),
+                apkUrl = selected.optString("url"),
+                apkSizeBytes = selected.optLong("size", 0L),
+                apkSha256 = selected.optString("sha256").trim().ifBlank { null },
+            ),
+        )
+    }
+
     private fun openConnection(url: String, accept: String): HttpURLConnection =
         (URL(url).openConnection() as HttpURLConnection).apply {
             instanceFollowRedirects = true
@@ -343,6 +425,19 @@ class GitHubUpdateService {
         .replace(Regex("[^A-Za-z0-9._-]"), "_")
         .takeIf { it.endsWith(".apk", ignoreCase = true) }
         ?: "VYBE-update.apk"
+
+    private fun fileSha256(file: File): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        file.inputStream().buffered().use { input ->
+            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                digest.update(buffer, 0, count)
+            }
+        }
+        return digest.digest().joinToString("") { byte -> "%02x".format(byte) }
+    }
 
     private fun installedVersionName(context: Context): String? {
         @Suppress("DEPRECATION")
