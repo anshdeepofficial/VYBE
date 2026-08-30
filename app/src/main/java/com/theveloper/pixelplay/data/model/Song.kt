@@ -44,6 +44,8 @@ data class Song(
     val jellyfinId: String? = null, // Jellyfin item ID
     /** YouTube Music album browse ID, retained while an online song is in the player/queue. */
     val remoteAlbumBrowseId: String? = null,
+    /** Exact catalog release date in epoch milliseconds; zero when the provider did not supply one. */
+    val releaseDateEpochMillis: Long = 0L,
 ) : Parcelable {
     /**
      * Returns the display string for artists.

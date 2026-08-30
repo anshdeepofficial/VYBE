@@ -1100,6 +1100,18 @@ private fun YouTubeMusicHomeRow(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 overflow = TextOverflow.Ellipsis
                             )
+                            if (queueName == "Release Radar" && song.releaseDateEpochMillis > 0L) {
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = java.time.Instant.ofEpochMilli(song.releaseDateEpochMillis)
+                                        .atZone(java.time.ZoneId.systemDefault())
+                                        .toLocalDate()
+                                        .format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy")),
+                                    maxLines = 1,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                            }
                         }
                     }
                 }

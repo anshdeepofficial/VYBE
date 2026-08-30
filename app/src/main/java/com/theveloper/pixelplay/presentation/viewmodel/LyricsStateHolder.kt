@@ -402,12 +402,16 @@ class LyricsStateHolder @Inject constructor(
                     _messageEvents.emit(cb.getErrorString("Empty response"))
                 }
             }.onFailure {
-                if (it.message?.contains("key", ignoreCase = true) == true ||
-                    it.message?.contains("config", ignoreCase = true) == true
+                val detail = it.message.orEmpty()
+                if (detail.contains("No API key configured", ignoreCase = true) ||
+                    detail.contains("API key cannot be blank", ignoreCase = true) ||
+                    detail.contains("invalid API key", ignoreCase = true) ||
+                    detail.contains("unauthorized", ignoreCase = true) ||
+                    detail.contains("401", ignoreCase = true)
                 ) {
                     _messageEvents.emit(cb.getString(R.string.ai_state_error_api_key))
                 } else {
-                    _messageEvents.emit(cb.getErrorString(it.message ?: ""))
+                    _messageEvents.emit(cb.getErrorString(detail))
                 }
             }
         }
@@ -478,12 +482,16 @@ class LyricsStateHolder @Inject constructor(
                     _messageEvents.emit(cb.getString(R.string.lyrics_transliterate_success))
                 }
             }.onFailure { error ->
-                if (error.message?.contains("key", ignoreCase = true) == true ||
-                    error.message?.contains("config", ignoreCase = true) == true
+                val detail = error.message.orEmpty()
+                if (detail.contains("No API key configured", ignoreCase = true) ||
+                    detail.contains("API key cannot be blank", ignoreCase = true) ||
+                    detail.contains("invalid API key", ignoreCase = true) ||
+                    detail.contains("unauthorized", ignoreCase = true) ||
+                    detail.contains("401", ignoreCase = true)
                 ) {
                     _messageEvents.emit(cb.getString(R.string.ai_state_error_api_key))
                 } else {
-                    _messageEvents.emit(cb.getErrorString(error.message ?: ""))
+                    _messageEvents.emit(cb.getErrorString(detail))
                 }
             }
         }

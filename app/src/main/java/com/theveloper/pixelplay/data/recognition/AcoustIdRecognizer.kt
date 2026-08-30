@@ -7,6 +7,8 @@ import android.media.MediaRecorder
 import com.theveloper.pixelplay.BuildConfig
 import java.net.URLEncoder
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -29,6 +31,7 @@ object AcoustIdRecognizer {
             recorder.startRecording()
             var offset = 0
             while (offset < pcm.size) {
+                currentCoroutineContext().ensureActive()
                 val count = recorder.read(pcm, offset, minOf(minimum, pcm.size - offset), AudioRecord.READ_BLOCKING)
                 if (count < 0) error("Audio capture failed ($count)")
                 offset += count
@@ -37,6 +40,7 @@ object AcoustIdRecognizer {
             runCatching { recorder.stop() }
             recorder.release()
         }
+        currentCoroutineContext().ensureActive()
         val fingerprint = ChromaprintBridge.fingerprint(pcm, RATE) ?: error("Could not fingerprint this audio")
         val encoded = URLEncoder.encode(fingerprint, "UTF-8")
         val url = "https://api.acoustid.org/v2/lookup?client=${BuildConfig.ACOUSTID_CLIENT_KEY}" +

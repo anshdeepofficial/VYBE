@@ -751,19 +751,30 @@ fun FullPlayerContent(
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Transparent,
-                        titleContentColor = LocalMaterialTheme.current.onPrimaryContainer,
+                        titleContentColor = if (immersiveArtworkEnabled) Color.White else LocalMaterialTheme.current.onPrimaryContainer,
                     ),
                     title = {
                         if (!isCastConnecting) {
                             AnimatedVisibility(visible = (!isRemotePlaybackActive)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.then(
+                                        if (immersiveArtworkEnabled) {
+                                            Modifier
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(Color.Black.copy(alpha = 0.58f))
+                                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                                        } else Modifier
+                                    )
+                                ) {
                                     Text(
-                                        modifier = Modifier.padding(start = 18.dp),
+                                        modifier = Modifier.padding(start = if (immersiveArtworkEnabled) 0.dp else 18.dp),
                                         text = stringResource(R.string.player_now_playing),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                         style = MaterialTheme.typography.labelLargeEmphasized,
-                                        fontWeight = FontWeight.SemiBold
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (immersiveArtworkEnabled) Color.White else LocalMaterialTheme.current.onPrimaryContainer,
                                     )
 
                                     if (currentSong != null && (currentSong.telegramChatId != null || currentSong.contentUriString.startsWith("telegram:"))) {

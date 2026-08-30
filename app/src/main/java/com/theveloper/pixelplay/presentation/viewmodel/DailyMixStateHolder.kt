@@ -112,14 +112,12 @@ class DailyMixStateHolder @Inject constructor(
                 song.displayArtist.trim().lowercase() !in blockedArtists 
             }
 
-            if (loggedOutDiscovery.isNotEmpty()) {
-                _latestReleaseSongs.value = personalizeLatestReleases(
-                    releases = loggedOutDiscovery.filter(isNotBlocked),
-                    tasteSongs = tasteCandidates,
-                    preferredArtists = preferredArtists,
-                    preferredGenres = preferredGenres,
-                ).take(30).toImmutableList()
-            }
+            _latestReleaseSongs.value = personalizeLatestReleases(
+                releases = latestReleases.filter(isNotBlocked),
+                tasteSongs = tasteCandidates,
+                preferredArtists = preferredArtists,
+                preferredGenres = preferredGenres,
+            ).sortedByDescending { it.releaseDateEpochMillis }.take(30).toImmutableList()
 
             // Latest releases are used only for cold-start discovery, never mixed into an
             // established profile as generic chart filler.

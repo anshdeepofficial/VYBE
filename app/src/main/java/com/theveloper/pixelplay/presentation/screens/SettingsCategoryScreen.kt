@@ -1836,6 +1836,51 @@ fun SettingsCategoryScreen(
                                     }
                                 }
                             }
+
+                            SettingsSubsection(
+                                title = "Where your AI key is used",
+                                addBottomSpace = false,
+                            ) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.secondaryContainer,
+                                    shape = RoundedCornerShape(14.dp),
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(16.dp),
+                                        verticalArrangement = Arrangement.spacedBy(7.dp),
+                                    ) {
+                                        Text(
+                                            text = "One saved ${provider.displayName} key powers:",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        )
+                                        listOf(
+                                            "Lyrics translation and English-script conversion",
+                                            "Daily Mix and AI playlist generation",
+                                            "Mood analysis and personalized recommendations",
+                                            "Metadata assistance and smart music organization",
+                                        ).forEach { feature ->
+                                            Text(
+                                                text = "• $feature",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            )
+                                        }
+                                        Text(
+                                            text = if (currentAiApiKey.isBlank()) {
+                                                "Status: no key saved for ${provider.displayName}."
+                                            } else {
+                                                "Status: ${provider.displayName} key saved and ready."
+                                            },
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        )
+                                    }
+                                }
+                            }
                         }
                         SettingsCategory.BACKUP_RESTORE -> {
                             if (!uiState.backupInfoDismissed) {

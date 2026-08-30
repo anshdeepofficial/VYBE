@@ -1,5 +1,7 @@
 package com.theveloper.pixelplay.presentation.viewmodel
 
+import com.theveloper.pixelplay.data.ai.provider.AiProvider
+
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.net.Uri
@@ -543,7 +545,7 @@ class PlayerViewModel @Inject constructor(
         aiPreferencesRepository.customApiKey,
         aiPreferencesRepository.openrouterApiKey
     ) { values ->
-        val provider = values[0]
+        val provider = AiProvider.fromString(values[0])
         val gemini = values[1]
         val deepseek = values[2]
         val groq = values[3]
@@ -556,18 +558,17 @@ class PlayerViewModel @Inject constructor(
         val custom = values[10]
         val openrouter = values[11]
         when (provider) {
-            "GEMINI" -> gemini.isNotBlank()
-            "DEEPSEEK" -> deepseek.isNotBlank()
-            "GROQ" -> groq.isNotBlank()
-            "MISTRAL" -> mistral.isNotBlank()
-            "NVIDIA" -> nvidia.isNotBlank()
-            "KIMI" -> kimi.isNotBlank()
-            "GLM" -> glm.isNotBlank()
-            "OPENAI" -> openai.isNotBlank()
-            "OPENROUTER" -> openrouter.isNotBlank()
-            "OLLAMA" -> ollama.isNotBlank()
-            "CUSTOM" -> custom.isNotBlank()
-            else -> false
+            AiProvider.GEMINI -> gemini.isNotBlank()
+            AiProvider.DEEPSEEK -> deepseek.isNotBlank()
+            AiProvider.GROQ -> groq.isNotBlank()
+            AiProvider.MISTRAL -> mistral.isNotBlank()
+            AiProvider.NVIDIA -> nvidia.isNotBlank()
+            AiProvider.KIMI -> kimi.isNotBlank()
+            AiProvider.GLM -> glm.isNotBlank()
+            AiProvider.OPENAI -> openai.isNotBlank()
+            AiProvider.OPENROUTER -> openrouter.isNotBlank()
+            AiProvider.OLLAMA -> ollama.isNotBlank()
+            AiProvider.CUSTOM -> custom.isNotBlank()
         }
     }.distinctUntilChanged()
         .stateIn(

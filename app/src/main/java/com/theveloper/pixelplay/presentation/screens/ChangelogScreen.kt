@@ -32,6 +32,18 @@ private data class ChangelogRelease(
 
 private val VybeChangelog = listOf(
     ChangelogRelease(
+        version = "0.9.7",
+        date = "30 August 2026",
+        changes = listOf(
+            "Player: Fixed the edge-to-edge artwork strip and improved Now Playing contrast.",
+            "Artwork: Added premium full-cover Home collages and higher-resolution notification art.",
+            "AI: Fixed saved provider keys being misreported as missing during lyrics translation and romanization.",
+            "AI settings: Added a clear provider status and feature-usage guide.",
+            "Recognition: Added cancellation and self-contained native runtime support.",
+            "Release Radar: Restricted releases to the latest 30 days with newest-first dates."
+        )
+    ),
+    ChangelogRelease(
         version = "0.9.5",
         date = "30 August 2026",
         changes = listOf(

@@ -235,7 +235,10 @@ object MediaItemBuilder {
      * Keep only schemes that these surfaces can usually resolve, and normalize raw paths.
      */
     fun artworkUri(rawArtworkUri: String?): Uri? {
-        return normalizeArtworkUri(rawArtworkUri, SUPPORTED_INTERNAL_ARTWORK_SCHEMES)
+        return normalizeArtworkUri(
+            highResolutionArtworkUrl(rawArtworkUri),
+            SUPPORTED_INTERNAL_ARTWORK_SCHEMES
+        )
     }
 
     fun externalControllerArtworkUri(context: Context, rawArtworkUri: String?): Uri? {
@@ -256,7 +259,10 @@ object MediaItemBuilder {
             )
         }
 
-        val normalizedUri = normalizeArtworkUri(rawArtworkUri, SUPPORTED_EXTERNAL_ARTWORK_SCHEMES)
+        val normalizedUri = normalizeArtworkUri(
+            highResolutionArtworkUrl(rawArtworkUri),
+            SUPPORTED_EXTERNAL_ARTWORK_SCHEMES
+        )
             ?: return null
         return when (normalizedUri.scheme?.lowercase()) {
             "file" -> normalizedUri.path
@@ -266,6 +272,26 @@ object MediaItemBuilder {
                 ?: normalizedUri
             null -> null
             else -> normalizedUri
+        }
+    }
+
+    /**
+     * Media3 loads notification artwork from this URI. YouTube Music commonly returns a
+     * deliberately small thumbnail even when a larger rendition is available at the same URL.
+     * Upgrade only known image-CDN URLs; local/content artwork is left untouched.
+     */
+    fun highResolutionArtworkUrl(rawArtworkUri: String?): String? {
+        if (rawArtworkUri.isNullOrBlank()) return rawArtworkUri
+        return when {
+            "googleusercontent.com" in rawArtworkUri || "ggpht.com" in rawArtworkUri ->
+                rawArtworkUri
+                    .replace(Regex("=w\\d+-h\\d+[^?&]*"), "=w1200-h1200-l90-rj")
+                    .replace(Regex("=s\\d+[^?&]*"), "=s1200")
+            "ytimg.com/vi/" in rawArtworkUri -> rawArtworkUri
+                .replace("/default.jpg", "/sddefault.jpg")
+                .replace("/mqdefault.jpg", "/sddefault.jpg")
+                .replace("/hqdefault.jpg", "/sddefault.jpg")
+            else -> rawArtworkUri
         }
     }
 

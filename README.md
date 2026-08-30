@@ -15,6 +15,7 @@
 
 <p align="center">
   <a href="https://github.com/anshdeepofficial/VYBE/releases/latest"><img src="https://img.shields.io/github/v/release/anshdeepofficial/VYBE?style=for-the-badge&logo=github&label=Latest%20Release" alt="Latest release" /></a>
+  <img src="https://img.shields.io/github/downloads/anshdeepofficial/VYBE/total?style=for-the-badge&logo=github&label=Release%20Downloads" alt="Total GitHub release downloads" />
   <img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android 8.0+" />
   <img src="https://img.shields.io/badge/iPhone-iOS%2017%2B-000000?style=for-the-badge&logo=apple&logoColor=white" alt="iOS 17+" />
   <img src="https://img.shields.io/badge/Kotlin-Jetpack%20Compose-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin and Jetpack Compose" />
@@ -84,11 +85,12 @@ VYBE combines a traditional device music player with online discovery and deeply
 
 ## Download
 
-The current release is **VYBE 0.9.5**.
+The current release is **VYBE 0.9.7**.
 
 | Device architecture | APK |
 | --- | --- |
-| Most modern Android phones (ARM64) | [Download VYBE 0.9.5 ARM64](https://github.com/anshdeepofficial/VYBE/releases/download/v0.9.5/VYBE-v0.9.5-arm64-v8a-release.apk) |
+| Most modern Android phones (ARM64) | [Download VYBE 0.9.7 ARM64](https://github.com/anshdeepofficial/VYBE/releases/download/v0.9.7/VYBE-v0.9.7-arm64-v8a-release.apk) |
+| Older 32-bit Android phones (ARMv7) | [Download VYBE 0.9.7 ARMv7](https://github.com/anshdeepofficial/VYBE/releases/download/v0.9.7/VYBE-v0.9.7-armeabi-v7a-release.apk) |
 
 If you are unsure, choose the ARM64 build. Android may ask to allow installation from your browser or file manager when installing outside Google Play.
 

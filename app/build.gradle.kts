@@ -154,7 +154,10 @@ android {
         buildConfigField("String", "ACOUSTID_CLIENT_KEY", "\"05gzX3uQQv\"")
 
         externalNativeBuild {
-            cmake { cppFlags += "-std=c++14" }
+            cmake {
+                cppFlags += "-std=c++14"
+                arguments += "-DANDROID_STL=c++_static"
+            }
         }
     }
 

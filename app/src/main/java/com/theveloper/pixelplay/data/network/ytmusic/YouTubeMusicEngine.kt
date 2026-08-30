@@ -391,36 +391,44 @@ class YouTubeMusicEngine @Inject constructor(
             Log.w(TAG, "New releases browse failed: ${error.message}")
         }
 
-        // The New Releases browse page is album-based. Resolve a representative playable
-        // track from each release so the existing Home carousel can play it immediately.
-        if (tracks.isEmpty() && releaseAlbums.isNotEmpty()) {
-            releaseAlbums.distinctBy { it.browseId }.take(12).forEach { album ->
+        // Resolve catalog albums because the browse cards themselves do not reliably carry
+        // an exact date. Undated releases are deliberately excluded from Release Radar.
+        if (releaseAlbums.isNotEmpty()) {
+            tracks.clear()
+            releaseAlbums.distinctBy { it.browseId }.take(30).forEach { album ->
                 runCatching { getAlbumDetails(album.browseId) }
                     .getOrNull()
-                    ?.tracks
-                    ?.firstOrNull()
-                    ?.let { song ->
-                        tracks += YouTubeTrack(
-                            videoId = song.id.removePrefix("yt_"),
-                            title = song.title,
-                            artist = song.artist,
-                            album = song.album,
-                            durationSeconds = song.duration / 1_000L,
-                            thumbnailUrl = song.albumArtUriString ?: album.thumbnailUrl,
-                            isOfficial = true,
-                        )
+                    ?.takeIf { it.releaseDateEpochMillis > 0L }
+                    ?.let { details ->
+                        details.tracks.firstOrNull()?.let { song ->
+                            tracks += YouTubeTrack(
+                                videoId = song.id.removePrefix("yt_"),
+                                title = song.title,
+                                artist = song.artist,
+                                album = song.album,
+                                durationSeconds = song.duration / 1_000L,
+                                thumbnailUrl = song.albumArtUriString ?: album.thumbnailUrl,
+                                isOfficial = true,
+                                albumBrowseId = details.browseId,
+                                releaseDateEpochMillis = details.releaseDateEpochMillis,
+                            )
+                        }
                     }
             }
         }
 
-        // Still uses the YouTube Music search endpoint and typed music renderers only.
-        if (tracks.isEmpty()) {
-            val currentYear = java.time.Year.now().value
-            tracks += search("new music releases $currentYear", region)
-        }
+        val zone = java.time.ZoneId.systemDefault()
+        val today = java.time.LocalDate.now(zone)
+        val oldestAllowed = today.minusDays(29)
         tracks
             .filter { track -> NON_MUSIC_KEYWORDS.none { track.title.lowercase().contains(it) } }
+            .filter { track ->
+                if (track.releaseDateEpochMillis <= 0L) return@filter false
+                val date = java.time.Instant.ofEpochMilli(track.releaseDateEpochMillis).atZone(zone).toLocalDate()
+                !date.isBefore(oldestAllowed) && !date.isAfter(today)
+            }
             .distinctBy { it.videoId }
+            .sortedByDescending { it.releaseDateEpochMillis }
     }
 
     private fun isCleanTrendingTrack(title: String, artist: String): Boolean {
@@ -1277,6 +1285,7 @@ class YouTubeMusicEngine @Inject constructor(
                 .ifBlank { subtitle.substringBefore("•").trim() }
 
             val year = Regex("\\b(19|20)\\d{2}\\b").find(subtitle)?.value?.toIntOrNull()
+            val releaseDateEpochMillis = extractExactReleaseDate(jsonString)
             val albumType = when {
                 subtitle.contains("single", ignoreCase = true) -> "Single"
                 Regex("\\bEP\\b", RegexOption.IGNORE_CASE).containsMatchIn(subtitle) -> "EP"
@@ -1317,12 +1326,34 @@ class YouTubeMusicEngine @Inject constructor(
                 coverUrl = coverUrl,
                 albumType = albumType,
                 trackCount = tracks.size,
-                tracks = tracks.distinctBy { it.id }
+                tracks = tracks.distinctBy { it.id },
+                releaseDateEpochMillis = releaseDateEpochMillis,
             )
         } catch (e: Exception) {
             Log.e(TAG, "parseAlbumDetailsResponse error: ${e.message}")
         }
         return null
+    }
+
+    /** Reads only an exact provider date. A year by itself is never accepted. */
+    private fun extractExactReleaseDate(json: String): Long {
+        val iso = Regex("\\\"(?:releaseDate|publishDate|uploadDate)\\\"\\s*:\\s*\\\"(\\d{4}-\\d{2}-\\d{2})")
+            .find(json)?.groupValues?.getOrNull(1)
+        val textual = Regex(
+            "(?:Released(?: on)?|Release date)[:\\s]+([A-Z][a-z]+\\s+\\d{1,2},\\s+\\d{4})",
+            RegexOption.IGNORE_CASE,
+        ).find(json.replace("\\u0026", "&"))?.groupValues?.getOrNull(1)
+        val date = iso?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() }
+            ?: textual?.let {
+                runCatching {
+                    java.time.LocalDate.parse(
+                        it,
+                        java.time.format.DateTimeFormatter.ofPattern("MMMM d, uuuu", java.util.Locale.ENGLISH),
+                    )
+                }.getOrNull()
+            }
+            ?: return 0L
+        return date.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
     }
 
     private fun findFirstObjectForKeys(root: Any?, keys: Set<String>): JSONObject? {

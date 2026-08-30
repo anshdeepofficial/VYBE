@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string-array name="changelog_097">
+        <item>Fixed full-player edge coverage and improved Now Playing readability.</item>
+        <item>Improved Home collage and notification artwork quality.</item>
+        <item>Fixed saved AI keys being misreported as missing and clarified where AI is used.</item>
+    </string-array>
     <string-array name="changelog_096">
         <item>Added real microphone song recognition using local Chromaprint fingerprints and AcoustID.</item>
         <item>Recognition results now search and play inside VYBE instead of opening Google.</item>

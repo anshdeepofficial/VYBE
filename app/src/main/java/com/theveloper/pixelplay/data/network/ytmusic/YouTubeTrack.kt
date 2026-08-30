@@ -26,6 +26,7 @@ data class YouTubeTrack(
     val isOfficial: Boolean = false,
     val linkedArtists: List<YouTubeArtist> = emptyList(),
     val albumBrowseId: String? = null,
+    val releaseDateEpochMillis: Long = 0L,
 ) : Parcelable {
     fun toSong(streamUrl: String? = null): Song {
         val cleaned = SongMetadataCleaner.clean(title, artist)
@@ -53,6 +54,7 @@ data class YouTubeTrack(
             bitrate = 256,
             sampleRate = 44100,
             remoteAlbumBrowseId = albumBrowseId,
+            releaseDateEpochMillis = releaseDateEpochMillis,
         )
     }
 }
@@ -136,5 +138,6 @@ data class YouTubeAlbumDetails(
     val coverUrl: String? = null,
     val albumType: String = "Album",
     val description: String? = null,
-    val tracks: List<Song> = emptyList()
+    val tracks: List<Song> = emptyList(),
+    val releaseDateEpochMillis: Long = 0L,
 )

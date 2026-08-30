@@ -42,15 +42,27 @@ fun SongRecognitionScreen(
         Text("Recognize a song", style = MaterialTheme.typography.headlineMedium)
         Text("Play the song near your phone. VYBE will listen, identify it, and find a playable match.")
         Spacer(Modifier.height(18.dp))
-        Button(onClick = {
-            if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                viewModel.listen()
-            } else permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-        }, enabled = !state.isSearching) {
-            Text(if (state.isSearching) "Listening…" else "Listen")
+        if (state.isListening) {
+            OutlinedButton(onClick = viewModel::stopListening) {
+                Text("Stop listening")
+            }
+        } else {
+            Button(onClick = {
+                if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                    viewModel.listen()
+                } else permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            }, enabled = !state.isSearching) {
+                Text(if (state.isSearching) "Finding match…" else "Listen")
+            }
         }
         if (state.isSearching) LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 16.dp))
-        state.message?.let { Text(it, color = if (state.isSearching) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 16.dp)) }
+        state.message?.let {
+            Text(
+                it,
+                color = if (state.isSearching) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 16.dp),
+            )
+        }
         state.matches.firstOrNull()?.let { first ->
             Spacer(Modifier.height(16.dp))
             ElevatedCard(Modifier.fillMaxWidth().clickable {

@@ -191,11 +191,23 @@ class AiHandler @Inject constructor(
             }
         }
 
-        val providersToTry = com.theveloper.pixelplay.data.ai.provider.AiProviderSupport.buildProviderChain(userProvider)
+        // Only try providers for which the user actually supplied a key. Previously the selected
+        // provider could fail for an unrelated reason, then every empty fallback was appended as
+        // "no API key"; the lyrics UI consequently reported that the saved key did not exist.
+        val providersToTry = com.theveloper.pixelplay.data.ai.provider.AiProviderSupport
+            .buildProviderChain(userProvider)
+            .mapNotNull { provider ->
+                getApiKey(provider).takeIf { it.isNotBlank() }?.let { provider to it }
+            }
+        if (providersToTry.isEmpty()) {
+            throw IllegalStateException(
+                "No API key configured for ${userProvider.displayName}. Go to Settings → AI Integration."
+            )
+        }
         val failedProviders = mutableListOf<String>()
         val now = System.currentTimeMillis()
 
-        for (provider in providersToTry) {
+        for ((provider, apiKey) in providersToTry) {
             val cooldownExpiry = providerCooldowns[provider] ?: 0L
             if (now < cooldownExpiry) {
                 failedProviders.add("${provider.name}: on cooldown (${((cooldownExpiry - now) / 1000)}s remaining)")
@@ -203,12 +215,6 @@ class AiHandler @Inject constructor(
             }
 
             try {
-                val apiKey = getApiKey(provider)
-                if (apiKey.isBlank()) {
-                    failedProviders.add("${provider.name}: no API key configured")
-                    continue
-                }
-
                 val providerPersona = getBasePersona(provider)
                 val finalSystemPrompt = promptEngine.buildPrompt(providerPersona, type, context)
 

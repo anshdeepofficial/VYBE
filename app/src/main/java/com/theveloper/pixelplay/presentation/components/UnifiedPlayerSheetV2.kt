@@ -665,10 +665,15 @@ fun UnifiedPlayerSheetV2(
                             .layout { measurable, constraints ->
                                 val targetHeightPx = playerContentAreaHeightPxProvider()
                                     .toInt().coerceAtLeast(0)
-                                val startPaddingPx = currentHorizontalPaddingStartPxProvider()
-                                    .toInt().coerceAtLeast(0)
-                                val endPaddingPx = currentHorizontalPaddingEndPxProvider()
-                                    .toInt().coerceAtLeast(0)
+                                // Snap to true edge-to-edge at full expansion. Fractional animated
+                                // padding previously truncated to a 1 px strip on some densities.
+                                val fullyExpanded = playerContentExpansionFraction.value >= 0.995f
+                                val startPaddingPx = if (fullyExpanded) 0 else {
+                                    currentHorizontalPaddingStartPxProvider().roundToInt().coerceAtLeast(0)
+                                }
+                                val endPaddingPx = if (fullyExpanded) 0 else {
+                                    currentHorizontalPaddingEndPxProvider().roundToInt().coerceAtLeast(0)
+                                }
                                 val innerWidth = (constraints.maxWidth - startPaddingPx - endPaddingPx)
                                     .coerceAtLeast(0)
                                 
@@ -707,7 +712,11 @@ fun UnifiedPlayerSheetV2(
                             .layout { measurable, constraints ->
                                 val targetContentHeightPx = containerHeight.roundToPx()
                                 val fraction = playerContentExpansionFraction.value
-                                val startPaddingPx = currentHorizontalPaddingStartPxProvider().toInt()
+                                val startPaddingPx = if (playerContentExpansionFraction.value >= 0.995f) {
+                                    0
+                                } else {
+                                    currentHorizontalPaddingStartPxProvider().roundToInt()
+                                }
                                 val measureWidth = if (fraction > 0f) {
                                     screenWidthPx.roundToInt()
                                 } else {
