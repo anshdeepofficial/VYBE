@@ -324,6 +324,13 @@ fun AboutScreen(
                                 updateService.checkForUpdate(context, respectDismissal = false)
                                     .onSuccess { update ->
                                         availableUpdate = update
+                                        if (update == null) {
+                                            android.widget.Toast.makeText(
+                                                context,
+                                                "VYBE is fully up to date",
+                                                android.widget.Toast.LENGTH_SHORT,
+                                            ).show()
+                                        }
                                         updateStatus = if (update == null) "VYBE is up to date • Version $versionName (${BuildConfig.VERSION_CODE})" else "VYBE ${update.tagName} is available"
                                     }
                                     .onFailure { error -> updateStatus = error.message ?: "Could not check for updates" }
@@ -353,6 +360,38 @@ fun AboutScreen(
                     showContributionCount = false,
                     onCardClick = CoreMaintainer.githubUrl?.let { url -> { openUrl(context, url) } },
                 )
+            }
+
+            item(key = "support_title") {
+                AboutSectionHeader(
+                    title = "Support the Developer",
+                    subtitle = "Optional ways to support continued VYBE development",
+                    modifier = Modifier.padding(top = 24.dp),
+                )
+            }
+
+            item(key = "support_actions") {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    SocialChip(
+                        "GitHub Sponsors",
+                        "Sponsor development",
+                        R.drawable.github,
+                        "Open GitHub Sponsors in browser",
+                        { openUrl(context, "https://github.com/sponsors/anshdeepofficial") },
+                        Modifier.weight(1f),
+                    )
+                    SocialChip(
+                        "Buy Me a Coffee",
+                        "Support with a coffee",
+                        R.drawable.rounded_favorite_24,
+                        "Open Buy Me a Coffee in browser",
+                        { openUrl(context, "https://buymeacoffee.com/anshdeepofficial") },
+                        Modifier.weight(1f),
+                    )
+                }
             }
 
             item(key = "bottom_spacer") {

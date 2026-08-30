@@ -155,6 +155,13 @@ Keep all private credentials outside version control.
 
 Found a reproducible problem or have a focused feature request? Open a [GitHub issue](https://github.com/anshdeepofficial/VYBE/issues) with the app version, operating-system version, device model, and clear reproduction steps.
 
+## Support Development
+
+VYBE is free and open source. If you enjoy the project and want to support continued development, you can contribute through:
+
+- [GitHub Sponsors](https://github.com/sponsors/anshdeepofficial)
+- [Buy Me a Coffee](https://buymeacoffee.com/anshdeepofficial)
+
 ## License
 
 This repository is distributed under the terms in [LICENSE](LICENSE). Review those terms before using, modifying, redistributing, or publishing the project.
