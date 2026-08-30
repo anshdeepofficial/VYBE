@@ -45,13 +45,12 @@ class UpdateCheckWorker(
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()
         applicationContext.getSystemService(NotificationManager::class.java)
-            .notify(NOTIFICATION_ID, notification)
+            .notify(GitHubUpdateService.UPDATE_NOTIFICATION_ID, notification)
         return Result.success()
     }
 
     companion object {
         private const val CHANNEL_ID = "vybe_app_updates"
-        private const val NOTIFICATION_ID = 7012
         private const val UNIQUE_WORK = "vybe_periodic_update_check"
 
         fun schedule(context: Context) {

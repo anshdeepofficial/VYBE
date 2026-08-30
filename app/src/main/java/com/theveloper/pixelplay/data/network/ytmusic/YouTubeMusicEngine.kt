@@ -398,7 +398,6 @@ class YouTubeMusicEngine @Inject constructor(
             releaseAlbums.distinctBy { it.browseId }.take(30).forEach { album ->
                 runCatching { getAlbumDetails(album.browseId) }
                     .getOrNull()
-                    ?.takeIf { it.releaseDateEpochMillis > 0L }
                     ?.let { details ->
                         details.tracks.firstOrNull()?.let { song ->
                             tracks += YouTubeTrack(
@@ -420,7 +419,26 @@ class YouTubeMusicEngine @Inject constructor(
         val zone = java.time.ZoneId.systemDefault()
         val today = java.time.LocalDate.now(zone)
         val oldestAllowed = today.minusDays(29)
-        tracks
+        // Validate each card against the video's provider publication date. Album browse
+        // responses may contain dates from unrelated recommendation shelves, which previously
+        // allowed years-old tracks into Release Radar.
+        val datedTracks = tracks.distinctBy { it.videoId }.chunked(6).flatMap { chunk ->
+            coroutineScope {
+                chunk.map { track ->
+                    async(Dispatchers.IO) {
+                        val published = fetchVideoPublishedDate(track.videoId, region)
+                        val resolved = when {
+                            track.releaseDateEpochMillis > 0L && published > 0L ->
+                                minOf(track.releaseDateEpochMillis, published)
+                            published > 0L -> published
+                            else -> track.releaseDateEpochMillis
+                        }
+                        track.copy(releaseDateEpochMillis = resolved)
+                    }
+                }.awaitAll()
+            }
+        }
+        datedTracks
             .filter { track -> NON_MUSIC_KEYWORDS.none { track.title.lowercase().contains(it) } }
             .filter { track ->
                 if (track.releaseDateEpochMillis <= 0L) return@filter false
@@ -429,6 +447,36 @@ class YouTubeMusicEngine @Inject constructor(
             }
             .distinctBy { it.videoId }
             .sortedByDescending { it.releaseDateEpochMillis }
+    }
+
+    private fun fetchVideoPublishedDate(videoId: String, region: String): Long {
+        if (videoId.isBlank()) return 0L
+        return runCatching {
+            val payload = JSONObject().apply {
+                put("context", createWebRemixContext(region))
+                put("videoId", videoId.removePrefix("yt_"))
+                put("contentCheckOk", true)
+                put("racyCheckOk", true)
+            }
+            val request = Request.Builder()
+                .url("$INNERTUBE_MAIN_BASE/player?prettyPrint=false&key=$FALLBACK_WEB_REMIX_API_KEY")
+                .post(payload.toString().toRequestBody(JSON_MEDIA_TYPE))
+                .header("User-Agent", WEB_REMIX_USER_AGENT)
+                .header("Origin", "https://music.youtube.com")
+                .header("Referer", "https://music.youtube.com/")
+                .build()
+            okHttpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@use 0L
+                val root = JSONObject(response.body?.string().orEmpty())
+                val renderer = root.optJSONObject("microformat")
+                    ?.optJSONObject("playerMicroformatRenderer")
+                val raw = renderer?.optString("publishDate").orEmpty()
+                    .ifBlank { renderer?.optString("uploadDate").orEmpty() }
+                val date = runCatching { java.time.LocalDate.parse(raw.take(10)) }.getOrNull()
+                    ?: return@use 0L
+                date.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+            }
+        }.getOrDefault(0L)
     }
 
     private fun isCleanTrendingTrack(title: String, artist: String): Boolean {
@@ -1285,7 +1333,9 @@ class YouTubeMusicEngine @Inject constructor(
                 .ifBlank { subtitle.substringBefore("•").trim() }
 
             val year = Regex("\\b(19|20)\\d{2}\\b").find(subtitle)?.value?.toIntOrNull()
-            val releaseDateEpochMillis = extractExactReleaseDate(jsonString)
+            // Restrict date parsing to the album header. Scanning the full response can pick a
+            // date from a recommended album and incorrectly label an old release as new.
+            val releaseDateEpochMillis = extractExactReleaseDate(header?.toString().orEmpty())
             val albumType = when {
                 subtitle.contains("single", ignoreCase = true) -> "Single"
                 Regex("\\bEP\\b", RegexOption.IGNORE_CASE).containsMatchIn(subtitle) -> "EP"

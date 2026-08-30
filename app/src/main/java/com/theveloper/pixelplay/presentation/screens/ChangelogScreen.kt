@@ -32,6 +32,16 @@ private data class ChangelogRelease(
 
 private val VybeChangelog = listOf(
     ChangelogRelease(
+        version = "0.10.1",
+        date = "30 August 2026",
+        changes = listOf(
+            "Updates: Skip now suppresses the selected version's popup and notification until a newer release or a manual check.",
+            "Quick Picks: Recommendations now use actual listening history and explicit likes instead of unrelated cached searches.",
+            "Release Radar: Added authoritative provider-date validation and a second strict 30-day filter.",
+            "Moods: Added richer visual elements and contextual labels to the mood cards."
+        )
+    ),
+    ChangelogRelease(
         version = "0.10.0",
         date = "30 August 2026",
         changes = listOf(

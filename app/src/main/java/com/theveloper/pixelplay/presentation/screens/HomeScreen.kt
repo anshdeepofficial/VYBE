@@ -1207,10 +1207,30 @@ fun MoodsSection(
                                     )
                                 }
                         ) {
-                            Row(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Rounded.MusicNote, null, modifier = Modifier.size(20.dp))
-                                Spacer(Modifier.width(10.dp))
-                                Text(mood, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                            Box(Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 7.dp)) {
+                                Text(
+                                    text = moodVisual(mood),
+                                    fontSize = 30.sp,
+                                    modifier = Modifier.align(Alignment.CenterEnd),
+                                    color = if (androidx.core.graphics.ColorUtils.calculateLuminance(background.toArgb()) > 0.5) {
+                                        Color.Black.copy(alpha = 0.42f)
+                                    } else {
+                                        Color.White.copy(alpha = 0.48f)
+                                    },
+                                )
+                                Column(modifier = Modifier.align(Alignment.CenterStart)) {
+                                    Text(mood, fontWeight = FontWeight.Bold, maxLines = 1)
+                                    Text(
+                                        moodCaption(mood),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        maxLines = 1,
+                                        color = if (androidx.core.graphics.ColorUtils.calculateLuminance(background.toArgb()) > 0.5) {
+                                            Color.Black.copy(alpha = 0.68f)
+                                        } else {
+                                            Color.White.copy(alpha = 0.72f)
+                                        },
+                                    )
+                                }
                             }
                         }
                     }
@@ -1241,6 +1261,31 @@ fun MoodsSection(
 private fun moodDefaultColor(mood: String): Int {
     val palette = intArrayOf(0xFF6750A4.toInt(), 0xFF006C4C.toInt(), 0xFF9C4146.toInt(), 0xFF00658A.toInt(), 0xFF735C00.toInt())
     return palette[(mood.lowercase().hashCode() and Int.MAX_VALUE) % palette.size]
+}
+
+private fun moodVisual(mood: String): String = when (mood.lowercase()) {
+    "chill", "relax" -> "◌"
+    "happy" -> "☀"
+    "workout" -> "⚡"
+    "focus" -> "◎"
+    "romantic" -> "♥"
+    "sad" -> "☂"
+    "party" -> "✦"
+    "sleep" -> "☾"
+    else -> "♪"
+}
+
+private fun moodCaption(mood: String): String = when (mood.lowercase()) {
+    "chill" -> "Slow down"
+    "happy" -> "Bright energy"
+    "workout" -> "Push harder"
+    "focus" -> "Deep concentration"
+    "romantic" -> "Love songs"
+    "sad" -> "Soft & reflective"
+    "party" -> "Turn it up"
+    "relax" -> "Breathe easy"
+    "sleep" -> "Drift away"
+    else -> "Made for your moment"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

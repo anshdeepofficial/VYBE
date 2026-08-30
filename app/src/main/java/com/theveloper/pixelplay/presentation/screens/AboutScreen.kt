@@ -445,6 +445,11 @@ fun AboutScreen(
                 availableUpdate = null
                 updateMessage = null
             },
+            onSkipVersion = {
+                updateService.dismiss(context, update)
+                availableUpdate = null
+                updateMessage = null
+            },
         )
     }
 

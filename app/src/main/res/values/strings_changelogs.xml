@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string-array name="changelog_0101">
+        <item>Skip now suppresses the selected update until a newer release or manual check.</item>
+        <item>Quick Picks now use real listening history and explicit likes.</item>
+        <item>Release Radar now validates provider dates and enforces the latest 30 days.</item>
+        <item>Refined mood cards with richer premium visual elements.</item>
+    </string-array>
     <string-array name="changelog_0100">
         <item>Fixed same-version GitHub releases being offered as newer updates.</item>
         <item>Update checks now use installed Android package metadata and normalized semantic tags.</item>

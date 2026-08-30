@@ -8,6 +8,7 @@ import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.data.repository.MusicRepository
 import com.theveloper.pixelplay.data.repository.OnlineMusicRepository
+import com.theveloper.pixelplay.data.stats.PlaybackStatsRepository
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -36,6 +37,7 @@ class DailyMixStateHolder @Inject constructor(
     private val onlineMusicRepository: OnlineMusicRepository,
     private val audiusFavoriteDao: AudiusFavoriteDao,
     private val onlineSongCacheDao: OnlineSongCacheDao,
+    private val playbackStatsRepository: PlaybackStatsRepository,
 ) {
     private var scope: CoroutineScope? = null
     private var updateJob: Job? = null
@@ -85,10 +87,21 @@ class DailyMixStateHolder @Inject constructor(
                 audiusFavoriteDao.getAllFavorites().first().map { it.toSong() }
             }.getOrDefault(emptyList())
 
-            // Imported Spotify/YouTube playlists and YouTube listening history become taste signals.
+            // The online cache also contains search/fetch results, so it must never be treated as
+            // proof that the user likes every cached song.
             val syncedAccountSongs = runCatching {
                 onlineSongCacheDao.observeAll().first().map { it.toSong() }
             }.getOrDefault(emptyList())
+
+            val recentHistorySongs = runCatching {
+                playbackStatsRepository.loadPlaybackHistory(limit = 250)
+                    .mapNotNull { entry -> entry.track?.toSong(entry.songId) }
+                    .distinctBy { it.id }
+            }.getOrDefault(emptyList())
+            val localFavoriteSongs = runCatching {
+                musicRepository.getSongsByIds(favoriteIds.toList()).first()
+            }.getOrDefault(emptyList())
+            val cachedFavorites = syncedAccountSongs.filter { it.id in favoriteIds }
 
             // The New Releases feed is a real YouTube Music catalog browse, not a chart alias.
             val latestReleases = runCatching {
@@ -100,7 +113,9 @@ class DailyMixStateHolder @Inject constructor(
             val loggedOutDiscovery = (latestReleases + trending).distinctBy { it.id }
 
             // Account history/playlists and explicit favorites are the primary taste signals.
-            val tasteCandidates = (syncedAccountSongs + onlineFavorites).distinctBy { it.id }
+            val tasteCandidates = (
+                recentHistorySongs + localFavoriteSongs + cachedFavorites + onlineFavorites
+            ).distinctBy { it.id }
             val preferredArtists = runCatching { userPreferencesRepository.preferredArtists.first() }
                 .getOrDefault(emptySet())
             val preferredGenres = runCatching { userPreferencesRepository.preferredGenres.first() }
@@ -112,8 +127,11 @@ class DailyMixStateHolder @Inject constructor(
                 song.displayArtist.trim().lowercase() !in blockedArtists 
             }
 
+            val verifiedRecentReleases = latestReleases
+                .filter(isNotBlocked)
+                .filter(::isWithinReleaseRadarWindow)
             _latestReleaseSongs.value = personalizeLatestReleases(
-                releases = latestReleases.filter(isNotBlocked),
+                releases = verifiedRecentReleases,
                 tasteSongs = tasteCandidates,
                 preferredArtists = preferredArtists,
                 preferredGenres = preferredGenres,
@@ -155,11 +173,9 @@ class DailyMixStateHolder @Inject constructor(
                 _yourMixSongs.value = yourMix.toImmutableList()
                 userPreferencesRepository.saveYourMixSongIds(yourMix.map { it.id })
 
-                val daySeed = java.time.LocalDate.now().toEpochDay()
                 _quickPickSongs.value = dailyMixManager
                     .getTopCandidatesForAi(candidateSongs, favoriteIds, limit = 45)
-                    .shuffled(kotlin.random.Random(daySeed))
-                    .take(15)
+                    .take(10)
                     .toImmutableList()
             } else {
                 _yourMixSongs.value = persistentListOf()
@@ -266,6 +282,14 @@ class DailyMixStateHolder @Inject constructor(
                         (if (genreKey != null && genreKey in preferredGenreKeys) 4 else 0)
                 }.thenBy { providerOrder[it.id] ?: Int.MAX_VALUE }
             )
+    }
+
+    private fun isWithinReleaseRadarWindow(song: Song): Boolean {
+        if (song.releaseDateEpochMillis <= 0L) return false
+        val zone = java.time.ZoneId.systemDefault()
+        val date = java.time.Instant.ofEpochMilli(song.releaseDateEpochMillis).atZone(zone).toLocalDate()
+        val today = java.time.LocalDate.now(zone)
+        return !date.isBefore(today.minusDays(29)) && !date.isAfter(today)
     }
 
     suspend fun getCandidatePool(

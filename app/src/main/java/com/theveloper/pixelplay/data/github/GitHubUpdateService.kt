@@ -80,9 +80,12 @@ class GitHubUpdateService {
                     }
                 }
                 val selected = candidates.maxByOrNull { apkScore(it.first) } ?: return@runCatching null
+                val releaseKey = versionKey(tag)
                 val dismissedTag = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                     .getString(KEY_DISMISSED_TAG, null)
-                if (respectDismissal && dismissedTag == tag) return@runCatching null
+                if (respectDismissal && versionKey(dismissedTag.orEmpty()) == releaseKey) {
+                    return@runCatching null
+                }
                 val remindAfter = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                     .getLong(KEY_REMIND_AFTER, 0L)
                 if (respectDismissal && System.currentTimeMillis() < remindAfter) return@runCatching null
@@ -219,8 +222,12 @@ class GitHubUpdateService {
     fun dismiss(context: Context, update: GitHubReleaseUpdate) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
-            .putString(KEY_DISMISSED_TAG, update.tagName)
+            .putString(KEY_DISMISSED_TAG, versionKey(update.tagName))
+            .remove(KEY_REMIND_AFTER)
             .apply()
+        // A periodic worker may have posted this notification just before Skip was tapped.
+        // Remove it immediately; future worker checks remain suppressed for this exact version.
+        NotificationManagerCompat.from(context).cancel(UPDATE_NOTIFICATION_ID)
     }
 
     fun remindLater(context: Context, delayMillis: Long) {
@@ -287,6 +294,8 @@ class GitHubUpdateService {
         return semantic.split('.').mapNotNull(String::toIntOrNull)
     }
 
+    private fun versionKey(value: String): String = versionParts(value).joinToString(".")
+
     private fun releaseVersionCode(notes: String): Long? =
         Regex("""(?im)^\s*(?:android\s+)?version\s*code\s*:\s*(\d+)\s*$""")
             .find(notes)
@@ -342,12 +351,13 @@ class GitHubUpdateService {
         }.toSet()
     }
 
-    private companion object {
+    companion object {
         const val PREFS_NAME = "vybe_app_updates"
         const val KEY_DISMISSED_TAG = "dismissed_release_tag"
         const val KEY_REMIND_AFTER = "remind_after_timestamp"
         const val KEY_DOWNLOADED_BASE_VERSION = "downloaded_base_version"
         const val MAX_NOTES_LENGTH = 1_200
         const val UPDATE_FILE_MAX_AGE_MS = 7L * 24L * 60L * 60L * 1_000L
+        const val UPDATE_NOTIFICATION_ID = 7012
     }
 }
