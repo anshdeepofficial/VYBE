@@ -57,7 +57,16 @@ class GitHubUpdateService {
                 val release = JSONObject(response.body)
                 if (release.optBoolean("draft") || release.optBoolean("prerelease")) return@runCatching null
                 val tag = release.optString("tag_name").trim()
-                if (tag.isBlank() || !isNewerVersion(tag, BuildConfig.VERSION_NAME)) return@runCatching null
+                val releaseNotes = release.optString("body").trim()
+                // Use Android's installed package metadata as the source of truth. BuildConfig can
+                // differ from it in upgraded/split installs, which previously made VYBE offer the
+                // already-installed GitHub release again.
+                val installedName = installedVersionName(context).orEmpty()
+                if (tag.isBlank() || !isNewerVersion(tag, installedName)) return@runCatching null
+                val releaseVersionCode = releaseVersionCode(releaseNotes)
+                if (releaseVersionCode != null && releaseVersionCode <= installedVersionCode(context)) {
+                    return@runCatching null
+                }
 
                 val assets = release.optJSONArray("assets") ?: return@runCatching null
                 val candidates = buildList {
@@ -81,7 +90,7 @@ class GitHubUpdateService {
                 GitHubReleaseUpdate(
                     tagName = tag,
                     title = release.optString("name").ifBlank { "VYBE $tag" },
-                    notes = release.optString("body").trim().take(MAX_NOTES_LENGTH),
+                    notes = releaseNotes.take(MAX_NOTES_LENGTH),
                     apkName = selected.first,
                     apkUrl = selected.second,
                     apkSizeBytes = selected.third,
@@ -178,9 +187,9 @@ class GitHubUpdateService {
         check(archive.packageName == context.packageName) { "Update package does not match VYBE" }
         val archiveCode = PackageInfoCompat.getLongVersionCode(archive)
         val installedCode = installedVersionCode(context)
-        val archiveName = archive.versionName
-        val installedName = installedVersionName(context)
-        check(archiveCode > installedCode || (archiveCode == installedCode && archiveName != installedName)) {
+        // Android only accepts an update whose versionCode is greater. A changed versionName with
+        // the same code is not an upgrade and must never reach the installer.
+        check(archiveCode > installedCode) {
             "Downloaded update is not newer than the installed VYBE version"
         }
         @Suppress("DEPRECATION")
@@ -272,14 +281,18 @@ class GitHubUpdateService {
         return false
     }
 
-    private fun versionParts(value: String): List<Int> = value
-        .trim()
-        .removePrefix("v")
-        .removePrefix("V")
-        .substringBefore('-')
-        .substringBefore('+')
-        .split('.')
-        .map { part -> part.takeWhile(Char::isDigit).toIntOrNull() ?: 0 }
+    private fun versionParts(value: String): List<Int> {
+        // Accept GitHub tags such as v0.10.0, VYBE-0.10.0 and plain Android names.
+        val semantic = Regex("""\d+(?:\.\d+)+""").find(value)?.value ?: return emptyList()
+        return semantic.split('.').mapNotNull(String::toIntOrNull)
+    }
+
+    private fun releaseVersionCode(notes: String): Long? =
+        Regex("""(?im)^\s*(?:android\s+)?version\s*code\s*:\s*(\d+)\s*$""")
+            .find(notes)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?.toLongOrNull()
 
     private fun openConnection(url: String, accept: String): HttpURLConnection =
         (URL(url).openConnection() as HttpURLConnection).apply {

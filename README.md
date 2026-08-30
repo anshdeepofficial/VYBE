@@ -85,12 +85,12 @@ VYBE combines a traditional device music player with online discovery and deeply
 
 ## Download
 
-The current release is **VYBE 0.9.7**.
+The current release is **VYBE 0.10.0**.
 
 | Device architecture | APK |
 | --- | --- |
-| Most modern Android phones (ARM64) | [Download VYBE 0.9.7 ARM64](https://github.com/anshdeepofficial/VYBE/releases/download/v0.9.7/VYBE-v0.9.7-arm64-v8a-release.apk) |
-| Older 32-bit Android phones (ARMv7) | [Download VYBE 0.9.7 ARMv7](https://github.com/anshdeepofficial/VYBE/releases/download/v0.9.7/VYBE-v0.9.7-armeabi-v7a-release.apk) |
+| Most modern Android phones (ARM64) | [Download VYBE 0.10.0 ARM64](https://github.com/anshdeepofficial/VYBE/releases/download/v0.10.0/VYBE-v0.10.0-arm64-v8a-release.apk) |
+| Older 32-bit Android phones (ARMv7) | [Download VYBE 0.10.0 ARMv7](https://github.com/anshdeepofficial/VYBE/releases/download/v0.10.0/VYBE-v0.10.0-armeabi-v7a-release.apk) |
 
 If you are unsure, choose the ARM64 build. Android may ask to allow installation from your browser or file manager when installing outside Google Play.
 
