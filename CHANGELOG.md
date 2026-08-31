@@ -1,3 +1,17 @@
+## [0.10.3] - 2026-08-31
+### Changed
+- Removed Song Recognition completely, including its navigation item, setting, microphone permission, AcoustID integration, and native Chromaprint runtime.
+
+### Fixed
+- Rebuilt Spotify authentication as a complete in-app login experience with progress, callback, and synchronization states.
+- Fixed black Spotify login screens on affected Samsung Android System WebView renderers.
+- Added login timeout detection, WebView renderer recovery, HTTP/SSL error handling, and in-app retry.
+- Preserved secure OAuth Authorization Code with PKCE and exact HTTPS callback validation.
+- Fixed AI keys being saved against a stale provider and cleared stale provider cooldowns when a key changes.
+- Made lyric translation and English-script conversion tolerant of provider line formatting while preserving every displayed lyric line.
+- Exact VYBE share links now include the provider song ID and metadata; YouTube Music links resolve and play by exact video ID inside VYBE.
+- Kept New Releases & Release Radar visible with its strict recent-release filtering.
+
 ## [0.10.2] - 2026-08-30
 ### Fixed
 - Permanently fixed false update offers and the “Downloaded update is not newer” loop.

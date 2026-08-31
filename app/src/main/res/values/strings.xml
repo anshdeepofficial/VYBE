@@ -1,6 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="nav_bar_recognize">Recognize</string>
     <string name="app_name">VYBE</string>
     <string name="app_tagline">Music Player</string>
     <string name="app_name_change_title">App Name Change</string>

@@ -32,6 +32,20 @@ private data class ChangelogRelease(
 
 private val VybeChangelog = listOf(
     ChangelogRelease(
+        version = "0.10.3",
+        date = "31 August 2026",
+        changes = listOf(
+            "Spotify: Rebuilt sign-in as a complete in-app browser experience with visible loading and synchronization states.",
+            "Spotify: Added Samsung WebView rendering compatibility, timeout detection, renderer recovery, and retry handling.",
+            "Spotify: Added secure HTTP and SSL failure handling while preserving OAuth PKCE and exact callback validation.",
+            "Spotify: Account playlists now refresh immediately after a successful in-app connection.",
+            "AI: Fixed provider-specific key saving, stale cooldowns, lyric translation and English-script line handling.",
+            "Sharing: VYBE and YouTube Music links now retain the exact song ID and play that track inside VYBE.",
+            "Recognition: Removed the Song Recognition feature, microphone permission, AcoustID and native Chromaprint runtime completely.",
+            "Home: Kept New Releases & Release Radar available with recent-release filtering."
+        )
+    ),
+    ChangelogRelease(
         version = "0.10.2",
         date = "30 August 2026",
         changes = listOf(

@@ -398,14 +398,6 @@ fun SearchScreen(
                                         Row {
                                         IconButton(
                                             onClick = {
-                                                navController.navigateSafely(Screen.SongRecognition.route)
-                                            },
-                                            modifier = Modifier.size(40.dp)
-                                        ) {
-                                            Icon(Icons.Rounded.Mic, "Recognize song", tint = MaterialTheme.colorScheme.primary)
-                                        }
-                                        IconButton(
-                                            onClick = {
                                                 val clipboardManager = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                                                 val clipData = clipboardManager.primaryClip
                                                 if (clipData != null && clipData.itemCount > 0) {

@@ -30,6 +30,13 @@ object VybeSongShareLink {
                 builder.appendPath("play")
                     .appendQueryParameter("id", portableId)
             }
+            builder.appendQueryParameter("title", song.title)
+                .appendQueryParameter("artist", song.displayArtist)
+                .appendQueryParameter("album", song.album)
+                .appendQueryParameter("duration", song.duration.toString())
+            song.albumArtUriString?.takeIf { it.startsWith("https://") }
+                ?.let { builder.appendQueryParameter("art", it) }
+            song.remoteAlbumBrowseId?.let { builder.appendQueryParameter("albumId", it) }
             return builder.build()
         }
         
@@ -59,7 +66,15 @@ object VybeSongShareLink {
             val portableId = uri.getQueryParameter("id")?.take(100)?.takeIf(::isPortableProviderId)
                 ?: uri.getQueryParameter("v")?.take(100)?.let { "yt_$it" }
             if (portableId != null) {
-                return SharedVybeSong(providerId = portableId)
+                return SharedVybeSong(
+                    providerId = portableId,
+                    title = uri.getQueryParameter("title")?.trim()?.take(200).orEmpty(),
+                    artist = uri.getQueryParameter("artist")?.trim()?.take(200).orEmpty(),
+                    album = uri.getQueryParameter("album")?.trim()?.take(200).orEmpty(),
+                    artwork = uri.getQueryParameter("art")?.take(2_000)?.takeIf { it.startsWith("https://") },
+                    durationMs = uri.getQueryParameter("duration")?.toLongOrNull()?.coerceIn(0L, 86_400_000L) ?: 0L,
+                    albumBrowseId = uri.getQueryParameter("albumId")?.take(200),
+                )
             }
         }
         

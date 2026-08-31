@@ -2292,10 +2292,25 @@ class PlayerViewModel @Inject constructor(
                         sampleRate = 44_100,
                         remoteAlbumBrowseId = shared.albumBrowseId,
                     )
-                } else {
-                    // Clean App Link with only ID -> fetch metadata
-                    onlineMusicRepository.getTrackDetails(providerId)
-                }
+                } else onlineMusicRepository.getTrackDetails(providerId)
+                    ?: providerId.takeIf { it.startsWith("yt_") }?.let { exactId ->
+                        Song(
+                            id = exactId,
+                            title = shared.title.ifBlank { "YouTube Music track" },
+                            artist = shared.artist.ifBlank { "YouTube Music" },
+                            artistId = 0L,
+                            album = shared.album.ifBlank { "YouTube Music" },
+                            albumId = 0L,
+                            path = exactId,
+                            contentUriString = "yt://${exactId.removePrefix("yt_")}",
+                            albumArtUriString = shared.artwork,
+                            duration = shared.durationMs,
+                            mimeType = "audio/mp4",
+                            bitrate = 256,
+                            sampleRate = 44_100,
+                            remoteAlbumBrowseId = shared.albumBrowseId,
+                        )
+                    }
             } else {
                 runCatching {
                     onlineMusicRepository.searchMusicStructured("${shared.title} ${shared.artist}".trim())
@@ -2318,12 +2333,23 @@ class PlayerViewModel @Inject constructor(
 
     fun playExternalMusicId(trackId: String) {
         viewModelScope.launch {
-            val resolved = onlineMusicRepository.getTrackDetails(trackId)
-            if (resolved != null) {
-                playOnlineSeed(resolved, "Shared with VYBE")
-            } else {
-                Toast.makeText(context, "Could not load track details", Toast.LENGTH_SHORT).show()
-            }
+            val normalizedId = trackId.takeIf { it.startsWith("yt_") } ?: "yt_$trackId"
+            val resolved = onlineMusicRepository.getTrackDetails(normalizedId) ?: Song(
+                id = normalizedId,
+                title = "YouTube Music track",
+                artist = "YouTube Music",
+                artistId = 0L,
+                album = "YouTube Music",
+                albumId = 0L,
+                path = normalizedId,
+                contentUriString = "yt://${normalizedId.removePrefix("yt_")}",
+                albumArtUriString = null,
+                duration = 0L,
+                mimeType = "audio/mp4",
+                bitrate = 256,
+                sampleRate = 44_100,
+            )
+            playOnlineSeed(resolved, "Shared with VYBE")
         }
     }
 

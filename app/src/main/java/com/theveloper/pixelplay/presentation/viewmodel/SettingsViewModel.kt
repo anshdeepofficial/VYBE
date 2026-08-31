@@ -47,6 +47,7 @@ import com.theveloper.pixelplay.data.preferences.NavBarStyle
 import com.theveloper.pixelplay.data.ai.GeminiModel
 import com.theveloper.pixelplay.data.ai.provider.AiClientFactory
 import com.theveloper.pixelplay.data.ai.provider.AiProvider
+import com.theveloper.pixelplay.data.ai.AiHandler
 import com.theveloper.pixelplay.data.preferences.LaunchTab
 import com.theveloper.pixelplay.data.model.Song
 import com.theveloper.pixelplay.data.service.player.HiFiCapabilityChecker
@@ -233,6 +234,7 @@ class SettingsViewModel @Inject constructor(
     private val colorSchemeProcessor: ColorSchemeProcessor,
     private val syncManager: SyncManager,
     private val aiClientFactory: AiClientFactory,
+    private val aiHandler: AiHandler,
     private val geminiModelService: com.theveloper.pixelplay.data.ai.GeminiModelService,
     private val aiUsageDao: AiUsageDao,
     private val lyricsRepository: LyricsRepository,
@@ -715,15 +717,17 @@ class SettingsViewModel @Inject constructor(
     val aiIncludeExtendedFields: StateFlow<Boolean> = aiPreferencesRepository.aiIncludeExtendedFields
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
-    fun onAiApiKeyChange(apiKey: String) {
+    fun onAiApiKeyChange(provider: AiProvider, apiKey: String) {
         viewModelScope.launch {
-            val providerStr = aiProvider.value
-            val provider = AiProvider.fromString(providerStr)
             aiPreferencesRepository.setApiKey(provider, apiKey)
-            if (apiKey.isNotBlank()) fetchAvailableModels(apiKey, providerStr)
-            else clearModelsState(providerStr)
+            aiHandler.clearProviderCooldown(provider)
+            if (apiKey.isNotBlank()) fetchAvailableModels(apiKey, provider.name)
+            else clearModelsState(provider.name)
         }
     }
+
+    fun onAiApiKeyChange(apiKey: String) =
+        onAiApiKeyChange(AiProvider.fromString(aiProvider.value), apiKey)
 
     // Specific on-change methods for UI binding
     fun onGeminiApiKeyChange(apiKey: String) {

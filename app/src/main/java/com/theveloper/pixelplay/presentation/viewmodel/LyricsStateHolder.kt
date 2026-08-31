@@ -377,7 +377,20 @@ class LyricsStateHolder @Inject constructor(
                     return@onSuccess
                 }
 
-                if (translatedText.isNotBlank()) {
+                if (translatedText.isNotBlank() && !lyricsObj?.synced.isNullOrEmpty()) {
+                    val originals = lyricsObj?.synced.orEmpty()
+                    val transformed = extractAiLyricLines(translatedText, originals)
+                    val updatedLyrics = lyricsObj?.copy(
+                        synced = originals.mapIndexed { index, line ->
+                            line.copy(translation = transformed.getOrNull(index) ?: line.translation ?: line.line)
+                        }
+                    )
+                    if (updatedLyrics != null) {
+                        _searchUiState.value = LyricsSearchUiState.Success(updatedLyrics)
+                        _songUpdates.emit(currentSong to updatedLyrics)
+                        _messageEvents.emit(cb.getString(R.string.lyrics_translate_success))
+                    }
+                } else if (translatedText.isNotBlank()) {
                     val validation = LyricsImportSecurity.validateImportedLrcContent(translatedText)
                     if (validation is LyricsImportValidationResult.Valid) {
                         val validated = validation.value
@@ -442,34 +455,28 @@ class LyricsStateHolder @Inject constructor(
                 }
 
                 val displayedLyrics = if (!lyricsObj?.synced.isNullOrEmpty()) {
-                    when (val validation = LyricsImportSecurity.validateImportedLrcContent(generated)) {
-                        is LyricsImportValidationResult.Valid -> {
-                            val romanizedLines = validation.value.parsedLyrics.synced.orEmpty()
-                                .mapNotNull { it.translation ?: it.romanization }
-                            val originals = lyricsObj?.synced.orEmpty()
-                            if (romanizedLines.size < originals.size) null else {
-                                lyricsObj?.copy(
-                                    synced = originals.mapIndexed { index, line ->
-                                        line.copy(romanization = romanizedLines[index])
-                                    },
-                                    plain = originals.mapIndexed { index, line ->
-                                        buildString {
-                                            append(line.line)
-                                            append('\n').append(romanizedLines[index])
-                                            if (!line.translation.isNullOrBlank()) append('\n').append(line.translation)
-                                        }
-                                    },
-                                )
+                    val originals = lyricsObj?.synced.orEmpty()
+                    val romanizedLines = extractAiLyricLines(generated, originals)
+                    lyricsObj?.copy(
+                        synced = originals.mapIndexed { index, line ->
+                            line.copy(romanization = romanizedLines.getOrNull(index) ?: line.romanization ?: line.line)
+                        },
+                        plain = originals.mapIndexed { index, line ->
+                            buildString {
+                                append(line.line)
+                                append('\n').append(romanizedLines.getOrNull(index) ?: line.romanization ?: line.line)
+                                if (!line.translation.isNullOrBlank()) append('\n').append(line.translation)
                             }
-                        }
-                        is LyricsImportValidationResult.Invalid -> null
-                    }
+                        },
+                    )
                 } else {
                     val originals = lyricsObj?.plain.orEmpty().map { it.substringBefore('\n') }
-                    val romanizedLines = generated.lines().filter { it.isNotBlank() }
-                    if (originals.isEmpty() || romanizedLines.size < originals.size) null else {
+                    val romanizedLines = cleanAiLyricLines(generated)
+                    if (originals.isEmpty()) null else {
                         lyricsObj?.copy(
-                            plain = originals.mapIndexed { index, line -> "$line\n${romanizedLines[index]}" },
+                            plain = originals.mapIndexed { index, line ->
+                                "$line\n${romanizedLines.getOrNull(index) ?: line}"
+                            },
                         )
                     }
                 }
@@ -496,6 +503,43 @@ class LyricsStateHolder @Inject constructor(
             }
         }
     }
+
+    private fun extractAiLyricLines(
+        generated: String,
+        originals: List<com.theveloper.pixelplay.data.model.SyncedLine>,
+    ): List<String> {
+        val timestamp = Regex("""^\s*\[(\d{1,2}):(\d{2})(?:[.:](\d{1,3}))?]\s*(.*)$""")
+        val parsed = generated.lineSequence().mapNotNull { raw ->
+            val match = timestamp.find(raw) ?: return@mapNotNull null
+            val minutes = match.groupValues[1].toIntOrNull() ?: return@mapNotNull null
+            val seconds = match.groupValues[2].toIntOrNull() ?: return@mapNotNull null
+            val fraction = match.groupValues[3]
+            val millis = when (fraction.length) {
+                1 -> fraction.toIntOrNull()?.times(100) ?: 0
+                2 -> fraction.toIntOrNull()?.times(10) ?: 0
+                else -> fraction.take(3).padEnd(3, '0').toIntOrNull() ?: 0
+            }
+            ((minutes * 60 + seconds) * 1000 + millis) to match.groupValues[4].trim()
+        }.filter { it.second.isNotBlank() }.toList()
+
+        if (parsed.isNotEmpty()) {
+            return originals.mapIndexed { index, original ->
+                parsed.minByOrNull { kotlin.math.abs(it.first - original.time) }
+                    ?.takeIf { kotlin.math.abs(it.first - original.time) <= 1_000 }
+                    ?.second
+                    ?: parsed.getOrNull(index)?.second
+                    ?: original.line
+            }
+        }
+        val plain = cleanAiLyricLines(generated)
+        return originals.mapIndexed { index, original -> plain.getOrNull(index) ?: original.line }
+    }
+
+    private fun cleanAiLyricLines(text: String): List<String> = text.lineSequence()
+        .map { it.trim() }
+        .filter { it.isNotBlank() && !it.startsWith("```") && !it.startsWith("<") }
+        .map { it.replace(Regex("""^\d+[.)]\s*"""), "") }
+        .toList()
 
     fun resetLyrics(songId: Long) {
         resetSearchState()

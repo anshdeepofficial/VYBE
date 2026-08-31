@@ -37,6 +37,11 @@ class AiHandler @Inject constructor(
     // Request timeout: 60 seconds max per provider attempt
     private val REQUEST_TIMEOUT_MS = 60_000L
 
+    /** A newly saved key must be usable immediately, even if an older key recently failed. */
+    fun clearProviderCooldown(provider: AiProvider) {
+        synchronized(providerCooldowns) { providerCooldowns.remove(provider) }
+    }
+
     private fun String.sha256(): String {
         return MessageDigest.getInstance("SHA-256")
             .digest(this.toByteArray())
@@ -266,8 +271,9 @@ class AiHandler @Inject constructor(
                 val failure = com.theveloper.pixelplay.data.ai.provider.AiProviderSupport.wrapThrowable(provider.displayName, e)
                 Timber.tag("AiHandler").w(e, "Provider ${provider.name} failed: ${failure.message}")
                 failedProviders.add("${provider.name}: ${failure.message ?: "Unknown error"}")
-                // Trigger cooldown only on provider-level outages and account problems.
-                if (failure.shouldCooldown()) {
+                // Only transient transport/server failures are cooled down. Invalid keys and
+                // billing errors must remain immediately retryable after the user changes keys.
+                if (failure.shouldCooldown() && !failure.isApiKeyIssue() && !failure.isBillingIssue()) {
                     providerCooldowns[provider] = now + COOLDOWN_DURATION_MS
                 }
             }

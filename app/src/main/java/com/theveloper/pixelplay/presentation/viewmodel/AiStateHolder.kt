@@ -310,16 +310,13 @@ class AiStateHolder @Inject constructor(
 
 <rules>
 - Preserve ALL timestamps [mm:ss.xx] exactly — never modify, merge, or drop them.
-- Output TWO lines per original line: the original, then the translation with the same timestamp.
+- Output exactly ONE translated line per original line and preserve its timestamp when present.
 - NEVER add explanations, labels, numbering, section headers, or formatting.
 - NEVER remove, merge, split, or reorder lines.
 - If lyrics are ALREADY mostly in $targetLanguage, output ONLY: ALREADY_IN_TARGET_LANGUAGE
 </rules>
 
-<format>
-[original timestamp] original text
-[same timestamp] translated text
-</format>
+<format>[original timestamp] translated text</format>
 
 <lyrics>
 $lyricsText
@@ -343,7 +340,7 @@ $lyricsText
             val formatRules = if (hasTimestamps) {
                 """
 - Preserve every timestamp exactly.
-- Output TWO timestamped lines for each lyric: first the original, then its phonetic English-script form with the same timestamp.
+- Output exactly ONE timestamped phonetic English-script line for each lyric, preserving its timestamp.
 """.trimIndent()
             } else {
                 """
