@@ -47,6 +47,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
+private const val MAX_CAST_QUEUE_WINDOW = 25
+
 class CastTransferStateHolder @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val castStateHolder: CastStateHolder,
@@ -1322,7 +1324,13 @@ class CastTransferStateHolder @Inject constructor(
         if (!ensureHttpServerRunning(castDeviceIpHint)) return false
 
         val serverAddress = MediaFileHttpServerService.serverAddress ?: return false
-        val startIndex = songsToPlay.indexOfFirst { it.id == startSong.id }.coerceAtLeast(0)
+        // Cast receivers are prone to failing when hundreds of MediaQueueItems are submitted in
+        // one transaction. Send a bounded, de-duplicated window starting at the chosen song; the
+        // receiver then advances through it normally instead of processing the whole library at once.
+        val distinctSongs = songsToPlay.distinctBy(Song::id)
+        val sourceStart = distinctSongs.indexOfFirst { it.id == startSong.id }.coerceAtLeast(0)
+        val castSongs = (distinctSongs.drop(sourceStart) + distinctSongs.take(sourceStart)).take(MAX_CAST_QUEUE_WINDOW)
+        val startIndex = castSongs.indexOfFirst { it.id == startSong.id }.coerceAtLeast(0)
 
         val repeatMode = playbackStateHolder.stablePlayerState.value.repeatMode
         val castRepeatMode = if (isShuffleEnabled) {
@@ -1341,12 +1349,12 @@ class CastTransferStateHolder @Inject constructor(
         val castPlayer = castStateHolder.castPlayer
         if (castPlayer != null) {
             val accessPolicy = MediaFileHttpServerService.configureCastSessionAccess(
-                allowedSongIds = songsToPlay.map(Song::id),
+                allowedSongIds = castSongs.map(Song::id),
                 castDeviceIpHint = castDeviceIpHint
             )
             val completionDeferred = CompletableDeferred<Boolean>()
             castPlayer.loadQueue(
-                songs = songsToPlay,
+                songs = castSongs,
                 startIndex = startIndex,
                 startPosition = 0L,
                 repeatMode = castRepeatMode,
@@ -1386,7 +1394,7 @@ class CastTransferStateHolder @Inject constructor(
                         Timber.tag(CAST_LOG_TAG).w(
                             "Remote queue load failed for songId=%s (size=%d detail=%s). Session kept active.",
                             startSong.id,
-                            songsToPlay.size,
+                            castSongs.size,
                             detail
                         )
                         val detailedMessage = detail?.takeIf { it.isNotBlank() }
@@ -1395,7 +1403,7 @@ class CastTransferStateHolder @Inject constructor(
                         }
                         castStateHolder.castSession.value?.remoteMediaClient?.requestStatus()
                     } else {
-                        lastRemoteQueue = songsToPlay
+                        lastRemoteQueue = castSongs
                         lastRemoteSongId = startSong.id
                         lastRemoteStreamPosition = 0L
                         lastRemoteRepeatMode = castRepeatMode

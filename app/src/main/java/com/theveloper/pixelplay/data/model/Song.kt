@@ -46,6 +46,8 @@ data class Song(
     val remoteAlbumBrowseId: String? = null,
     /** Exact catalog release date in epoch milliseconds; zero when the provider did not supply one. */
     val releaseDateEpochMillis: Long = 0L,
+    /** True only for an official YouTube video result that can open in VYBE's video surface. */
+    val isMusicVideo: Boolean = false,
 ) : Parcelable {
     /**
      * Returns the display string for artists.

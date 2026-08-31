@@ -55,6 +55,7 @@ data class YouTubeTrack(
             sampleRate = 44100,
             remoteAlbumBrowseId = albumBrowseId,
             releaseDateEpochMillis = releaseDateEpochMillis,
+            isMusicVideo = resultType == YouTubeMusicEntityType.MUSIC_VIDEO,
         )
     }
 }

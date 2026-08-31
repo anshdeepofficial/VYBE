@@ -158,7 +158,9 @@ class SongInfoBottomSheetViewModel @Inject constructor(
     fun refetchOnlineMetadata(song: Song, onResult: (String) -> Unit) {
         viewModelScope.launch {
             val match = runCatching {
-                onlineMusicRepository.searchMusicStructured("${song.title} ${song.artist}".trim())
+                val exactId = song.id.removePrefix("yt_").takeIf { it.isNotBlank() }
+                exactId?.let { onlineMusicRepository.getTrackDetails(it) }
+                    ?: onlineMusicRepository.searchMusicStructured("${song.title} ${song.artist}".trim())
                     .songs.firstOrNull { candidate ->
                         candidate.title.equals(song.title, true) ||
                             candidate.title.contains(song.title, true) || song.title.contains(candidate.title, true)

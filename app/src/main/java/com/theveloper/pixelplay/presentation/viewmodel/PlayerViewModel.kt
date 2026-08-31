@@ -3409,9 +3409,11 @@ class PlayerViewModel @Inject constructor(
     /**
      * Busca la letra de la canciÃ³n actual en el servicio remoto.
      */
-    fun fetchLyricsForCurrentSong(forcePickResults: Boolean = false) {
+    fun fetchLyricsForCurrentSong(forcePickResults: Boolean = true) {
         val currentSong = stablePlayerState.value.currentSong ?: return
-        lyricsStateHolder.fetchLyricsForSong(currentSong, forcePickResults, lyricsSourcePreference.value) { resId ->
+        // Online lyric lookup is always enabled; the former opt-out path produced invalid/empty
+        // requests and HTTP 400 responses on manual searches.
+        lyricsStateHolder.fetchLyricsForSong(currentSong, true, lyricsSourcePreference.value) { resId ->
             context.getString(resId)
         }
     }

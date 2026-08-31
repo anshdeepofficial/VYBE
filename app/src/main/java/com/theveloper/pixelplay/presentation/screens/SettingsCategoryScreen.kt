@@ -461,9 +461,15 @@ fun SettingsCategoryScreen(
                     when (category) {
                         SettingsCategory.LIBRARY -> {
                             Spacer(modifier = Modifier.height(10.dp))
-
-
-                            
+                            SettingsSubsection(title = "Network usage") {
+                                SwitchSettingItem(
+                                    title = "Data saver",
+                                    subtitle = "Force efficient audio. When off, VYBE still adapts automatically on slow or congested networks.",
+                                    checked = dataSaverEnabled,
+                                    onCheckedChange = settingsViewModel::setDataSaverEnabled,
+                                    leadingIcon = { Icon(Icons.Rounded.MusicNote, null, tint = MaterialTheme.colorScheme.secondary) }
+                                )
+                            }
                             SettingsSubsection(title = stringResource(R.string.settings_library_structure_section)) {
                                 SettingsItem(
                                     title = stringResource(R.string.settings_excluded_directories_title),
@@ -886,13 +892,6 @@ fun SettingsCategoryScreen(
                                     subtitle = "Automatically skip known sponsor and non-music sections in YouTube videos",
                                     checked = sponsorBlockEnabled,
                                     onCheckedChange = settingsViewModel::setSponsorBlockEnabled,
-                                    leadingIcon = { Icon(Icons.Rounded.MusicNote, null, tint = MaterialTheme.colorScheme.secondary) }
-                                )
-                                SwitchSettingItem(
-                                    title = "Data saver",
-                                    subtitle = "Prefer efficient audio streams and reduce bandwidth while preserving music playback",
-                                    checked = dataSaverEnabled,
-                                    onCheckedChange = settingsViewModel::setDataSaverEnabled,
                                     leadingIcon = { Icon(Icons.Rounded.MusicNote, null, tint = MaterialTheme.colorScheme.secondary) }
                                 )
                                 SwitchSettingItem(
@@ -1913,7 +1912,29 @@ fun SettingsCategoryScreen(
                             }
                         }
                         SettingsCategory.ARTIST_RECOMMENDATIONS -> {
-                            // Moved to ArtistSettingsScreen
+                            SettingsSubsection(title = "Artist recommendations") {
+                                SettingsItem(
+                                    title = "Preferred artists",
+                                    subtitle = "Prioritize these artists in Quick Picks, mixes and autoplay",
+                                    leadingIcon = { Icon(Icons.Outlined.Person, null, tint = MaterialTheme.colorScheme.secondary) },
+                                    trailingIcon = { Icon(Icons.Rounded.ChevronRight, stringResource(R.string.settings_cd_open)) },
+                                    onClick = { navController.navigateSafely(Screen.PreferredArtists.route) }
+                                )
+                                SettingsItem(
+                                    title = "Blocked artists",
+                                    subtitle = "Hide these artists from automatic recommendations",
+                                    leadingIcon = { Icon(Icons.Outlined.Person, null, tint = MaterialTheme.colorScheme.error) },
+                                    trailingIcon = { Icon(Icons.Rounded.ChevronRight, stringResource(R.string.settings_cd_open)) },
+                                    onClick = { navController.navigateSafely(Screen.BlockedArtists.route) }
+                                )
+                                SettingsItem(
+                                    title = "Artist and collaboration rules",
+                                    subtitle = "Configure separators, featured artists and multi-artist handling",
+                                    leadingIcon = { Icon(Icons.Rounded.MusicNote, null, tint = MaterialTheme.colorScheme.secondary) },
+                                    trailingIcon = { Icon(Icons.Rounded.ChevronRight, stringResource(R.string.settings_cd_open)) },
+                                    onClick = { navController.navigateSafely(Screen.ArtistSettings.route) }
+                                )
+                            }
                         }
                         SettingsCategory.DEVELOPER -> {
                             SettingsSubsection(title = stringResource(R.string.settings_experiments_section)) {

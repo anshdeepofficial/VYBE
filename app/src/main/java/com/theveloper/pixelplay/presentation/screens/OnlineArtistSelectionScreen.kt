@@ -73,6 +73,7 @@ fun OnlineArtistSelectionScreen(
     val query by viewModel.query.collectAsStateWithLifecycle()
     val searchResults by viewModel.searchResults.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val selectedArtists by viewModel.selectedArtists.collectAsStateWithLifecycle()
 
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -144,6 +145,14 @@ fun OnlineArtistSelectionScreen(
                 Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
+            }
+
+            errorMessage?.let { message ->
+                Text(
+                    text = message,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                )
             }
 
             LazyColumn(

@@ -80,6 +80,7 @@ import androidx.compose.material.icons.rounded.Restore
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -106,6 +107,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -140,6 +142,7 @@ import com.theveloper.pixelplay.data.backup.model.BackupSection
 import com.theveloper.pixelplay.data.backup.model.BackupTransferProgressUpdate
 import com.theveloper.pixelplay.data.backup.model.RestorePlan
 import com.theveloper.pixelplay.data.preferences.AppThemeMode
+import com.theveloper.pixelplay.data.worker.UpdateCheckSchedule
 import com.theveloper.pixelplay.presentation.components.PermissionIconCollage
 import com.theveloper.pixelplay.presentation.components.BackupModuleSelectionDialog
 import com.theveloper.pixelplay.presentation.components.subcomps.MaterialYouVectorDrawable
@@ -380,6 +383,7 @@ fun SetupScreen(
                         uiState = uiState,
                         onPermissionStateUpdated = { setupViewModel.checkPermissions(context) }
                     )
+                    SetupPage.UpdateSchedule -> UpdateSchedulePage()
                     SetupPage.BatteryOptimization -> BatteryOptimizationPage(
                         onSkip = {
                             navigateToPage(pagerState.currentPage + 1)
@@ -548,6 +552,7 @@ sealed class SetupPage {
     object DirectorySelection : SetupPage()
     object ThemeSelection : SetupPage()
     object NotificationsPermission : SetupPage()
+    object UpdateSchedule : SetupPage()
     object LibraryLayout : SetupPage()
     object NavBarLayout : SetupPage()
     object BatteryOptimization : SetupPage()
@@ -566,6 +571,7 @@ private fun buildSetupPages(
     if (sdkInt >= Build.VERSION_CODES.TIRAMISU) {
         pages += SetupPage.NotificationsPermission
     }
+    pages += SetupPage.UpdateSchedule
 
     pages += SetupPage.BackupRestore
     if (includeDirectorySelection) {
@@ -578,6 +584,61 @@ private fun buildSetupPages(
     pages += SetupPage.BatteryOptimization
     pages += SetupPage.Finish
     return pages
+}
+
+@Composable
+private fun UpdateSchedulePage() {
+    val context = LocalContext.current
+    var anytime by remember { mutableStateOf(UpdateCheckSchedule.isAnytime(context)) }
+    var startHour by remember { mutableIntStateOf(UpdateCheckSchedule.startHour(context)) }
+    var endHour by remember { mutableIntStateOf(UpdateCheckSchedule.endHour(context)) }
+    Column(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 28.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Icon(Icons.Rounded.Restore, contentDescription = null, modifier = Modifier.size(72.dp))
+        Spacer(Modifier.height(20.dp))
+        Text("Choose update hours", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Automatic update checks are quiet by default and run only between 8:00 PM and 6:00 AM. Manual checks in About always work immediately.",
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(24.dp))
+        FilterChip(
+            selected = !anytime,
+            onClick = { anytime = false; UpdateCheckSchedule.save(context, false, startHour, endHour) },
+            label = { Text("8:00 PM – 6:00 AM (recommended)") },
+        )
+        Spacer(Modifier.height(10.dp))
+          FilterChip(
+              selected = anytime,
+              onClick = { anytime = true; UpdateCheckSchedule.save(context, true) },
+              label = { Text("Check throughout the day") },
+          )
+          if (!anytime) {
+              Spacer(Modifier.height(18.dp))
+              Text("Quiet-window start: ${formatSetupHour(startHour)}")
+              Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                  OutlinedButton(onClick = { startHour = (startHour + 23) % 24; UpdateCheckSchedule.save(context, false, startHour, endHour) }) { Text("-1h") }
+                  OutlinedButton(onClick = { startHour = (startHour + 1) % 24; UpdateCheckSchedule.save(context, false, startHour, endHour) }) { Text("+1h") }
+              }
+              Spacer(Modifier.height(10.dp))
+              Text("Quiet-window end: ${formatSetupHour(endHour)}")
+              Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                  OutlinedButton(onClick = { endHour = (endHour + 23) % 24; UpdateCheckSchedule.save(context, false, startHour, endHour) }) { Text("-1h") }
+                  OutlinedButton(onClick = { endHour = (endHour + 1) % 24; UpdateCheckSchedule.save(context, false, startHour, endHour) }) { Text("+1h") }
+              }
+          }
+      }
+  }
+
+private fun formatSetupHour(hour: Int): String {
+    val normalized = hour.coerceIn(0, 23)
+    val display = when (val h = normalized % 12) { 0 -> 12; else -> h }
+    return "$display:00 ${if (normalized < 12) "AM" else "PM"}"
 }
 
 private fun firstBlockedForwardPageIndex(

@@ -1,11 +1,19 @@
 package com.theveloper.pixelplay.data.network.ytmusic
 
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.util.Log
+import dagger.hilt.android.qualifiers.ApplicationContext
 import com.theveloper.pixelplay.data.model.Song
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -20,6 +28,7 @@ import javax.inject.Singleton
 
 @Singleton
 class YouTubeMusicEngine @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val okHttpClient: OkHttpClient,
     private val newPipeStreamResolver: NewPipeStreamResolver
 ) {
@@ -87,6 +96,21 @@ class YouTubeMusicEngine @Inject constructor(
         if (dataSaverEnabled == enabled) return
         dataSaverEnabled = enabled
         streamUrlCache.clear()
+    }
+
+    /**
+     * Explicit Data Saver always wins. Otherwise VYBE automatically selects an efficient
+     * stream when Android reports a constrained/slow link, so a user does not need to find
+     * the setting before playback becomes usable.
+     */
+    private fun preferEfficientStream(): Boolean {
+        if (dataSaverEnabled) return true
+        val manager = context.getSystemService(ConnectivityManager::class.java) ?: return false
+        val network = manager.activeNetwork ?: return true
+        val capabilities = manager.getNetworkCapabilities(network) ?: return true
+        val downstreamKbps = capabilities.linkDownstreamBandwidthKbps
+        return downstreamKbps in 1 until 3_000 ||
+            !capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_CONGESTED)
     }
 
     // Persistent visitor data token — YouTube uses this for session continuity.
@@ -494,7 +518,37 @@ class YouTubeMusicEngine @Inject constructor(
      * Resolve direct playable audio stream URL (Opus / AAC) with high availability multi-client failover.
      */
     suspend fun resolveStreamUrl(videoId: String): String? = withContext(Dispatchers.IO) {
-        resolveStreamUrlInternal(videoId)
+        val cleanId = videoId.removePrefix("yt_")
+        streamUrlCache[cleanId]?.takeIf { System.currentTimeMillis() - it.second < CACHE_TTL_MS }
+            ?.first
+            ?: resolveStreamUrlParallel(cleanId)
+    }
+
+    private suspend fun resolveStreamUrlParallel(cleanId: String): String? = coroutineScope {
+        val results = Channel<String?>(Channel.UNLIMITED)
+        val resolvers: List<() -> String?> = listOf(
+            { resolveViaAndroidVr(cleanId) },
+            { resolveViaAndroidTestSuite(cleanId) },
+            { resolveViaTvEmbedded(cleanId) },
+            { resolveViaIos(cleanId) },
+            { resolveViaAndroidMusic(cleanId) },
+            { newPipeStreamResolver.resolve(cleanId, preferEfficientStream()) },
+        )
+        resolvers.forEach { resolver ->
+            launch(Dispatchers.IO) {
+                val candidate = runCatching { resolver() }.getOrNull()
+                results.send(candidate?.takeIf { it.isNotBlank() && validateStreamUrl(it) })
+            }
+        }
+        val resolved = withTimeoutOrNull(8_000L) {
+            repeat(resolvers.size) {
+                results.receive()?.let { return@withTimeoutOrNull it }
+            }
+            null
+        }
+        coroutineContext.cancelChildren()
+        results.close()
+        resolved?.also { streamUrlCache[cleanId] = it to System.currentTimeMillis() }
     }
 
     /**
@@ -557,7 +611,7 @@ class YouTubeMusicEngine @Inject constructor(
         // YouTube changes its player clients and signature rules frequently. NewPipe's
         // maintained extractor handles those changes (including signature/n-parameter
         // deciphering) and gives us an audio-only progressive URL Media3 can consume.
-        val extractorUrl = newPipeStreamResolver.resolve(cleanId, preferLowBitrate = dataSaverEnabled)
+        val extractorUrl = newPipeStreamResolver.resolve(cleanId, preferLowBitrate = preferEfficientStream())
         if (!extractorUrl.isNullOrBlank()) {
             Log.d(TAG, "Resolved stream via NewPipe for $cleanId")
             streamUrlCache[cleanId] = extractorUrl to System.currentTimeMillis()
@@ -785,13 +839,14 @@ class YouTubeMusicEngine @Inject constructor(
                 val body = JSONObject(response.body?.string().orEmpty())
                 val audioStreams = body.optJSONArray("audioStreams") ?: return null
                 var bestUrl: String? = null
-                var selectedBitrate = if (dataSaverEnabled) Int.MAX_VALUE else 0
+                val efficient = preferEfficientStream()
+                var selectedBitrate = if (efficient) Int.MAX_VALUE else 0
                 for (i in 0 until audioStreams.length()) {
                     val stream = audioStreams.getJSONObject(i)
                     val bitrate = stream.optInt("bitrate", 0)
                     val url = stream.optString("url")
                     if (url.isNotBlank() && bitrate > 0 &&
-                        (if (dataSaverEnabled) bitrate <= selectedBitrate else bitrate >= selectedBitrate)
+                        (if (efficient) bitrate <= selectedBitrate else bitrate >= selectedBitrate)
                     ) {
                         selectedBitrate = bitrate
                         bestUrl = url
@@ -816,7 +871,8 @@ class YouTubeMusicEngine @Inject constructor(
                 val body = JSONObject(response.body?.string().orEmpty())
                 val adaptiveFormats = body.optJSONArray("adaptiveFormats") ?: return null
                 var bestUrl: String? = null
-                var selectedBitrate = if (dataSaverEnabled) Int.MAX_VALUE else 0
+                val efficient = preferEfficientStream()
+                var selectedBitrate = if (efficient) Int.MAX_VALUE else 0
                 for (i in 0 until adaptiveFormats.length()) {
                     val stream = adaptiveFormats.getJSONObject(i)
                     val type = stream.optString("type", "")
@@ -824,7 +880,7 @@ class YouTubeMusicEngine @Inject constructor(
                         val bitrate = stream.optInt("bitrate", 0)
                         val url = stream.optString("url")
                         if (url.isNotBlank() && bitrate > 0 &&
-                            (if (dataSaverEnabled) bitrate <= selectedBitrate else bitrate >= selectedBitrate)
+                            (if (efficient) bitrate <= selectedBitrate else bitrate >= selectedBitrate)
                         ) {
                             selectedBitrate = bitrate
                             bestUrl = url
@@ -843,7 +899,8 @@ class YouTubeMusicEngine @Inject constructor(
         val formats = streamingData.optJSONArray("adaptiveFormats") ?: streamingData.optJSONArray("formats") ?: return null
 
         var bestUrl: String? = null
-        var selectedBitrate = if (dataSaverEnabled) Int.MAX_VALUE else 0
+        val efficient = preferEfficientStream()
+        var selectedBitrate = if (efficient) Int.MAX_VALUE else 0
 
         for (i in 0 until formats.length()) {
             val format = formats.getJSONObject(i)
@@ -854,7 +911,7 @@ class YouTubeMusicEngine @Inject constructor(
             // Skip formats with blank URL (e.g. signatureCipher/cipher formats) since we don't support JS signature deciphering
             if (mimeType.startsWith("audio/") && url.isNotBlank()) {
                 if (bitrate > 0 &&
-                    (if (dataSaverEnabled) bitrate < selectedBitrate else bitrate > selectedBitrate)
+                    (if (efficient) bitrate < selectedBitrate else bitrate > selectedBitrate)
                 ) {
                     selectedBitrate = bitrate
                     bestUrl = url

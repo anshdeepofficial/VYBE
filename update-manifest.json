@@ -1,25 +1,18 @@
 {
   "schemaVersion": 1,
   "packageName": "com.vybe.musicplayer",
-  "versionName": "0.10.2",
-  "versionCode": 10200,
-  "tag": "v0.10.2",
-  "title": "VYBE 0.10.2",
-  "notes": "Permanently fixes false same-version update offers. VYBE now uses authoritative numeric version codes, a machine-readable manifest, cache-busting checks, and SHA-256 APK verification.",
+  "versionName": "0.10.4",
+  "versionCode": 10400,
+  "tag": "v0.10.4",
+  "title": "VYBE 0.10.4",
+  "notes": "Modern-device ARM64 release with isolated ambient song recognition, scheduled update checks, structured online search, and in-app video playback.",
   "assets": [
     {
       "abi": "arm64-v8a",
-      "name": "VYBE-v0.10.2-arm64-v8a-release.apk",
-      "url": "https://github.com/anshdeepofficial/VYBE/releases/download/v0.10.2/VYBE-v0.10.2-arm64-v8a-release.apk",
-      "size": 57556464,
-      "sha256": "51877aa48f60f2417904a5d734de9d1a3a771462006fcaae96cbaea10720b674"
-    },
-    {
-      "abi": "armeabi-v7a",
-      "name": "VYBE-v0.10.2-armeabi-v7a-release.apk",
-      "url": "https://github.com/anshdeepofficial/VYBE/releases/download/v0.10.2/VYBE-v0.10.2-armeabi-v7a-release.apk",
-      "size": 50501906,
-      "sha256": "31d70d27d378467de8ef8bffac8fa121b32e9887edf0549e972cae25f7d7af20"
+      "name": "VYBE-v0.10.4-arm64-v8a-release.apk",
+      "url": "https://github.com/anshdeepofficial/VYBE/releases/download/v0.10.4/VYBE-v0.10.4-arm64-v8a-release.apk",
+      "size": 57570956,
+      "sha256": "eb86b7f49b6138c8fd49b08fe764589ba15e21bce6c31adf0d8d6c746356be67"
     }
   ]
 }

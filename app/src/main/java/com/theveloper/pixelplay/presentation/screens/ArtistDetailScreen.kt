@@ -286,6 +286,13 @@ fun ArtistDetailScreen(
                     }
                     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
                     val tabs = listOf("Songs", "Videos", "Albums")
+                    val activeTabSongs = remember(selectedTabIndex, uiState.songs, uiState.videos, albumSections) {
+                        when (selectedTabIndex) {
+                            1 -> uiState.videos
+                            2 -> albumSections.flatMap { it.songs }.distinctBy { it.id }
+                            else -> uiState.songs
+                        }
+                    }
 
                     val isScrollbarEnabled = LocalShowScrollbar.current
                     val showScrollBar by remember(isScrollbarEnabled) {
@@ -526,10 +533,10 @@ fun ArtistDetailScreen(
                             hasCustomImage = !artist.customImageUri.isNullOrBlank(),
                             onBackPressed = { navController.popBackStack() },
                             onPlayClick = {
-                                if (songs.isNotEmpty()) {
+                                if (activeTabSongs.isNotEmpty()) {
                                     playerViewModel.playSongsShuffled(
-                                        songs,
-                                        artist.name,
+                                        activeTabSongs,
+                                        "${artist.name} - ${tabs[selectedTabIndex]}",
                                         startAtZero = true
                                     )
                                 }
@@ -548,10 +555,10 @@ fun ArtistDetailScreen(
                             headerImageRequestSize = headerImageRequestSize,
                             onBackPressed = { navController.popBackStack() },
                             onPlayClick = {
-                                if (songs.isNotEmpty()) {
+                                if (activeTabSongs.isNotEmpty()) {
                                     playerViewModel.playSongsShuffled(
-                                        songs,
-                                        artist.name,
+                                        activeTabSongs,
+                                        "${artist.name} - ${tabs[selectedTabIndex]}",
                                         startAtZero = true
                                     )
                                 }

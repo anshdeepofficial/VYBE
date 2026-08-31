@@ -133,7 +133,7 @@ class ArtistDetailViewModel @Inject constructor(
                         artist = artist,
                         songs = profile.topSongs,
                         videos = profile.videos,
-                        albumSections = topSongsSection(browseId, profile.topSongs),
+                        albumSections = emptyList(),
                         effectiveImageUrl = effectiveUrl,
                         isLoading = false,
                     )
@@ -268,10 +268,7 @@ class ArtistDetailViewModel @Inject constructor(
                         remoteBrowseId = browseId,
                     ),
                     songs = baseSongs,
-                    albumSections = mergeSections(
-                        buildAlbumSections(localSongs),
-                        topSongsSection(browseId, profile.topSongs),
-                    ),
+                    albumSections = buildAlbumSections(localSongs).filter { it.songs.size > 1 },
                     effectiveImageUrl = profileImage,
                     error = null,
                 )
@@ -286,7 +283,9 @@ class ArtistDetailViewModel @Inject constructor(
         profile: com.theveloper.pixelplay.data.network.ytmusic.YouTubeArtistProfile,
         localSongs: List<Song>,
     ) {
-        val releases = (profile.albums + profile.singles).distinctBy { it.browseId }
+        // Album tab represents real multi-track albums only. Singles remain in Songs and must
+        // not be fabricated into one-track album cards.
+        val releases = profile.albums.distinctBy { it.browseId }
         val resolvedAlbums = mutableListOf<com.theveloper.pixelplay.data.network.ytmusic.YouTubeAlbumDetails>()
         releases.chunked(RELEASE_BATCH_SIZE).forEach { batch ->
             resolvedAlbums += supervisorScope {
@@ -306,6 +305,7 @@ class ArtistDetailViewModel @Inject constructor(
                     compareByDescending<com.theveloper.pixelplay.data.network.ytmusic.YouTubeAlbumDetails> { it.year ?: 0 }
                         .thenBy { it.title.lowercase() }
                 )
+                .filter { it.tracks.size > 1 }
                 .map { album ->
                     val songsWithArtwork = album.tracks.map { track ->
                         if (track.albumArtUriString.isNullOrBlank()) {
@@ -326,8 +326,7 @@ class ArtistDetailViewModel @Inject constructor(
                     songs = completeSongs,
                     videos = profile.videos,
                     albumSections = mergeSections(
-                        buildAlbumSections(localSongs),
-                        topSongsSection(browseId, profile.topSongs),
+                        buildAlbumSections(localSongs).filter { it.songs.size > 1 },
                         releaseSections,
                     ),
                 )
@@ -478,17 +477,6 @@ private fun buildAlbumSections(songs: List<Song>): List<ArtistAlbumSection> {
 
     return withYearSorted + withoutYearSorted
 }
-
-private fun topSongsSection(browseId: String, songs: List<Song>): List<ArtistAlbumSection> =
-    if (songs.isEmpty()) emptyList() else listOf(
-        ArtistAlbumSection(
-            albumId = "${browseId}_top_songs".hashCode().toLong(),
-            title = "Top Songs",
-            year = null,
-            albumArtUriString = songs.firstNotNullOfOrNull { it.albumArtUriString },
-            songs = songs,
-        )
-    )
 
 private fun mergeSections(vararg groups: List<ArtistAlbumSection>): List<ArtistAlbumSection> =
     groups.asSequence().flatten()

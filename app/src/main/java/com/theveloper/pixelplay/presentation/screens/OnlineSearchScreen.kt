@@ -1,6 +1,15 @@
 package com.theveloper.pixelplay.presentation.screens
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Bundle
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -15,6 +24,8 @@ import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Mic
+import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -33,6 +44,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
@@ -40,6 +52,7 @@ import com.theveloper.pixelplay.presentation.viewmodel.OnlineSearchViewModel
 import com.theveloper.pixelplay.presentation.viewmodel.OnlineSearchFilter
 import com.theveloper.pixelplay.presentation.viewmodel.PlayerViewModel
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
+import com.theveloper.pixelplay.presentation.components.AmbientRecognitionSheet
 import com.theveloper.pixelplay.presentation.components.PlaylistBottomSheet
 import com.theveloper.pixelplay.presentation.components.SongContextBottomSheet
 import com.theveloper.pixelplay.presentation.components.subcomps.EnhancedSongListItem
@@ -61,6 +74,7 @@ fun OnlineSearchScreen(
     val trendingTracks by viewModel.trendingTracks.collectAsStateWithLifecycle()
     val aiRecommendations by viewModel.aiRecommendations.collectAsStateWithLifecycle()
     val searchResultsSongs by viewModel.searchResultsSongs.collectAsStateWithLifecycle()
+    val searchResultsVideos by viewModel.searchResultsVideos.collectAsStateWithLifecycle()
     val searchResultsAlbums by viewModel.searchResultsAlbums.collectAsStateWithLifecycle()
     val searchResultsArtists by viewModel.searchResultsArtists.collectAsStateWithLifecycle()
     val searchFilter by viewModel.searchFilter.collectAsStateWithLifecycle()
@@ -83,6 +97,52 @@ fun OnlineSearchScreen(
     var songForPlaylist by remember { mutableStateOf<Song?>(null) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    var isVoiceListening by remember { mutableStateOf(false) }
+    var showAmbientRecognition by rememberSaveable { mutableStateOf(false) }
+    val speechRecognizer = remember(context) {
+        if (SpeechRecognizer.isRecognitionAvailable(context)) SpeechRecognizer.createSpeechRecognizer(context) else null
+    }
+    DisposableEffect(speechRecognizer) {
+        speechRecognizer?.setRecognitionListener(object : RecognitionListener {
+            override fun onReadyForSpeech(params: Bundle?) { isVoiceListening = true }
+            override fun onBeginningOfSpeech() = Unit
+            override fun onRmsChanged(rmsdB: Float) = Unit
+            override fun onBufferReceived(buffer: ByteArray?) = Unit
+            override fun onEndOfSpeech() { isVoiceListening = false }
+            override fun onError(error: Int) {
+                isVoiceListening = false
+                Toast.makeText(context, "Voice search could not hear a clear title or artist.", Toast.LENGTH_SHORT).show()
+            }
+            override fun onResults(results: Bundle?) {
+                isVoiceListening = false
+                results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.let { spoken ->
+                    query = spoken
+                    selectedGenre = null
+                    viewModel.submitSearch(spoken)
+                }
+            }
+            override fun onPartialResults(partialResults: Bundle?) = Unit
+            override fun onEvent(eventType: Int, params: Bundle?) = Unit
+        })
+        onDispose { speechRecognizer?.destroy() }
+    }
+    val beginVoiceListening: () -> Unit = {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "Say a song title or artist")
+        }
+        speechRecognizer?.startListening(intent)
+            ?: Toast.makeText(context, "Voice recognition is unavailable on this device.", Toast.LENGTH_SHORT).show()
+    }
+    val microphonePermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) beginVoiceListening() else Toast.makeText(context, "Microphone permission is required for voice search.", Toast.LENGTH_SHORT).show()
+    }
+    val startVoiceSearch: () -> Unit = {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            beginVoiceListening()
+        } else microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+    }
 
     val searchInputFocusRequester = remember { FocusRequester() }
     val bottomPadding = paddingValuesParent.calculateBottomPadding() + MiniPlayerHeight + 16.dp
@@ -129,6 +189,21 @@ fun OnlineSearchScreen(
                             onExpandedChange = {},
                             placeholder = { Text("Search songs, movies, albums, artists") },
                             trailingIcon = {
+                                Row {
+                                IconButton(onClick = { showAmbientRecognition = true }) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.GraphicEq,
+                                        contentDescription = "Recognize a song playing nearby",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                IconButton(onClick = startVoiceSearch) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Mic,
+                                        contentDescription = if (isVoiceListening) "Listening" else "Voice search",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
                                 if (query.isNotBlank()) {
                                     IconButton(
                                         onClick = {
@@ -142,6 +217,7 @@ fun OnlineSearchScreen(
                                             tint = MaterialTheme.colorScheme.primary
                                         )
                                     }
+                                }
                                 }
                             },
                             colors = SearchBarDefaults.inputFieldColors(
@@ -270,7 +346,7 @@ fun OnlineSearchScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // ── Content ─────────────────────────────────────────────────────
-        val hasVisibleSearchResults = searchResultsSongs.isNotEmpty() ||
+        val hasVisibleSearchResults = searchResultsSongs.isNotEmpty() || searchResultsVideos.isNotEmpty() ||
             searchResultsAlbums.isNotEmpty() || searchResultsArtists.isNotEmpty()
         val hasVisibleDiscovery = trendingTracks.isNotEmpty() || aiRecommendations.isNotEmpty() || discoveryArtists.isNotEmpty()
         if (isLoading && ((isSearching && !hasVisibleSearchResults) || (!isSearching && !hasVisibleDiscovery))) {
@@ -318,6 +394,40 @@ fun OnlineSearchScreen(
                     }
                 }
 
+                // Official YouTube videos stay separate from audio-only songs.
+                if (searchFilter == OnlineSearchFilter.ALL || searchFilter == OnlineSearchFilter.VIDEOS) {
+                    if (searchResultsVideos.isNotEmpty()) {
+                        item(key = "videos_header") {
+                            Text(
+                                text = "Videos",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                            )
+                        }
+                        items(
+                            count = if (searchFilter == OnlineSearchFilter.ALL) searchResultsVideos.take(8).size else searchResultsVideos.size,
+                            key = { "video_${searchResultsVideos[it].id}" },
+                        ) { index ->
+                            val video = searchResultsVideos[index]
+                            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                                EnhancedSongListItem(
+                                    song = video,
+                                    isPlaying = false,
+                                    isCurrentSong = false,
+                                    showMoreOptionsButton = true,
+                                    onLongPress = { contextMenuSong = video },
+                                    onMoreOptionsClick = { contextMenuSong = video },
+                                    onClick = {
+                                        viewModel.rememberSearch(query)
+                                        playerViewModel.playOnlineSeed(video, "VYBE Videos")
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
+
                 // 2. Albums Section
                 if (searchFilter == OnlineSearchFilter.ALL || searchFilter == OnlineSearchFilter.ALBUMS) {
                     if (searchResultsAlbums.isNotEmpty()) {
@@ -349,25 +459,31 @@ fun OnlineSearchScreen(
                                 modifier = Modifier.padding(horizontal = 16.dp)
                             )
                         }
-                        item(key = "artists_row") {
-                            LazyRow(
-                                contentPadding = PaddingValues(horizontal = 16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        item(key = "artists_grid") {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
-                                items(searchResultsArtists, key = { it.browseId }) { artist ->
+                                searchResultsArtists.chunked(3).forEach { rowArtists ->
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                        rowArtists.forEach { artist ->
                                     ArtistSearchCard(
                                         artist = artist,
+                                        modifier = Modifier.weight(1f),
                                         onClick = {
                                             navController.navigate("artist_detail/${artist.browseId}")
                                         }
                                     )
+                                        }
+                                        repeat(3 - rowArtists.size) { Spacer(Modifier.weight(1f)) }
+                                    }
                                 }
                             }
                         }
                     }
                 }
 
-                if (searchResultsSongs.isEmpty() && searchResultsAlbums.isEmpty() && searchResultsArtists.isEmpty()) {
+                if (searchResultsSongs.isEmpty() && searchResultsVideos.isEmpty() && searchResultsAlbums.isEmpty() && searchResultsArtists.isEmpty()) {
                     item(key = "search_empty") {
                         Box(
                             modifier = Modifier
@@ -482,6 +598,13 @@ fun OnlineSearchScreen(
                 }
             }
         }
+    }
+
+    if (showAmbientRecognition) {
+        AmbientRecognitionSheet(
+            onDismiss = { showAmbientRecognition = false },
+            playerViewModel = playerViewModel,
+        )
     }
 
     // ── Song Context Bottom Sheet ───────────────────────────────────────
@@ -618,11 +741,11 @@ private fun AlbumSearchCard(
 @Composable
 private fun ArtistSearchCard(
     artist: YouTubeArtist,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     Column(
-        modifier = Modifier
-            .width(100.dp)
+        modifier = modifier
             .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

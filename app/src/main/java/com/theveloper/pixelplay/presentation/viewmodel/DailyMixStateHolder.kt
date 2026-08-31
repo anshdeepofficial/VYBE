@@ -73,10 +73,13 @@ class DailyMixStateHolder @Inject constructor(
     /**
      * Update the daily mix and your mix with online music ecosystem.
      */
-    fun updateDailyMix(favoriteSongIdsFlow: kotlinx.coroutines.flow.Flow<Set<String>>) {
+    fun updateDailyMix(
+        favoriteSongIdsFlow: kotlinx.coroutines.flow.Flow<Set<String>>,
+        showRefreshIndicator: Boolean = false,
+    ) {
         updateJob?.cancel()
         updateJob = scope?.launch(Dispatchers.IO) {
-            _isRefreshing.value = true
+            _isRefreshing.value = showRefreshIndicator
             val favoriteIds = runCatching { favoriteSongIdsFlow.first() }.getOrDefault(emptySet())
             val region = runCatching { userPreferencesRepository.userRegionFlow.first() }
                 .getOrDefault("IN")
@@ -211,6 +214,11 @@ class DailyMixStateHolder @Inject constructor(
                     val songMap = songs.associateBy { it.id }
                     val orderedSongs = yourMixIds.mapNotNull { songMap[it] }
                     _yourMixSongs.value = orderedSongs.toImmutableList()
+                    if (_quickPickSongs.value.isEmpty()) {
+                        // Instant cache-first Home content while the daily online refresh runs
+                        // silently in the background.
+                        _quickPickSongs.value = orderedSongs.take(10).toImmutableList()
+                    }
                 }
             }
         }
@@ -218,7 +226,7 @@ class DailyMixStateHolder @Inject constructor(
 
     fun forceUpdate(favoriteSongIdsFlow: kotlinx.coroutines.flow.Flow<Set<String>>) {
         scope?.launch {
-            updateDailyMix(favoriteSongIdsFlow)
+            updateDailyMix(favoriteSongIdsFlow, showRefreshIndicator = true)
             userPreferencesRepository.saveLastDailyMixUpdateTimestamp(System.currentTimeMillis())
         }
     }

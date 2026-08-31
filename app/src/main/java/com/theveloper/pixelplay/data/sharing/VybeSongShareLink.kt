@@ -30,13 +30,8 @@ object VybeSongShareLink {
                 builder.appendPath("play")
                     .appendQueryParameter("id", portableId)
             }
-            builder.appendQueryParameter("title", song.title)
-                .appendQueryParameter("artist", song.displayArtist)
-                .appendQueryParameter("album", song.album)
-                .appendQueryParameter("duration", song.duration.toString())
-            song.albumArtUriString?.takeIf { it.startsWith("https://") }
-                ?.let { builder.appendQueryParameter("art", it) }
-            song.remoteAlbumBrowseId?.let { builder.appendQueryParameter("albumId", it) }
+            // Keep shared links short and stable. The provider ID is the canonical lookup
+            // key; metadata is resolved inside VYBE instead of being repeated in the URL.
             return builder.build()
         }
         

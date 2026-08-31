@@ -79,3 +79,9 @@ The following contributor names were generated from the Git history through `cee
 - jair1c
 - ori
 - Неважно
+# Chromaprint
+
+VYBE includes Chromaprint for local audio fingerprint generation.
+Chromaprint is Copyright (c) 2010-2024 Lukas Lalinsky and contributors and is
+licensed under the GNU Lesser General Public License, version 2.1 or later.
+Source: https://github.com/acoustid/chromaprint

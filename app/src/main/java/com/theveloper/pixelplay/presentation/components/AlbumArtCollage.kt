@@ -101,24 +101,14 @@ fun AlbumArtCollage(
                 CollagePattern.STARDUST_SCATTER -> 32.dp
                 else -> 22.dp
             }
-            Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(
-                    Modifier.fillMaxWidth().weight(1.16f),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    CollageArtworkTile(order[0], songsToShow, requests, corner, Modifier.weight(1.6f).fillMaxHeight(), onSongClick)
-                    Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CollageArtworkTile(order[1], songsToShow, requests, corner, Modifier.weight(1f).fillMaxWidth(), onSongClick)
-                        CollageArtworkTile(order[2], songsToShow, requests, corner, Modifier.weight(1f).fillMaxWidth(), onSongClick)
+            Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center) {
+                order.chunked(3).forEachIndexed { rowIndex, row ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        row.forEach { index ->
+                            CollageArtworkTile(index, songsToShow, requests, corner, Modifier.weight(1f).aspectRatio(1f), onSongClick)
+                        }
                     }
-                }
-                Row(
-                    Modifier.fillMaxWidth().weight(0.84f),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    order.drop(3).forEach { index ->
-                        CollageArtworkTile(index, songsToShow, requests, corner, Modifier.weight(1f).fillMaxHeight(), onSongClick)
-                    }
+                    if (rowIndex == 0) Spacer(Modifier.height(8.dp))
                 }
             }
         }

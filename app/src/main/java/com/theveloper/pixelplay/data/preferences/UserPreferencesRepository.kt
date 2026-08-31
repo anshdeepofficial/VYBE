@@ -1190,14 +1190,21 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
         pref { it[PreferencesKeys.CAROUSEL_STYLE] ?: CarouselStyle.NO_PEEK }
 
     suspend fun setCarouselStyle(style: String) {
-        dataStore.edit { it[PreferencesKeys.CAROUSEL_STYLE] = style }
+        dataStore.edit {
+            it[PreferencesKeys.CAROUSEL_STYLE] = if (
+                it[PreferencesKeys.IMMERSIVE_ARTWORK_ENABLED] == true
+            ) CarouselStyle.NO_PEEK else style
+        }
     }
 
     val immersiveArtworkEnabledFlow: Flow<Boolean> =
         pref { it[PreferencesKeys.IMMERSIVE_ARTWORK_ENABLED] ?: false }
 
     suspend fun setImmersiveArtworkEnabled(enabled: Boolean) {
-        dataStore.edit { it[PreferencesKeys.IMMERSIVE_ARTWORK_ENABLED] = enabled }
+        dataStore.edit {
+            it[PreferencesKeys.IMMERSIVE_ARTWORK_ENABLED] = enabled
+            if (enabled) it[PreferencesKeys.CAROUSEL_STYLE] = CarouselStyle.NO_PEEK
+        }
     }
 
     val launchTabFlow: Flow<String> =

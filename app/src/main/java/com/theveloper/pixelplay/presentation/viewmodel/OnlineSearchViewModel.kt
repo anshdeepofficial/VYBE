@@ -35,6 +35,7 @@ import javax.inject.Inject
 enum class OnlineSearchFilter {
     ALL,
     SONGS,
+    VIDEOS,
     ALBUMS,
     ARTISTS
 }
@@ -55,6 +56,9 @@ class OnlineSearchViewModel @Inject constructor(
 
     private val _searchResultsSongs = MutableStateFlow<List<Song>>(emptyList())
     val searchResultsSongs: StateFlow<List<Song>> = _searchResultsSongs.asStateFlow()
+
+    private val _searchResultsVideos = MutableStateFlow<List<Song>>(emptyList())
+    val searchResultsVideos: StateFlow<List<Song>> = _searchResultsVideos.asStateFlow()
 
     private val _searchResultsAlbums = MutableStateFlow<List<YouTubeAlbum>>(emptyList())
     val searchResultsAlbums: StateFlow<List<YouTubeAlbum>> = _searchResultsAlbums.asStateFlow()
@@ -328,6 +332,7 @@ class OnlineSearchViewModel @Inject constructor(
         suggestionJob?.cancel()
         currentQuery = ""
         _searchResultsSongs.value = emptyList()
+        _searchResultsVideos.value = emptyList()
         _searchResultsAlbums.value = emptyList()
         _searchResultsArtists.value = emptyList()
         _discoveryArtists.value = emptyList()
@@ -355,8 +360,9 @@ class OnlineSearchViewModel @Inject constructor(
         // Cache hit
         structuredSearchCache[trimmed.lowercase()]?.let { cached ->
             _searchResultsSongs.value = cached.songs
+            _searchResultsVideos.value = cached.videos
             _searchResultsAlbums.value = cached.albums
-            _searchResultsArtists.value = cached.artists
+            _searchResultsArtists.value = rankSearchArtists(trimmed, cached.artists)
             _isLoading.value = false
             loadSuggestions(trimmed)
             return
@@ -383,11 +389,12 @@ class OnlineSearchViewModel @Inject constructor(
                         ?: YouTubeSearchResult()
 
                     // If YouTube returned results, we can show them immediately.
-                    if (youtubeResult.songs.isNotEmpty() || youtubeResult.albums.isNotEmpty() || youtubeResult.artists.isNotEmpty()) {
+                    if (youtubeResult.songs.isNotEmpty() || youtubeResult.videos.isNotEmpty() || youtubeResult.albums.isNotEmpty() || youtubeResult.artists.isNotEmpty()) {
                         if (currentQuery == trimmed) {
                             _searchResultsSongs.value = rankSearchSongs(trimmed, youtubeResult.songs, retainRelated = true)
+                            _searchResultsVideos.value = rankSearchSongs(trimmed, youtubeResult.videos, retainRelated = true)
                             _searchResultsAlbums.value = youtubeResult.albums
-                            _searchResultsArtists.value = youtubeResult.artists
+                            _searchResultsArtists.value = rankSearchArtists(trimmed, youtubeResult.artists)
                             _isLoading.value = false
                         }
                     }
@@ -404,11 +411,15 @@ class OnlineSearchViewModel @Inject constructor(
                     )
                 }
                 if (currentQuery != trimmed) return@launch
-                val rankedResult = result.copy(albums = rankSearchAlbums(trimmed, result.albums))
-                if (rankedResult.songs.isNotEmpty() || rankedResult.albums.isNotEmpty() || rankedResult.artists.isNotEmpty()) {
+                val rankedResult = result.copy(
+                    albums = rankSearchAlbums(trimmed, result.albums),
+                    artists = rankSearchArtists(trimmed, result.artists),
+                )
+                if (rankedResult.songs.isNotEmpty() || rankedResult.videos.isNotEmpty() || rankedResult.albums.isNotEmpty() || rankedResult.artists.isNotEmpty()) {
                     structuredSearchCache[trimmed.lowercase()] = rankedResult
                 }
                 _searchResultsSongs.value = rankedResult.songs
+                _searchResultsVideos.value = rankedResult.videos
                 _searchResultsAlbums.value = rankedResult.albums
                 _searchResultsArtists.value = rankedResult.artists
                 loadSuggestions(trimmed)
@@ -419,6 +430,7 @@ class OnlineSearchViewModel @Inject constructor(
             } catch (error: Exception) {
                 if (currentQuery == trimmed) {
                     _searchResultsSongs.value = emptyList()
+                    _searchResultsVideos.value = emptyList()
                     _searchResultsAlbums.value = emptyList()
                     _searchResultsArtists.value = emptyList()
                     _searchError.value = error.message ?: "Search could not reach YouTube Music"
@@ -500,6 +512,24 @@ class OnlineSearchViewModel @Inject constructor(
             .filter { (_, score) -> score > 0 }
             .sortedByDescending { it.second }
             .map { it.first }
+    }
+
+    private fun rankSearchArtists(query: String, artists: List<YouTubeArtist>): List<YouTubeArtist> {
+        val wanted = query.trim().lowercase()
+        val tokens = wanted.split(Regex("\\s+")).filter { it.length > 1 }
+        return artists
+            .filter { it.browseId.isNotBlank() && it.name.isNotBlank() }
+            .distinctBy { it.browseId }
+            .sortedByDescending { artist ->
+                val name = artist.name.trim().lowercase()
+                when {
+                    name == wanted -> 100_000
+                    name.startsWith(wanted) -> 50_000
+                    name.contains(wanted) -> 20_000
+                    else -> tokens.count(name::contains) * 100 +
+                        if (!artist.thumbnailUrl.isNullOrBlank()) 10 else 0
+                }
+            }
     }
 
     private fun isDisplayableMusicSong(song: Song): Boolean {

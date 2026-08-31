@@ -24,6 +24,7 @@ class UpdateCheckWorker(
     params: WorkerParameters,
 ) : CoroutineWorker(appContext, params) {
     override suspend fun doWork(): Result {
+        if (!UpdateCheckSchedule.allowsAutomaticCheck(applicationContext)) return Result.success()
         val update = GitHubUpdateService().checkForUpdate(applicationContext).getOrNull()
             ?: return Result.success()
         createChannel(applicationContext)

@@ -1,3 +1,19 @@
+## [0.10.4] - 2026-08-31
+### Added
+- First-run update schedule choice with a recommended 8:00 PM–6:00 AM window or anytime checks; manual checks remain immediate.
+- Dedicated Songs and Videos sections in online search.
+- In-app video playback for official video results, starting at the current audio position.
+
+### Added in the modern-device release
+- Isolated ambient song recognition with microphone capture, Chromaprint fingerprinting, AcoustID lookup, exact VYBE matching, cancellation, and clear processing/result states.
+
+### Changed
+- Release APKs now target modern 64-bit Android devices only (`arm64-v8a`); the legacy 32-bit APK is no longer produced.
+
+### Fixed
+- Linked the native recognition engine with an embedded static C++ runtime so it loads reliably without a separate shared runtime library.
+- Preserved existing voice search while keeping ambient recognition lifecycle-safe and independent.
+
 ## [0.10.3] - 2026-08-31
 ### Changed
 - Removed Song Recognition completely, including its navigation item, setting, microphone permission, AcoustID integration, and native Chromaprint runtime.

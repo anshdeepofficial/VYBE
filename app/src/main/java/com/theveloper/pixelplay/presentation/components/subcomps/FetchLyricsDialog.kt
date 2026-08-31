@@ -32,15 +32,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -71,8 +69,6 @@ fun FetchLyricsDialog(
 ) {
     if (uiState is LyricsSearchUiState.Success) return
 
-    var forcePickResults by rememberSaveable { mutableStateOf(false) }
-
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -93,9 +89,7 @@ fun FetchLyricsDialog(
                     LyricsSearchUiState.Idle -> {
                         IdleContent(
                             currentSong = currentSong,
-                            forcePickResults = forcePickResults,
-                            onToggleForcePickResults = { forcePickResults = it },
-                            onSearch = { onConfirm(forcePickResults) },
+                            onSearch = { onConfirm(true) },
                             onImport = onImport,
                             onCancel = onDismiss
                         )
@@ -140,8 +134,6 @@ fun FetchLyricsDialog(
 @Composable
 private fun IdleContent(
     currentSong: Song?,
-    forcePickResults: Boolean,
-    onToggleForcePickResults: (Boolean) -> Unit,
     onSearch: () -> Unit,
     onImport: () -> Unit,
     onCancel: () -> Unit
@@ -204,43 +196,8 @@ private fun IdleContent(
 
     Spacer(modifier = Modifier.height(32.dp))
 
-    ElevatedCard(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.lyrics_fetch_show_options_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-                Text(
-                    text = stringResource(R.string.lyrics_fetch_show_options_subtitle),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.75f)
-                )
-            }
-            Switch(
-                checked = forcePickResults,
-                onCheckedChange = onToggleForcePickResults,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                    checkedTrackColor = MaterialTheme.colorScheme.primary
-                )
-            )
-        }
-    }
-
+    // Online lyrics search is always enabled. The old optional switch could send the
+    // provider an invalid/empty request and surface a HTTP 400 error.
     Spacer(modifier = Modifier.height(16.dp))
 
     // Botones de Acción (Vertical para mejor touch target)

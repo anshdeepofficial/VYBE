@@ -111,6 +111,7 @@ import com.theveloper.pixelplay.BuildConfig
 import com.theveloper.pixelplay.data.github.GitHubContributorService
 import com.theveloper.pixelplay.data.github.GitHubReleaseUpdate
 import com.theveloper.pixelplay.data.github.GitHubUpdateService
+import com.theveloper.pixelplay.data.worker.UpdateCheckSchedule
 import com.theveloper.pixelplay.presentation.components.CollapsibleCommonTopBar
 import com.theveloper.pixelplay.presentation.components.GitHubUpdateDialog
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
@@ -198,6 +199,7 @@ fun AboutScreen(
     var downloadedUpdateFile by remember { mutableStateOf<File?>(null) }
     var updateMessage by remember { mutableStateOf<String?>(null) }
     var feedbackType by remember { mutableStateOf<FeedbackType?>(null) }
+    var automaticUpdatesAnytime by remember { mutableStateOf(UpdateCheckSchedule.isAnytime(context)) }
 
     val statusBarHeight = WindowInsets.statusBars
         .asPaddingValues()
@@ -360,6 +362,36 @@ fun AboutScreen(
                     showContributionCount = false,
                     onCardClick = CoreMaintainer.githubUrl?.let { url -> { openUrl(context, url) } },
                 )
+            }
+
+            item(key = "update_hours") {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    SocialChip(
+                        "Night updates",
+                        "8 PM – 6 AM",
+                        R.drawable.rounded_timer_24,
+                        "Use the recommended automatic update window",
+                        {
+                            automaticUpdatesAnytime = false
+                            UpdateCheckSchedule.save(context, false, 20, 6)
+                        },
+                        Modifier.weight(1f),
+                    )
+                    SocialChip(
+                        "Anytime",
+                        if (automaticUpdatesAnytime) "Selected" else "24-hour checks",
+                        R.drawable.rounded_timer_24,
+                        "Allow automatic update checks throughout the day",
+                        {
+                            automaticUpdatesAnytime = true
+                            UpdateCheckSchedule.save(context, true)
+                        },
+                        Modifier.weight(1f),
+                    )
+                }
             }
 
             item(key = "support_title") {

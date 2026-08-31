@@ -95,7 +95,23 @@ fun NowPlayingOptionsBottomSheet(
             }
         ),
 
-        // 3. Add to a playlist
+        // 3. Share
+        NowPlayingOptionItem(
+            icon = OptionIcon.Vector(Icons.Default.Share),
+            title = "Share",
+            subtitle = "Share a short VYBE song link",
+            onClick = {
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_SUBJECT, "${song.title} on VYBE")
+                    putExtra(Intent.EXTRA_TEXT, VybeSongShareLink.shareText(song))
+                }
+                context.startActivity(Intent.createChooser(intent, "Share via"))
+                onDismiss()
+            }
+        ),
+
+        // 4. Add to a playlist
         NowPlayingOptionItem(
             icon = OptionIcon.DrawableRes(R.drawable.rounded_playlist_add_24),
             title = "Add to a playlist",
@@ -185,21 +201,7 @@ fun NowPlayingOptionsBottomSheet(
             }
         ),
 
-        // 11. Share
-        NowPlayingOptionItem(
-            icon = OptionIcon.Vector(Icons.Default.Share),
-            title = "Share",
-            subtitle = "Share song info or stream link",
-            onClick = {
-                val intent = Intent(Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    putExtra(Intent.EXTRA_SUBJECT, "${song.title} on VYBE")
-                    putExtra(Intent.EXTRA_TEXT, VybeSongShareLink.shareText(song))
-                }
-                context.startActivity(Intent.createChooser(intent, "Share via"))
-                onDismiss()
-            }
-        )
+
     )
 
     ModalBottomSheet(

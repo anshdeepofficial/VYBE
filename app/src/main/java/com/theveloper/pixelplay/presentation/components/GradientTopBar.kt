@@ -25,7 +25,6 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.rounded.Cloud
-import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LargeTopAppBar
@@ -150,20 +149,6 @@ fun HomeGradientTopBar(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(end = 14.dp)
             ) {
-                FilledIconButton(
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    ),
-                    onClick = onRefreshClick,
-                    modifier = Modifier.padding(end = 4.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Refresh,
-                        contentDescription = "Refresh",
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
                 FilledIconButton(
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,

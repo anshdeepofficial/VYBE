@@ -137,9 +137,9 @@ class SpotifyLoginActivity : ComponentActivity() {
     private fun createLoginWebView(uri: Uri): WebView = WebView(this).apply webView@ {
         loginWebView = this
         setBackgroundColor(Color.WHITE)
-        // Some Samsung Android System WebView/GPU combinations render OAuth pages as a black
-        // surface. Software composition is slower only on this short login screen and avoids it.
-        setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+        // Spotify's login relies on accelerated compositing; forced software rendering creates
+        // a black surface on several Samsung Android System WebView versions.
+        setLayerType(View.LAYER_TYPE_HARDWARE, null)
         settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
@@ -223,6 +223,7 @@ class SpotifyLoginActivity : ComponentActivity() {
     }
 
     private fun isSpotifyCallback(uri: Uri): Boolean {
+        if (uri.scheme.equals("vybe", true) && uri.host.equals("spotify-callback", true)) return true
         val expected = Uri.parse(SpotifyAccountRepository.REDIRECT_URI)
         return uri.scheme.equals(expected.scheme, true) &&
             uri.host.equals(expected.host, true) &&

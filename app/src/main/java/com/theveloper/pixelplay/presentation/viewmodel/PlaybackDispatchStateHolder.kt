@@ -1052,16 +1052,22 @@ class PlaybackDispatchStateHolder @Inject constructor(
     fun addSongNextToQueue(song: Song) {
         cacheSongsAsync(listOf(song))
         cb.getController()?.let { controller ->
-            val mediaItem = buildPlaybackMediaItem(song)
-
-            val insertionIndex = if (controller.currentMediaItemIndex != C.INDEX_UNSET) {
-                (controller.currentMediaItemIndex + 1).coerceAtMost(controller.mediaItemCount)
-            } else {
-                controller.mediaItemCount
+            val currentId = controller.currentMediaItem?.mediaId
+            // Remove every queued copy first; then insert exactly one item after the currently
+            // playing song. This is deterministic even when the source queue already had duplicates.
+            (controller.mediaItemCount - 1 downTo 0).forEach { index ->
+                if (controller.getMediaItemAt(index).mediaId == song.id && song.id != currentId) {
+                    controller.removeMediaItem(index)
+                }
             }
-
-            controller.addMediaItem(insertionIndex, mediaItem)
-            queueStateHolder.onQueueItemAdded(song, insertionIndex)
+            if (song.id != currentId) {
+                val currentIndex = controller.currentMediaItemIndex
+                val insertionIndex = if (currentIndex != C.INDEX_UNSET) {
+                    (currentIndex + 1).coerceAtMost(controller.mediaItemCount)
+                } else controller.mediaItemCount
+                  controller.addMediaItem(insertionIndex, buildPlaybackMediaItem(song))
+                  queueStateHolder.onQueueItemAdded(song, insertionIndex)
+            }
             // Queue UI is synced via onTimelineChanged listener
         }
     }

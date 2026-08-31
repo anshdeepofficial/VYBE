@@ -40,6 +40,9 @@ class OnlineArtistSelectionViewModel @Inject constructor(
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading = _isLoading.asStateFlow()
+
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage = _errorMessage.asStateFlow()
     
     private val _selectionType = MutableStateFlow(ArtistSelectionType.PREFERRED)
 
@@ -56,8 +59,18 @@ class OnlineArtistSelectionViewModel @Inject constructor(
             _query.debounce(500).distinctUntilChanged().collect { q ->
                 if (q.isNotBlank()) {
                     _isLoading.value = true
-                    val result = onlineMusicRepository.searchMusicStructured(q)
-                    _searchResults.value = result.artists
+                    _errorMessage.value = null
+                    runCatching { onlineMusicRepository.searchMusicStructured(q) }
+                        .onSuccess { result ->
+                            _searchResults.value = result.artists.sortedWith(
+                                compareByDescending<YouTubeArtist> { it.name.equals(q.trim(), true) }
+                                    .thenByDescending { it.name.startsWith(q.trim(), true) }
+                            )
+                        }
+                        .onFailure {
+                            _searchResults.value = emptyList()
+                            _errorMessage.value = "Artists could not be loaded. Check your connection and retry."
+                        }
                     _isLoading.value = false
                 } else {
                     _searchResults.value = emptyList()

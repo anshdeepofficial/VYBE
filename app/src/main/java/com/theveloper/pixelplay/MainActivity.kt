@@ -110,6 +110,7 @@ import com.google.common.util.concurrent.MoreExecutors
 import com.theveloper.pixelplay.data.github.GitHubAnnouncementPropertiesService
 import com.theveloper.pixelplay.data.github.GitHubReleaseUpdate
 import com.theveloper.pixelplay.data.github.GitHubUpdateService
+import com.theveloper.pixelplay.data.worker.UpdateCheckSchedule
 import com.theveloper.pixelplay.data.github.PlayStoreAnnouncementRemoteConfig
 import com.theveloper.pixelplay.data.preferences.AppThemeMode
 import com.theveloper.pixelplay.data.preferences.LogoMode
@@ -858,11 +859,13 @@ class MainActivity : ComponentActivity() {
 
         LaunchedEffect(Unit) {
             updateService.cleanupTemporaryUpdates(this@MainActivity)
-            updateService.checkForUpdate(this@MainActivity)
-                .onSuccess { update -> availableUpdate = update }
-                .onFailure { throwable ->
-                    LogUtils.w(this@MainActivity, "GitHub update check unavailable: ${throwable.message.orEmpty()}")
-                }
+            if (UpdateCheckSchedule.allowsAutomaticCheck(this@MainActivity)) {
+                updateService.checkForUpdate(this@MainActivity)
+                    .onSuccess { update -> availableUpdate = update }
+                    .onFailure { throwable ->
+                        LogUtils.w(this@MainActivity, "GitHub update check unavailable: ${throwable.message.orEmpty()}")
+                    }
+            }
         }
 
         LaunchedEffect(userPreferencesRepository) {

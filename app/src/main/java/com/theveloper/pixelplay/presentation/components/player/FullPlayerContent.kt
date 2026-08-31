@@ -4,6 +4,9 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.Configuration
 import android.net.Uri
+import android.webkit.WebChromeClient
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import android.widget.Toast
 import com.theveloper.pixelplay.data.model.Lyrics
 import com.theveloper.pixelplay.presentation.components.PlaylistBottomSheet
@@ -97,6 +100,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -261,6 +267,7 @@ fun FullPlayerContent(
     var showPlaylistBottomSheet by remember { mutableStateOf(false) }
     var showPlaybackSpeedBottomSheet by remember { mutableStateOf(false) }
     var showTimerBottomSheet by remember { mutableStateOf(false) }
+    var showVideoPlayer by remember { mutableStateOf(false) }
     
     val isTimerActive by playerViewModel.activeTimerValueDisplay.collectAsStateWithLifecycle()
     
@@ -1022,6 +1029,46 @@ fun FullPlayerContent(
             }
         }
     }
+
+        if (song.isMusicVideo) {
+            FilledIconButton(
+                onClick = { showVideoPlayer = true },
+                modifier = Modifier.align(Alignment.TopEnd).padding(top = 108.dp, end = 20.dp),
+            ) {
+                Icon(painterResource(R.drawable.rounded_play_circle_24), contentDescription = "Play video")
+            }
+        }
+    }
+
+    if (showVideoPlayer) {
+        val videoId = song.id.removePrefix("yt_")
+        val startSeconds = (currentPositionProvider() / 1000L).coerceAtLeast(0L)
+        Dialog(
+            onDismissRequest = { showVideoPlayer = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            Surface(modifier = Modifier.fillMaxSize(), color = Color.Black) {
+                AndroidView(
+                    modifier = Modifier.fillMaxSize(),
+                    factory = { webContext ->
+                        WebView(webContext).apply {
+                            settings.javaScriptEnabled = true
+                            settings.domStorageEnabled = true
+                            webChromeClient = WebChromeClient()
+                            webViewClient = WebViewClient()
+                            loadUrl("https://www.youtube.com/embed/$videoId?autoplay=1&playsinline=1&start=$startSeconds")
+                        }
+                    },
+                    update = {},
+                )
+                FilledIconButton(
+                    onClick = { showVideoPlayer = false },
+                    modifier = Modifier.padding(20.dp),
+                ) {
+                    Icon(painterResource(R.drawable.rounded_close_24), contentDescription = "Close video")
+                }
+            }
+        }
     }
     AnimatedVisibility(
         visible = showLyricsSheet,
