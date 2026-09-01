@@ -57,6 +57,9 @@ class DailyMixStateHolder @Inject constructor(
     private val _quickPickSongs = MutableStateFlow<ImmutableList<Song>>(persistentListOf())
     val quickPickSongs: StateFlow<ImmutableList<Song>> = _quickPickSongs.asStateFlow()
 
+    private val _trendingSongs = MutableStateFlow<ImmutableList<Song>>(persistentListOf())
+    val trendingSongs: StateFlow<ImmutableList<Song>> = _trendingSongs.asStateFlow()
+
     private val _topMoods = MutableStateFlow<ImmutableList<String>>(persistentListOf("Chill", "Happy", "Workout", "Focus", "Romantic", "Sad", "Party", "Relax"))
     val topMoods: StateFlow<ImmutableList<String>> = _topMoods.asStateFlow()
 
@@ -113,6 +116,7 @@ class DailyMixStateHolder @Inject constructor(
             val trending = runCatching {
                 onlineMusicRepository.getTrendingTracks(region)
             }.getOrDefault(emptyList())
+            _trendingSongs.value = trending.distinctBy { it.id }.take(30).toImmutableList()
             val loggedOutDiscovery = (latestReleases + trending).distinctBy { it.id }
 
             // Account history/playlists and explicit favorites are the primary taste signals.
@@ -178,6 +182,7 @@ class DailyMixStateHolder @Inject constructor(
 
                 _quickPickSongs.value = dailyMixManager
                     .getTopCandidatesForAi(candidateSongs, favoriteIds, limit = 45)
+                    .shuffled(kotlin.random.Random(System.currentTimeMillis()))
                     .take(10)
                     .toImmutableList()
             } else {

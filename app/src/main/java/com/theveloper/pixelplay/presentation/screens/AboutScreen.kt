@@ -64,6 +64,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -199,7 +200,10 @@ fun AboutScreen(
     var downloadedUpdateFile by remember { mutableStateOf<File?>(null) }
     var updateMessage by remember { mutableStateOf<String?>(null) }
     var feedbackType by remember { mutableStateOf<FeedbackType?>(null) }
-    var automaticUpdatesAnytime by remember { mutableStateOf(UpdateCheckSchedule.isAnytime(context)) }
+    var updateStartHour by remember { mutableIntStateOf(UpdateCheckSchedule.startHour(context)) }
+    var updateStartMinute by remember { mutableIntStateOf(UpdateCheckSchedule.startMinute(context)) }
+    var updateEndHour by remember { mutableIntStateOf(UpdateCheckSchedule.endHour(context)) }
+    var updateEndMinute by remember { mutableIntStateOf(UpdateCheckSchedule.endMinute(context)) }
 
     val statusBarHeight = WindowInsets.statusBars
         .asPaddingValues()
@@ -371,25 +375,21 @@ fun AboutScreen(
                 ) {
                     SocialChip(
                         "Night updates",
-                        "8 PM – 6 AM",
+                        "%02d:%02d – %02d:%02d".format(updateStartHour, updateStartMinute, updateEndHour, updateEndMinute),
                         R.drawable.rounded_timer_24,
-                        "Use the recommended automatic update window",
+                        "Choose the exact automatic update window",
                         {
-                            automaticUpdatesAnytime = false
-                            UpdateCheckSchedule.save(context, false, 20, 6)
+                            android.app.TimePickerDialog(context, { _, startH, startM ->
+                                updateStartHour = startH
+                                updateStartMinute = startM
+                                android.app.TimePickerDialog(context, { _, endH, endM ->
+                                    updateEndHour = endH
+                                    updateEndMinute = endM
+                                    UpdateCheckSchedule.save(context, startH, startM, endH, endM)
+                                }, updateEndHour, updateEndMinute, false).apply { setTitle("Updates until") }.show()
+                            }, updateStartHour, updateStartMinute, false).apply { setTitle("Updates from") }.show()
                         },
-                        Modifier.weight(1f),
-                    )
-                    SocialChip(
-                        "Anytime",
-                        if (automaticUpdatesAnytime) "Selected" else "24-hour checks",
-                        R.drawable.rounded_timer_24,
-                        "Allow automatic update checks throughout the day",
-                        {
-                            automaticUpdatesAnytime = true
-                            UpdateCheckSchedule.save(context, true)
-                        },
-                        Modifier.weight(1f),
+                        Modifier.fillMaxWidth(),
                     )
                 }
             }

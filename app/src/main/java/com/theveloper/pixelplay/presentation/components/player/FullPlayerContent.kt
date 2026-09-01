@@ -75,6 +75,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -97,12 +98,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -205,6 +205,56 @@ private suspend fun validateLyricsImport(
             reportedSizeBytes = fileSize
         )
     } ?: LyricsImportValidationResult.Invalid(LyricsImportFailureReason.EMPTY_CONTENT)
+}
+
+@SuppressLint("SetJavaScriptEnabled")
+@Composable
+private fun EmbeddedYouTubeVideoArtwork(
+    videoId: String,
+    artworkUrl: String?,
+    startSeconds: Long,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var browser by remember(videoId) { mutableStateOf<WebView?>(null) }
+    Box(modifier.clip(RoundedCornerShape(22.dp)).background(Color.Black).clipToBounds()) {
+        AsyncImage(
+            model = artworkUrl,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize().blur(32.dp).graphicsLayer { alpha = 0.58f },
+        )
+        AndroidView(
+            modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f).align(Alignment.Center),
+            factory = { context ->
+                WebView(context).apply {
+                    browser = this
+                    setBackgroundColor(android.graphics.Color.BLACK)
+                    settings.javaScriptEnabled = true
+                    settings.domStorageEnabled = true
+                    settings.mediaPlaybackRequiresUserGesture = false
+                    settings.userAgentString = android.webkit.WebSettings.getDefaultUserAgent(context)
+                    webChromeClient = WebChromeClient()
+                    webViewClient = WebViewClient()
+                    val safeId = videoId.filter { it.isLetterOrDigit() || it == '-' || it == '_' }
+                    val html = """<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1" />
+                        <style>html,body{width:100%;height:100%;margin:0;background:#000;overflow:hidden}iframe{border:0;width:100%;height:100%}</style></head>
+                        <body><iframe src="https://www.youtube-nocookie.com/embed/$safeId?autoplay=1&playsinline=1&controls=1&rel=0&start=$startSeconds&enablejsapi=1"
+                        allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></body></html>"""
+                    loadDataWithBaseURL("https://vybetune.vercel.app", html, "text/html", "UTF-8", null)
+                }
+            },
+        )
+        FilledIconButton(onClick = onClose, modifier = Modifier.align(Alignment.TopEnd).padding(10.dp)) {
+            Icon(painterResource(R.drawable.rounded_close_24), contentDescription = "Close video")
+        }
+    }
+    DisposableEffect(videoId) {
+        onDispose {
+            browser?.apply { stopLoading(); loadUrl("about:blank"); destroy() }
+            browser = null
+        }
+    }
 }
 
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -537,7 +587,15 @@ fun FullPlayerContent(
     var showInlineLyricsView by rememberSaveable { mutableStateOf(false) }
 
     val albumCoverSection: @Composable (Modifier) -> Unit = { modifier ->
-        FullPlayerAlbumCoverSection(
+        if (showVideoPlayer && song.isMusicVideo) {
+            EmbeddedYouTubeVideoArtwork(
+                videoId = song.id.removePrefix("yt_"),
+                artworkUrl = song.albumArtUriString,
+                startSeconds = (currentPositionProvider() / 1000L).coerceAtLeast(0L),
+                onClose = { showVideoPlayer = false },
+                modifier = modifier,
+            )
+        } else FullPlayerAlbumCoverSection(
             song = song,
             currentPlaybackQueue = currentPlaybackQueue,
             currentMediaItemIndex = currentQueueIndex ?: currentMediaItemIndex,
@@ -1032,7 +1090,10 @@ fun FullPlayerContent(
 
         if (song.isMusicVideo) {
             FilledIconButton(
-                onClick = { showVideoPlayer = true },
+                onClick = {
+                    if (isPlayingProvider()) onPlayPause()
+                    showVideoPlayer = true
+                },
                 modifier = Modifier.align(Alignment.TopEnd).padding(top = 108.dp, end = 20.dp),
             ) {
                 Icon(painterResource(R.drawable.rounded_play_circle_24), contentDescription = "Play video")
@@ -1040,36 +1101,6 @@ fun FullPlayerContent(
         }
     }
 
-    if (showVideoPlayer) {
-        val videoId = song.id.removePrefix("yt_")
-        val startSeconds = (currentPositionProvider() / 1000L).coerceAtLeast(0L)
-        Dialog(
-            onDismissRequest = { showVideoPlayer = false },
-            properties = DialogProperties(usePlatformDefaultWidth = false),
-        ) {
-            Surface(modifier = Modifier.fillMaxSize(), color = Color.Black) {
-                AndroidView(
-                    modifier = Modifier.fillMaxSize(),
-                    factory = { webContext ->
-                        WebView(webContext).apply {
-                            settings.javaScriptEnabled = true
-                            settings.domStorageEnabled = true
-                            webChromeClient = WebChromeClient()
-                            webViewClient = WebViewClient()
-                            loadUrl("https://www.youtube.com/embed/$videoId?autoplay=1&playsinline=1&start=$startSeconds")
-                        }
-                    },
-                    update = {},
-                )
-                FilledIconButton(
-                    onClick = { showVideoPlayer = false },
-                    modifier = Modifier.padding(20.dp),
-                ) {
-                    Icon(painterResource(R.drawable.rounded_close_24), contentDescription = "Close video")
-                }
-            }
-        }
-    }
     AnimatedVisibility(
         visible = showLyricsSheet,
         enter = slideInVertically(

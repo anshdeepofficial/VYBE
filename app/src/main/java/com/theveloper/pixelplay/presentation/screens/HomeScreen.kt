@@ -169,6 +169,7 @@ fun HomeScreen(
     val dailyMixSongs by playerViewModel.dailyMixSongs.collectAsStateWithLifecycle()
     val curatedYourMixSongs by playerViewModel.yourMixSongs.collectAsStateWithLifecycle()
     val quickPickSongs by playerViewModel.quickPickSongs.collectAsStateWithLifecycle()
+    val trendingSongs by playerViewModel.trendingSongs.collectAsStateWithLifecycle()
     val latestReleaseSongs by playerViewModel.latestReleaseSongs.collectAsStateWithLifecycle()
     val homeMixPreviewSongs by playerViewModel.homeMixPreviewSongs.collectAsStateWithLifecycle()
     val playbackHistory by playerViewModel.playbackHistory.collectAsStateWithLifecycle()
@@ -316,6 +317,11 @@ fun HomeScreen(
     val recentlyPlayedQueue = remember(recentlyPlayedSongs) {
         recentlyPlayedSongs.map { it.song }.toImmutableList()
     }
+    // A fresh session ordering prevents Home from presenting the exact same first cards
+    // on every launch while keeping the underlying personalised recommendation pool intact.
+    val sessionQuickPicks = remember(quickPickSongs) {
+        quickPickSongs.shuffled().take(10)
+    }
     val historySeed = recentlyPlayedQueue.firstOrNull()
     val relatedSongs = remember(historySeed, quickPickSongs, dailyMixSongs) {
         val artist = historySeed?.artist.orEmpty()
@@ -456,7 +462,7 @@ fun HomeScreen(
                 ) {
                     YouTubeMusicHomeRow(
                         title = "Quick Picks",
-                        songs = quickPickSongs.take(10),
+                        songs = sessionQuickPicks,
                         queueName = "Quick Picks",
                         playerViewModel = playerViewModel,
                     )
@@ -547,9 +553,9 @@ fun HomeScreen(
                         YouTubeMusicHomeRow("New Releases & Release Radar", latestReleaseSongs.take(10), "Release Radar", playerViewModel)
                     }
                 }
-                if (quickPickSongs.isNotEmpty()) {
+                if (trendingSongs.isNotEmpty()) {
                     item(key = "top_charts", contentType = "youtube_music_row") {
-                        YouTubeMusicHomeRow("Top Charts & Trending", quickPickSongs.take(10), "Top Charts", playerViewModel)
+                        YouTubeMusicHomeRow("Top Charts & Trending", trendingSongs.take(10), "Top Charts", playerViewModel)
                     }
                 }
                 if (historySeed != null && relatedSongs.isNotEmpty()) {

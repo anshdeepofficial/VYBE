@@ -153,7 +153,9 @@ class SpotifyLoginActivity : ComponentActivity() {
             displayZoomControls = false
             useWideViewPort = true
             loadWithOverviewMode = false
-            userAgentString = SPOTIFY_LOGIN_USER_AGENT
+            // Keep the device WebView's real UA. A fabricated Samsung/Chrome UA makes
+            // Spotify return pages that the installed WebView cannot render (black screen).
+            userAgentString = WebSettings.getDefaultUserAgent(this@SpotifyLoginActivity)
         }
         CookieManager.getInstance().apply {
             setAcceptCookie(true)
@@ -188,6 +190,11 @@ class SpotifyLoginActivity : ComponentActivity() {
                 super.onPageFinished(view, url)
                 pageCommitted = true
                 loadProgress = 100
+                view.evaluateJavascript("document.body && document.body.innerText.length") { length ->
+                    if (length == "0" && loginStep == SpotifyLoginStep.SIGNING_IN) {
+                        view.reload()
+                    }
+                }
             }
 
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
@@ -238,8 +245,15 @@ class SpotifyLoginActivity : ComponentActivity() {
         lifecycleScope.launch {
             repository.completeAuthorization(uri)
                 .onSuccess {
-                    Toast.makeText(this@SpotifyLoginActivity, "Spotify connected and playlists synchronized", Toast.LENGTH_SHORT).show()
-                    finish()
+                    runCatching { repository.getCurrentUserPlaylists() }
+                        .onSuccess {
+                            Toast.makeText(this@SpotifyLoginActivity, "Spotify connected and playlists synchronized", Toast.LENGTH_SHORT).show()
+                            finish()
+                        }
+                        .onFailure { error ->
+                            completingAuthorization = false
+                            showError(error.message ?: "Spotify connected, but playlists could not be synchronized.")
+                        }
                 }
                 .onFailure {
                     completingAuthorization = false
@@ -271,8 +285,6 @@ class SpotifyLoginActivity : ComponentActivity() {
 
     companion object {
         private const val LOGIN_LOAD_TIMEOUT_MS = 25_000L
-        private const val SPOTIFY_LOGIN_USER_AGENT =
-            "Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36"
     }
 }
 
@@ -313,7 +325,7 @@ private fun SpotifyLoginScreen(
                         modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
                     )
                 }
-                if (!pageCommitted) {
+                if (!pageCommitted && progress == 0) {
                     Surface(
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.surface,

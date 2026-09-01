@@ -1,3 +1,20 @@
+## [0.10.5] - 2026-09-01
+### Added
+- Exact minute-level overnight update notification hours in onboarding, About, and a one-time upgrade prompt.
+- Embedded in-player YouTube video mode with current-position handoff, artwork backdrop, controls, and fullscreen support.
+- Pull-to-refresh discovery plus searchable Spotify, data-saver, haptics, and update-schedule settings.
+
+### Changed
+- Quick Picks and recommendations refresh their presentation each session while YouTube Music chart order remains authoritative.
+- Ambient recognition now captures a longer normalized sample and attempts multiple fingerprint windows for quieter recordings.
+- The VYBE status-bar notification mark uses a tightly fitted source asset for better legibility in Android's fixed icon slot.
+
+### Fixed
+- Spotify sign-in uses the device WebView identity, detects blank pages, and verifies playlist synchronization before reporting success.
+- Exact shared YouTube IDs now recover real title, artist, and high-resolution artwork even when Music metadata is unavailable.
+- Night update alerts no longer offer an unrestricted Anytime mode; manual checks still bypass the schedule.
+- Settings search results now expose and open more relevant destinations reliably.
+
 ## [0.10.4] - 2026-08-31
 ### Added
 - First-run update schedule choice with a recommended 8:00 PM–6:00 AM window or anytime checks; manual checks remain immediate.

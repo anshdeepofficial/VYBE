@@ -1588,6 +1588,7 @@ class PlayerViewModel @Inject constructor(
     val yourMixSongs: StateFlow<ImmutableList<Song>> = dailyMixStateHolder.yourMixSongs
     val latestReleaseSongs: StateFlow<ImmutableList<Song>> = dailyMixStateHolder.latestReleaseSongs
     val quickPickSongs: StateFlow<ImmutableList<Song>> = dailyMixStateHolder.quickPickSongs
+    val trendingSongs: StateFlow<ImmutableList<Song>> = dailyMixStateHolder.trendingSongs
     val isHomeRefreshing: StateFlow<Boolean> = dailyMixStateHolder.isRefreshing
     val topMoods: StateFlow<ImmutableList<String>> = dailyMixStateHolder.topMoods
     val moodColors: StateFlow<Map<String, Long>> = userPreferencesRepository.moodColorsFlow

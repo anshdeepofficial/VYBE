@@ -314,7 +314,7 @@ class YouTubeMusicEngine @Inject constructor(
     suspend fun getTrackDetails(videoId: String, region: String = "IN"): YouTubeTrack? = withContext(Dispatchers.IO) {
         val cleanId = videoId.removePrefix("yt_").trim()
         if (cleanId.isBlank()) return@withContext null
-        runCatching {
+        val musicDetails = runCatching {
             executeWebRemixRequest("next", region) { config ->
                 JSONObject().apply {
                     put("context", createWebRemixContext(region, config))
@@ -323,6 +323,31 @@ class YouTubeMusicEngine @Inject constructor(
                 }
             }?.let(::parseSearchResponse).orEmpty()
                 .firstOrNull { it.videoId == cleanId }
+        }.getOrNull()
+        if (musicDetails != null) return@withContext musicDetails
+
+        // `next` occasionally omits the selected item. Resolve the immutable YouTube id
+        // through YouTube's public metadata endpoint instead of exposing placeholders.
+        runCatching {
+            val request = Request.Builder()
+                .url("https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=$cleanId&format=json")
+                .header("User-Agent", WEB_REMIX_USER_AGENT)
+                .build()
+            okHttpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@use null
+                val json = JSONObject(response.body.string())
+                val rawTitle = json.optString("title").trim()
+                val author = json.optString("author_name").removeSuffix(" - Topic").trim()
+                if (rawTitle.isBlank() || author.isBlank()) null else YouTubeTrack(
+                    videoId = cleanId,
+                    title = rawTitle,
+                    artist = author,
+                    thumbnailUrl = json.optString("thumbnail_url").takeIf(String::isNotBlank)
+                        ?: "https://i.ytimg.com/vi/$cleanId/maxresdefault.jpg",
+                    resultType = YouTubeMusicEntityType.MUSIC_VIDEO,
+                    isOfficial = true,
+                )
+            }
         }.getOrNull()
     }
 

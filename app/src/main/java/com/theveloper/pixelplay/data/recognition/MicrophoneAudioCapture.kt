@@ -27,7 +27,7 @@ class MicrophoneAudioCapture(private val context: Context) {
         val minimum = AudioRecord.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
         var recorder: AudioRecord? = null
         try {
-            for (source in listOf(MediaRecorder.AudioSource.UNPROCESSED, MediaRecorder.AudioSource.MIC)) {
+            for (source in listOf(MediaRecorder.AudioSource.VOICE_RECOGNITION, MediaRecorder.AudioSource.MIC, MediaRecorder.AudioSource.UNPROCESSED)) {
                 val candidate = runCatching {
                     AudioRecord(
                         source,
@@ -62,8 +62,13 @@ class MicrophoneAudioCapture(private val context: Context) {
                     else -> error("Audio capture failed ($read)")
                 }
             }
-            check(output.any { it.toInt() != 0 }) { "No audible audio was captured" }
-            CapturedPcm(output, sampleRate)
+            val peak = output.maxOfOrNull { kotlin.math.abs(it.toInt()) } ?: 0
+            check(peak > 32) { "No audible audio was captured" }
+            val gain = (24_000f / peak.coerceAtLeast(1)).coerceIn(1f, 12f)
+            val normalized = if (gain <= 1.01f) output else ShortArray(output.size) { index ->
+                (output[index] * gain).toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
+            }
+            CapturedPcm(normalized, sampleRate)
         } finally {
             recorder?.let { active ->
                 runCatching { if (active.recordingState == AudioRecord.RECORDSTATE_RECORDING) active.stop() }

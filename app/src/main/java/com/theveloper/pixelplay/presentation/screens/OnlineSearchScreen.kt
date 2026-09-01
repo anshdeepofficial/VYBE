@@ -156,6 +156,14 @@ fun OnlineSearchScreen(
         }.distinctBy { it.lowercase() }
     }
 
+    androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+        isRefreshing = isLoading && !isSearching,
+        onRefresh = {
+            selectedGenre = null
+            viewModel.fetchTrending()
+        },
+        modifier = Modifier.fillMaxSize(),
+    ) {
     Column(modifier = Modifier.fillMaxSize()) {
         Spacer(modifier = Modifier.height(paddingValuesParent.calculateTopPadding() + 16.dp))
 
@@ -598,6 +606,7 @@ fun OnlineSearchScreen(
                 }
             }
         }
+    }
     }
 
     if (showAmbientRecognition) {

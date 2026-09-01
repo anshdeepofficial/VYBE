@@ -63,7 +63,7 @@ fun AmbientRecognitionSheet(
             Text("Recognize a song", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text(
                 when (state.phase) {
-                    AmbientRecognitionPhase.LISTENING -> "Listening… ${state.elapsedSeconds}s / 10s"
+                    AmbientRecognitionPhase.LISTENING -> "Listening… ${state.elapsedSeconds}s / 14s"
                     AmbientRecognitionPhase.PROCESSING -> "Finding the song…"
                     else -> "Play a clear part of the song near your phone."
                 },

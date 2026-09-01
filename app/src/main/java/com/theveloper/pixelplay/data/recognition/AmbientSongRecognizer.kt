@@ -18,12 +18,24 @@ class AmbientSongRecognizer(
 
     suspend fun recognizeSong(): RecognitionResult = sessionMutex.withLock {
         try {
-            withTimeout(32_000L) {
-                val captured = capture.capture(10)
+            withTimeout(48_000L) {
+                val captured = capture.capture(14)
                 val pcm16Khz = Pcm16Resampler.to16KhzMono(captured)
-                val fingerprint = NativeFingerprintEngine.fingerprint(pcm16Khz)
-                val metadata = provider.recognize(fingerprint, pcm16Khz.size / 16_000)
-                    ?: return@withTimeout RecognitionResult.NoMatch
+                val windows = buildList {
+                    add(pcm16Khz)
+                    if (pcm16Khz.size >= 12 * 16_000) {
+                        add(pcm16Khz.copyOfRange(0, 10 * 16_000))
+                        add(pcm16Khz.copyOfRange(pcm16Khz.size - 10 * 16_000, pcm16Khz.size))
+                    }
+                }
+                var metadata: RecognitionMetadata? = null
+                for (window in windows) {
+                    val fingerprint = NativeFingerprintEngine.fingerprint(window)
+                    metadata = provider.recognize(fingerprint, window.size / 16_000)
+                    if (metadata != null) break
+                    kotlinx.coroutines.delay(350)
+                }
+                metadata ?: return@withTimeout RecognitionResult.NoMatch
                 RecognitionResult.Match(metadata, resolver.resolve(metadata))
             }
         } catch (cancelled: CancellationException) {

@@ -1,18 +1,18 @@
 {
   "schemaVersion": 1,
   "packageName": "com.vybe.musicplayer",
-  "versionName": "0.10.4",
-  "versionCode": 10400,
-  "tag": "v0.10.4",
-  "title": "VYBE 0.10.4",
-  "notes": "Modern-device ARM64 release with isolated ambient song recognition, scheduled update checks, structured online search, and in-app video playback.",
+  "versionName": "0.10.5",
+  "versionCode": 10500,
+  "tag": "v0.10.5",
+  "title": "VYBE 0.10.5",
+  "notes": "Modern ARM64 release with improved Spotify sync, embedded video, exact shared metadata, refreshed discovery, configurable overnight update hours, stronger ambient recognition, and clearer notification branding.",
   "assets": [
     {
       "abi": "arm64-v8a",
-      "name": "VYBE-v0.10.4-arm64-v8a-release.apk",
-      "url": "https://github.com/anshdeepofficial/VYBE/releases/download/v0.10.4/VYBE-v0.10.4-arm64-v8a-release.apk",
-      "size": 57570956,
-      "sha256": "eb86b7f49b6138c8fd49b08fe764589ba15e21bce6c31adf0d8d6c746356be67"
+      "name": "VYBE-v0.10.5-arm64-v8a-release.apk",
+      "url": "https://github.com/anshdeepofficial/VYBE/releases/download/v0.10.5/VYBE-v0.10.5-arm64-v8a-release.apk",
+      "size": 57606976,
+      "sha256": "0bfeec19559bd8a195b65b4201c2d31b3f52bef10afdcb6172a6b2b90ffd1e54"
     }
   ]
 }

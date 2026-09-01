@@ -32,6 +32,20 @@ private data class ChangelogRelease(
 
 private val VybeChangelog = listOf(
     ChangelogRelease(
+        version = "0.10.5",
+        date = "1 September 2026",
+        changes = listOf(
+            "Spotify: Improved in-app WebView rendering, blank-page recovery, and post-login playlist synchronization verification.",
+            "Video: Added artwork-area video playback with position handoff, controls, and fullscreen support.",
+            "Sharing: Exact YouTube IDs now recover the original title, artist, and high-resolution artwork.",
+            "Discovery: Quick Picks refresh per session while Trending keeps the authoritative YouTube Music chart order.",
+            "Updates: Added exact overnight time selection in onboarding, About, and a one-time upgrade prompt.",
+            "Recognition: Added longer normalized capture and multiple fingerprint windows for quieter ambient recordings.",
+            "Settings: Improved search coverage for Spotify, Data Saver, Haptics, and update hours.",
+            "Branding: Enlarged the visible VYBE notification silhouette without exceeding Android's status icon slot."
+        )
+    ),
+    ChangelogRelease(
         version = "0.10.3",
         date = "31 August 2026",
         changes = listOf(

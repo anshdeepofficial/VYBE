@@ -589,9 +589,10 @@ private fun buildSetupPages(
 @Composable
 private fun UpdateSchedulePage() {
     val context = LocalContext.current
-    var anytime by remember { mutableStateOf(UpdateCheckSchedule.isAnytime(context)) }
     var startHour by remember { mutableIntStateOf(UpdateCheckSchedule.startHour(context)) }
+    var startMinute by remember { mutableIntStateOf(UpdateCheckSchedule.startMinute(context)) }
     var endHour by remember { mutableIntStateOf(UpdateCheckSchedule.endHour(context)) }
+    var endMinute by remember { mutableIntStateOf(UpdateCheckSchedule.endMinute(context)) }
     Column(
         modifier = Modifier.fillMaxSize().padding(horizontal = 28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -607,38 +608,26 @@ private fun UpdateSchedulePage() {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(24.dp))
-        FilterChip(
-            selected = !anytime,
-            onClick = { anytime = false; UpdateCheckSchedule.save(context, false, startHour, endHour) },
-            label = { Text("8:00 PM – 6:00 AM (recommended)") },
-        )
+        Button(onClick = {
+            android.app.TimePickerDialog(context, { _, h, m ->
+                startHour = h; startMinute = m
+                UpdateCheckSchedule.save(context, startHour, startMinute, endHour, endMinute)
+            }, startHour, startMinute, false).apply { setTitle("Updates from") }.show()
+        }) { Text("From ${formatSetupTime(startHour, startMinute)}") }
         Spacer(Modifier.height(10.dp))
-          FilterChip(
-              selected = anytime,
-              onClick = { anytime = true; UpdateCheckSchedule.save(context, true) },
-              label = { Text("Check throughout the day") },
-          )
-          if (!anytime) {
-              Spacer(Modifier.height(18.dp))
-              Text("Quiet-window start: ${formatSetupHour(startHour)}")
-              Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                  OutlinedButton(onClick = { startHour = (startHour + 23) % 24; UpdateCheckSchedule.save(context, false, startHour, endHour) }) { Text("-1h") }
-                  OutlinedButton(onClick = { startHour = (startHour + 1) % 24; UpdateCheckSchedule.save(context, false, startHour, endHour) }) { Text("+1h") }
-              }
-              Spacer(Modifier.height(10.dp))
-              Text("Quiet-window end: ${formatSetupHour(endHour)}")
-              Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                  OutlinedButton(onClick = { endHour = (endHour + 23) % 24; UpdateCheckSchedule.save(context, false, startHour, endHour) }) { Text("-1h") }
-                  OutlinedButton(onClick = { endHour = (endHour + 1) % 24; UpdateCheckSchedule.save(context, false, startHour, endHour) }) { Text("+1h") }
-              }
-          }
+        OutlinedButton(onClick = {
+            android.app.TimePickerDialog(context, { _, h, m ->
+                endHour = h; endMinute = m
+                UpdateCheckSchedule.save(context, startHour, startMinute, endHour, endMinute)
+            }, endHour, endMinute, false).apply { setTitle("Updates until") }.show()
+        }) { Text("Until ${formatSetupTime(endHour, endMinute)}") }
       }
   }
 
-private fun formatSetupHour(hour: Int): String {
+private fun formatSetupTime(hour: Int, minute: Int): String {
     val normalized = hour.coerceIn(0, 23)
     val display = when (val h = normalized % 12) { 0 -> 12; else -> h }
-    return "$display:00 ${if (normalized < 12) "AM" else "PM"}"
+    return "$display:${minute.coerceIn(0, 59).toString().padStart(2, '0')} ${if (normalized < 12) "AM" else "PM"}"
 }
 
 private fun firstBlockedForwardPageIndex(

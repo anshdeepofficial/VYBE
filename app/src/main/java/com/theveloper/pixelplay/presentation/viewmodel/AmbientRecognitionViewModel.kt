@@ -50,7 +50,7 @@ class AmbientRecognitionViewModel @Inject constructor(
                 _state.value = AmbientRecognitionUiState(AmbientRecognitionPhase.LISTENING)
                 coroutineScope {
                     val timer = launch {
-                        repeat(10) { second ->
+                        repeat(14) { second ->
                             _state.value = _state.value.copy(elapsedSeconds = second + 1)
                             delay(1_000)
                         }

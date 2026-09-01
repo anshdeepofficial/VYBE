@@ -288,6 +288,7 @@ class MainActivity : ComponentActivity() {
             // Crash report dialog state
             var showCrashReportDialog by remember { mutableStateOf(false) }
             var crashLogData by remember { mutableStateOf<CrashLogData?>(null) }
+            var showUpdateHoursPrompt by remember { mutableStateOf(false) }
             
             // Permissions Logic
             val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -311,6 +312,9 @@ class MainActivity : ComponentActivity() {
                 if (showSetupScreen == false) {
                      LogUtils.i("MainActivity", "Setup complete/skipped and permissions valid. Starting sync.")
                      mainViewModel.startSync()
+                     if (UpdateCheckSchedule.shouldPromptForVersion(this@MainActivity, BuildConfig.VERSION_CODE)) {
+                         showUpdateHoursPrompt = true
+                     }
                 }
             }
 
@@ -370,7 +374,9 @@ class MainActivity : ComponentActivity() {
                             ) { shouldShowSetup ->
                                 if (shouldShowSetup) {
                                     SetupScreen(onSetupComplete = {
-                                        // Repository-backed setup completion updates the gate automatically.
+                                        // Fresh installs already choose their update window in onboarding.
+                                        UpdateCheckSchedule.markPrompted(this@MainActivity, BuildConfig.VERSION_CODE)
+                                        showUpdateHoursPrompt = false
                                     })
                                 } else {
                                     MainAppContent(playerViewModel, mainViewModel)
@@ -387,6 +393,34 @@ class MainActivity : ComponentActivity() {
                                     crashLogData = null
                                     showCrashReportDialog = false
                                 }
+                            )
+                        }
+                        if (showUpdateHoursPrompt && showSetupScreen == false) {
+                            androidx.compose.material3.AlertDialog(
+                                onDismissRequest = {},
+                                title = { Text("Choose update hours") },
+                                text = { Text("Automatic update alerts will appear only during your selected window. Manual checks always work immediately.") },
+                                confirmButton = {
+                                    androidx.compose.material3.TextButton(onClick = {
+                                        val startH = UpdateCheckSchedule.startHour(this@MainActivity)
+                                        val startM = UpdateCheckSchedule.startMinute(this@MainActivity)
+                                        android.app.TimePickerDialog(this@MainActivity, { _, h, m ->
+                                            val endH = UpdateCheckSchedule.endHour(this@MainActivity)
+                                            val endM = UpdateCheckSchedule.endMinute(this@MainActivity)
+                                            android.app.TimePickerDialog(this@MainActivity, { _, eh, em ->
+                                                UpdateCheckSchedule.save(this@MainActivity, h, m, eh, em)
+                                                UpdateCheckSchedule.markPrompted(this@MainActivity, BuildConfig.VERSION_CODE)
+                                                showUpdateHoursPrompt = false
+                                            }, endH, endM, false).apply { setTitle("Updates until") }.show()
+                                        }, startH, startM, false).apply { setTitle("Updates from") }.show()
+                                    }) { Text("Choose time") }
+                                },
+                                dismissButton = {
+                                    androidx.compose.material3.TextButton(onClick = {
+                                        UpdateCheckSchedule.markPrompted(this@MainActivity, BuildConfig.VERSION_CODE)
+                                        showUpdateHoursPrompt = false
+                                    }) { Text("Keep 8 PM – 6 AM") }
+                                },
                             )
                         }
                     }

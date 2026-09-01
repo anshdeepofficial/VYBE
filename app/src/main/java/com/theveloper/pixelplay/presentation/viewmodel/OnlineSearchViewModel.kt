@@ -196,9 +196,8 @@ class OnlineSearchViewModel @Inject constructor(
 
                 val fastTracks = withTimeoutOrNull(3_500L) { fastRequest.await() }.orEmpty()
                 if (fastTracks.isNotEmpty()) {
-                    baseTrendingTracks = fastTracks
-                    _trendingTracks.value = fastTracks
-                    _aiRecommendations.value = rankForInterests(fastTracks, interests).take(12)
+                    _aiRecommendations.value = rankForInterests(fastTracks, interests)
+                        .shuffled(kotlin.random.Random(System.currentTimeMillis())).take(12)
                     _searchError.value = null
                     _isLoading.value = false
                 }
@@ -207,20 +206,21 @@ class OnlineSearchViewModel @Inject constructor(
                     ?: Result.success(emptyList())
                 val releasesResult = withTimeoutOrNull(10_000L) { releasesRequest.await() }
                     ?: Result.success(emptyList())
-                val tracks = (rankForInterests(trendingResult.getOrDefault(emptyList()), interests) + fastTracks)
-                    .distinctBy { it.id }
+                val chartTracks = trendingResult.getOrDefault(emptyList()).distinctBy { it.id }
                 val releases = releasesResult.getOrDefault(emptyList())
-                if (tracks.isEmpty() && releases.isEmpty()) {
+                if (chartTracks.isEmpty() && releases.isEmpty()) {
                     throw trendingResult.exceptionOrNull()
                         ?: releasesResult.exceptionOrNull()
                         ?: IllegalStateException("YouTube Music discovery returned no tracks")
                 }
-                baseTrendingTracks = tracks
-                _trendingTracks.value = tracks.ifEmpty { releases }
+                baseTrendingTracks = chartTracks
+                _trendingTracks.value = chartTracks.ifEmpty { releases }
                 _latestReleaseTracks.value = releases
                 _discoveryTitle.value = "Trending Now"
-                if (tracks.isNotEmpty()) {
-                    _aiRecommendations.value = rankForInterests(tracks, interests).take(12)
+                val recommendationPool = (fastTracks + chartTracks + releases).distinctBy { it.id }
+                if (recommendationPool.isNotEmpty()) {
+                    _aiRecommendations.value = rankForInterests(recommendationPool, interests)
+                        .shuffled(kotlin.random.Random(System.currentTimeMillis())).take(12)
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled

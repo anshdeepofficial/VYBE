@@ -99,6 +99,20 @@ object SettingsSearchIndex {
             keywords = listOf("crossfade", "gapless", "shuffle", "silence", "playback", "volume", "shake")
         ),
         SettingSearchItem(
+            title = "Data Saver",
+            description = "Reduce streaming bandwidth and adapt buffering on slower connections",
+            categoryName = "Music Management",
+            route = Screen.SettingsCategory.createRoute(SettingsCategory.LIBRARY.id),
+            keywords = listOf("data saver", "slow internet", "bandwidth", "buffer", "mobile data")
+        ),
+        SettingSearchItem(
+            title = "Haptic Feedback",
+            description = "Enable vibration feedback for supported controls and gestures",
+            categoryName = "Behavior",
+            route = Screen.SettingsCategory.createRoute(SettingsCategory.BEHAVIOR.id),
+            keywords = listOf("haptic", "vibration", "vibrate", "feedback")
+        ),
+        SettingSearchItem(
             title = "App Behavior & Gestures",
             description = "Touch gestures, pause on headphone disconnect, launch screen",
             categoryName = "Behavior",
@@ -160,6 +174,13 @@ object SettingsSearchIndex {
             route = Screen.Accounts.route,
             keywords = listOf("account", "youtube", "youtube music", "login", "sync", "playlists", "likes", "history")
         ),
+        SettingSearchItem(
+            title = "Spotify Account & Playlists",
+            description = "Sign in securely and sync public, private, collaborative and Spotify-made playlists",
+            categoryName = "Accounts",
+            route = Screen.Accounts.route,
+            keywords = listOf("spotify", "login", "sign in", "private playlist", "sync")
+        ),
 
         // About
         SettingSearchItem(
@@ -168,6 +189,13 @@ object SettingsSearchIndex {
             categoryName = "About",
             route = Screen.About.route,
             keywords = listOf("about", "version", "maintainer", "anshdeep", "developer", "github", "license")
+        ),
+        SettingSearchItem(
+            title = "Update Notification Hours",
+            description = "Choose the overnight hours when automatic update alerts may appear",
+            categoryName = "About",
+            route = Screen.About.route,
+            keywords = listOf("updates", "night updates", "schedule", "notification time", "remind")
         ),
         SettingSearchItem(
             title = "Developer Options",
