@@ -195,7 +195,7 @@ fun OnlineSearchScreen(
                             onSearch = { if (query.isNotBlank()) viewModel.submitSearch(query) },
                             expanded = false,
                             onExpandedChange = {},
-                            placeholder = { Text("Search songs, movies, albums, artists") },
+                            placeholder = { Text("Search songs, videos, albums, artists") },
                             trailingIcon = {
                                 Row {
                                 IconButton(onClick = { showAmbientRecognition = true }) {
@@ -368,9 +368,71 @@ fun OnlineSearchScreen(
                 contentPadding = PaddingValues(bottom = bottomPadding),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                if (searchFilter == OnlineSearchFilter.ALL && searchResultsSongs.isNotEmpty()) {
+                    item(key = "top_result_header") {
+                        Text(
+                            text = "Top result",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                        )
+                    }
+                    item(key = "top_result_${searchResultsSongs.first().id}") {
+                        val topResult = searchResultsSongs.first()
+                        ElevatedCard(
+                            onClick = {
+                                viewModel.rememberSearch(query)
+                                playerViewModel.playOnlineSeed(topResult, "VYBE Radio")
+                            },
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                            shape = RoundedCornerShape(24.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            ) {
+                                AsyncImage(
+                                    model = topResult.albumArtUriString,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.size(76.dp).clip(RoundedCornerShape(16.dp)),
+                                )
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        text = topResult.title,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        text = topResult.artist,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                                FilledIconButton(onClick = {
+                                    viewModel.rememberSearch(query)
+                                    playerViewModel.playOnlineSeed(topResult, "VYBE Radio")
+                                }) {
+                                    Icon(Icons.Rounded.PlayArrow, contentDescription = "Play ${topResult.title}")
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // 1. Songs Section
                 if (searchFilter == OnlineSearchFilter.ALL || searchFilter == OnlineSearchFilter.SONGS) {
                     if (searchResultsSongs.isNotEmpty()) {
+                        val visibleSongs = if (searchFilter == OnlineSearchFilter.ALL) {
+                            searchResultsSongs.drop(1).take(7)
+                        } else {
+                            searchResultsSongs
+                        }
                         item(key = "songs_header") {
                             Text(
                                 text = "Songs",
@@ -380,10 +442,10 @@ fun OnlineSearchScreen(
                             )
                         }
                         items(
-                            count = if (searchFilter == OnlineSearchFilter.ALL) searchResultsSongs.take(8).size else searchResultsSongs.size,
-                            key = { "song_${searchResultsSongs[it].id}" }
+                            count = visibleSongs.size,
+                            key = { "song_${visibleSongs[it].id}" }
                         ) { index ->
-                            val song = searchResultsSongs[index]
+                            val song = visibleSongs[index]
                             Box(modifier = Modifier.padding(horizontal = 16.dp)) {
                                 EnhancedSongListItem(
                                     song = song.copy(artist = "${song.artist} • ${song.album}"),

@@ -251,6 +251,7 @@ class MusicService : MediaLibraryService() {
     private var temporaryForegroundStartedInOnCreate = false
     private var playbackNotificationProvider: LocalOnlyMediaNotificationProvider? = null
     private var dynamicIslandPromotedEnabled = true
+    @Volatile private var dataSaverEnabled = false
 
     // Observes the device's media stream volume and pauses playback when it
     // reaches 0, if the user has enabled the "pause on volume zero" preference.
@@ -536,6 +537,7 @@ class MusicService : MediaLibraryService() {
 
         serviceScope.launch {
             userPreferencesRepository.dataSaverEnabledFlow.collect { enabled ->
+                dataSaverEnabled = enabled
                 youTubeMusicEngine.setDataSaverEnabled(enabled)
             }
         }
@@ -1429,7 +1431,7 @@ class MusicService : MediaLibraryService() {
             // Pre-fetch RG for the next track so the cache is warm before playback starts
             val player = engine.masterPlayer
             val nextIndex = player.nextMediaItemIndex
-            if (nextIndex != androidx.media3.common.C.INDEX_UNSET) {
+            if (!dataSaverEnabled && nextIndex != androidx.media3.common.C.INDEX_UNSET) {
                 runCatching { replayGainProcessor.prefetch(player.getMediaItemAt(nextIndex)) }
             }
         }
@@ -1510,7 +1512,7 @@ class MusicService : MediaLibraryService() {
             // Pre-fetch RG for the track after this one so it's cached when needed
             val player = engine.masterPlayer
             val nextIndex = player.nextMediaItemIndex
-            if (nextIndex != androidx.media3.common.C.INDEX_UNSET) {
+            if (!dataSaverEnabled && nextIndex != androidx.media3.common.C.INDEX_UNSET) {
                 runCatching { replayGainProcessor.prefetch(player.getMediaItemAt(nextIndex)) }
             }
             // Optimization: Don't force-update widgets on every rapid skip.

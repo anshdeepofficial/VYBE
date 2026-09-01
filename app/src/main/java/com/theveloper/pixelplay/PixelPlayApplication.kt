@@ -74,6 +74,7 @@ class PixelPlayApplication : Application(), ImageLoaderFactory, Configuration.Pr
     @Inject
     lateinit var advancedPerformanceDiagnosticsController: dagger.Lazy<AdvancedPerformanceDiagnosticsController>
 
+
     private val startupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     // AÑADE EL COMPANION OBJECT

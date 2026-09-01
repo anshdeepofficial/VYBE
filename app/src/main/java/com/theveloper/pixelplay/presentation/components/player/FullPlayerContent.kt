@@ -4,9 +4,6 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.Configuration
 import android.net.Uri
-import android.webkit.WebChromeClient
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import android.widget.Toast
 import com.theveloper.pixelplay.data.model.Lyrics
 import com.theveloper.pixelplay.presentation.components.PlaylistBottomSheet
@@ -56,6 +53,9 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Fullscreen
+import androidx.compose.material.icons.rounded.FullscreenExit
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ColorScheme
@@ -103,6 +103,8 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -129,7 +131,13 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.ui.res.stringResource
 import androidx.media3.common.Player
+import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
+import androidx.compose.material.icons.rounded.Fullscreen
+import androidx.compose.material.icons.rounded.FullscreenExit
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.diagnostics.AdvancedPerformanceDiagnostics
 import com.theveloper.pixelplay.data.model.Artist
@@ -207,16 +215,82 @@ private suspend fun validateLyricsImport(
     } ?: LyricsImportValidationResult.Invalid(LyricsImportFailureReason.EMPTY_CONTENT)
 }
 
-@SuppressLint("SetJavaScriptEnabled")
 @Composable
-private fun EmbeddedYouTubeVideoArtwork(
+private fun NativeInlineVideoArtwork(
     videoId: String,
     artworkUrl: String?,
-    startSeconds: Long,
-    onClose: () -> Unit,
+    currentAudioPositionProvider: () -> Long,
+    playerViewModel: PlayerViewModel,
+    onVideoReady: () -> Unit,
+    onClose: (positionMs: Long, wasPlaying: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var browser by remember(videoId) { mutableStateOf<WebView?>(null) }
+    val context = LocalContext.current
+    var streamUrl by remember(videoId) { mutableStateOf<String?>(null) }
+    var errorMessage by remember(videoId) { mutableStateOf<String?>(null) }
+    var isReady by remember(videoId) { mutableStateOf(false) }
+    var isFullscreen by rememberSaveable(videoId) { mutableStateOf(false) }
+    val latestPositionProvider by rememberUpdatedState(currentAudioPositionProvider)
+    val latestOnReady by rememberUpdatedState(onVideoReady)
+    val latestOnClose by rememberUpdatedState(onClose)
+    val exoPlayer = remember(videoId) { ExoPlayer.Builder(context).build() }
+
+    LaunchedEffect(videoId) {
+        errorMessage = null
+        streamUrl = playerViewModel.resolveInlineVideoStream(videoId)
+        if (streamUrl == null) errorMessage = "Video is not available for this track."
+    }
+
+    DisposableEffect(exoPlayer, streamUrl) {
+        val listener = object : Player.Listener {
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_READY && !isReady) {
+                    val handoffPosition = latestPositionProvider().coerceAtLeast(0L)
+                    exoPlayer.seekTo(handoffPosition)
+                    isReady = true
+                    latestOnReady()
+                    exoPlayer.playWhenReady = true
+                }
+            }
+
+            override fun onPlayerError(error: PlaybackException) {
+                errorMessage = "Video could not be played. Audio playback is still available."
+            }
+        }
+        exoPlayer.addListener(listener)
+        streamUrl?.let { url ->
+            exoPlayer.setMediaItem(MediaItem.fromUri(url))
+            exoPlayer.prepare()
+        }
+        onDispose { exoPlayer.removeListener(listener) }
+    }
+
+    DisposableEffect(exoPlayer) {
+        onDispose { exoPlayer.release() }
+    }
+
+    val closeVideo = {
+        val position = if (isReady) exoPlayer.currentPosition else latestPositionProvider()
+        val wasPlaying = isReady && exoPlayer.playWhenReady
+        exoPlayer.pause()
+        latestOnClose(position, wasPlaying)
+    }
+
+    val videoSurface: @Composable (Modifier) -> Unit = { surfaceModifier ->
+        AndroidView(
+            modifier = surfaceModifier.background(Color.Black),
+            factory = { viewContext ->
+                PlayerView(viewContext).apply {
+                    useController = true
+                    player = exoPlayer
+                    setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
+                    resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+                }
+            },
+            update = { it.player = exoPlayer },
+        )
+    }
+
     Box(modifier.clip(RoundedCornerShape(22.dp)).background(Color.Black).clipToBounds()) {
         AsyncImage(
             model = artworkUrl,
@@ -224,35 +298,37 @@ private fun EmbeddedYouTubeVideoArtwork(
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize().blur(32.dp).graphicsLayer { alpha = 0.58f },
         )
-        AndroidView(
-            modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f).align(Alignment.Center),
-            factory = { context ->
-                WebView(context).apply {
-                    browser = this
-                    setBackgroundColor(android.graphics.Color.BLACK)
-                    settings.javaScriptEnabled = true
-                    settings.domStorageEnabled = true
-                    settings.mediaPlaybackRequiresUserGesture = false
-                    settings.userAgentString = android.webkit.WebSettings.getDefaultUserAgent(context)
-                    webChromeClient = WebChromeClient()
-                    webViewClient = WebViewClient()
-                    val safeId = videoId.filter { it.isLetterOrDigit() || it == '-' || it == '_' }
-                    val html = """<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1" />
-                        <style>html,body{width:100%;height:100%;margin:0;background:#000;overflow:hidden}iframe{border:0;width:100%;height:100%}</style></head>
-                        <body><iframe src="https://www.youtube-nocookie.com/embed/$safeId?autoplay=1&playsinline=1&controls=1&rel=0&start=$startSeconds&enablejsapi=1"
-                        allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></body></html>"""
-                    loadDataWithBaseURL("https://vybetune.vercel.app", html, "text/html", "UTF-8", null)
-                }
-            },
-        )
-        FilledIconButton(onClick = onClose, modifier = Modifier.align(Alignment.TopEnd).padding(10.dp)) {
+        if (streamUrl != null && !isFullscreen) {
+            videoSurface(Modifier.fillMaxWidth().aspectRatio(16f / 9f).align(Alignment.Center))
+        } else if (errorMessage == null) {
+            CircularProgressIndicator(Modifier.align(Alignment.Center))
+        }
+        errorMessage?.let {
+            Text(it, color = Color.White, modifier = Modifier.align(Alignment.Center).padding(24.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+        }
+        FilledIconButton(onClick = closeVideo, modifier = Modifier.align(Alignment.TopEnd).padding(10.dp)) {
             Icon(painterResource(R.drawable.rounded_close_24), contentDescription = "Close video")
         }
+        if (isReady) {
+            FilledIconButton(
+                onClick = { isFullscreen = true },
+                modifier = Modifier.align(Alignment.BottomEnd).padding(10.dp),
+            ) { Icon(Icons.Rounded.Fullscreen, contentDescription = "Fullscreen video") }
+        }
     }
-    DisposableEffect(videoId) {
-        onDispose {
-            browser?.apply { stopLoading(); loadUrl("about:blank"); destroy() }
-            browser = null
+
+    if (isFullscreen) {
+        Dialog(
+            onDismissRequest = { isFullscreen = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+        ) {
+            Box(Modifier.fillMaxSize().background(Color.Black)) {
+                videoSurface(Modifier.fillMaxSize())
+                FilledIconButton(
+                    onClick = { isFullscreen = false },
+                    modifier = Modifier.align(Alignment.TopEnd).padding(20.dp),
+                ) { Icon(Icons.Rounded.FullscreenExit, contentDescription = "Exit fullscreen") }
+            }
         }
     }
 }
@@ -318,6 +394,14 @@ fun FullPlayerContent(
     var showPlaybackSpeedBottomSheet by remember { mutableStateOf(false) }
     var showTimerBottomSheet by remember { mutableStateOf(false) }
     var showVideoPlayer by remember { mutableStateOf(false) }
+    var videoOwnsPlayback by remember { mutableStateOf(false) }
+    var resumeAudioAfterVideo by remember { mutableStateOf(false) }
+
+    LaunchedEffect(song.id) {
+        showVideoPlayer = false
+        videoOwnsPlayback = false
+        resumeAudioAfterVideo = false
+    }
     
     val isTimerActive by playerViewModel.activeTimerValueDisplay.collectAsStateWithLifecycle()
     
@@ -587,12 +671,28 @@ fun FullPlayerContent(
     var showInlineLyricsView by rememberSaveable { mutableStateOf(false) }
 
     val albumCoverSection: @Composable (Modifier) -> Unit = { modifier ->
-        if (showVideoPlayer && song.isMusicVideo) {
-            EmbeddedYouTubeVideoArtwork(
+        if (showVideoPlayer) {
+            NativeInlineVideoArtwork(
                 videoId = song.id.removePrefix("yt_"),
                 artworkUrl = song.albumArtUriString,
-                startSeconds = (currentPositionProvider() / 1000L).coerceAtLeast(0L),
-                onClose = { showVideoPlayer = false },
+                currentAudioPositionProvider = currentPositionProvider,
+                playerViewModel = playerViewModel,
+                onVideoReady = {
+                    if (!videoOwnsPlayback) {
+                        resumeAudioAfterVideo = isPlayingProvider() || playWhenReadyProvider()
+                        if (isPlayingProvider() || playWhenReadyProvider()) onPlayPause()
+                        videoOwnsPlayback = true
+                    }
+                },
+                onClose = { positionMs, _ ->
+                    if (videoOwnsPlayback) {
+                        onSeek(positionMs)
+                        if (resumeAudioAfterVideo && !isPlayingProvider()) onPlayPause()
+                    }
+                    videoOwnsPlayback = false
+                    resumeAudioAfterVideo = false
+                    showVideoPlayer = false
+                },
                 modifier = modifier,
             )
         } else FullPlayerAlbumCoverSection(
@@ -1088,10 +1188,12 @@ fun FullPlayerContent(
         }
     }
 
-        if (song.isMusicVideo) {
+        val hasYouTubeVideo = song.isMusicVideo ||
+            song.id.startsWith("yt_") ||
+            song.contentUriString.startsWith("yt://")
+        if (hasYouTubeVideo) {
             FilledIconButton(
                 onClick = {
-                    if (isPlayingProvider()) onPlayPause()
                     showVideoPlayer = true
                 },
                 modifier = Modifier.align(Alignment.TopEnd).padding(top = 108.dp, end = 20.dp),

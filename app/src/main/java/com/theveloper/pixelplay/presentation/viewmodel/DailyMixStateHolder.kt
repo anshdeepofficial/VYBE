@@ -9,6 +9,9 @@ import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.data.repository.MusicRepository
 import com.theveloper.pixelplay.data.repository.OnlineMusicRepository
 import com.theveloper.pixelplay.data.stats.PlaybackStatsRepository
+import com.theveloper.pixelplay.data.recommendation.RecommendationProfile
+import com.theveloper.pixelplay.data.recommendation.RecommendationSurface
+import com.theveloper.pixelplay.data.recommendation.UnifiedRecommendationEngine
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -38,6 +41,7 @@ class DailyMixStateHolder @Inject constructor(
     private val audiusFavoriteDao: AudiusFavoriteDao,
     private val onlineSongCacheDao: OnlineSongCacheDao,
     private val playbackStatsRepository: PlaybackStatsRepository,
+    private val recommendationEngine: UnifiedRecommendationEngine,
 ) {
     private var scope: CoroutineScope? = null
     private var updateJob: Job? = null
@@ -83,6 +87,12 @@ class DailyMixStateHolder @Inject constructor(
         updateJob?.cancel()
         updateJob = scope?.launch(Dispatchers.IO) {
             _isRefreshing.value = showRefreshIndicator
+            if (userPreferencesRepository.dataSaverEnabledFlow.first()) {
+                // Keep the cache-first Home snapshot already loaded by loadPersistedDailyMix().
+                // Discovery, charts and release radar are nonessential while saving data.
+                _isRefreshing.value = false
+                return@launch
+            }
             val favoriteIds = runCatching { favoriteSongIdsFlow.first() }.getOrDefault(emptySet())
             val region = runCatching { userPreferencesRepository.userRegionFlow.first() }
                 .getOrDefault("IN")
@@ -172,17 +182,27 @@ class DailyMixStateHolder @Inject constructor(
                 }
                 _topMoods.value = sortedMoods.toImmutableList()
 
-                val mix = dailyMixManager.generateDailyMix(candidateSongs, favoriteIds)
+                val recommendationProfile = RecommendationProfile.fromTaste(
+                    songs = tasteCandidates,
+                    preferredArtists = preferredArtists,
+                    preferredGenres = preferredGenres,
+                    blockedArtists = blockedArtists,
+                )
+                val rankedCandidates = recommendationEngine.rank(
+                    candidates = candidateSongs,
+                    profile = recommendationProfile,
+                    surface = RecommendationSurface.HOME,
+                )
+                val mix = dailyMixManager.generateDailyMix(rankedCandidates, favoriteIds)
                 _dailyMixSongs.value = mix.toImmutableList()
                 userPreferencesRepository.saveDailyMixSongIds(mix.map { it.id })
 
-                val yourMix = dailyMixManager.generateYourMix(candidateSongs, favoriteIds)
+                val yourMix = dailyMixManager.generateYourMix(rankedCandidates, favoriteIds)
                 _yourMixSongs.value = yourMix.toImmutableList()
                 userPreferencesRepository.saveYourMixSongIds(yourMix.map { it.id })
 
                 _quickPickSongs.value = dailyMixManager
-                    .getTopCandidatesForAi(candidateSongs, favoriteIds, limit = 45)
-                    .shuffled(kotlin.random.Random(System.currentTimeMillis()))
+                    .getTopCandidatesForAi(rankedCandidates, favoriteIds, limit = 45)
                     .take(10)
                     .toImmutableList()
             } else {
@@ -231,6 +251,7 @@ class DailyMixStateHolder @Inject constructor(
 
     fun forceUpdate(favoriteSongIdsFlow: kotlinx.coroutines.flow.Flow<Set<String>>) {
         scope?.launch {
+            if (userPreferencesRepository.dataSaverEnabledFlow.first()) return@launch
             updateDailyMix(favoriteSongIdsFlow, showRefreshIndicator = true)
             userPreferencesRepository.saveLastDailyMixUpdateTimestamp(System.currentTimeMillis())
         }
@@ -238,6 +259,7 @@ class DailyMixStateHolder @Inject constructor(
 
     fun checkAndUpdateIfNeeded(favoriteSongIdsFlow: kotlinx.coroutines.flow.Flow<Set<String>>) {
         scope?.launch {
+            if (userPreferencesRepository.dataSaverEnabledFlow.first()) return@launch
             val lastUpdate = userPreferencesRepository.lastDailyMixUpdateFlow.first()
             val today = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
             val lastUpdateDay = Calendar.getInstance().apply {

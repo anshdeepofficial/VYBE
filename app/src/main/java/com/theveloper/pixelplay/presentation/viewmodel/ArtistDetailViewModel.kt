@@ -84,11 +84,13 @@ class ArtistDetailViewModel @Inject constructor(
         savedStateHandle.getStateFlow<String?>("artistId", null)
             .onEach { idString ->
                 if (idString != null) {
-                    val artistId = idString.toLongOrNull()
-                    if (artistId != null) {
-                        loadArtistData(artistId)
-                    } else {
-                        loadOnlineArtistData(idString)
+                    when {
+                        idString.startsWith(REMOTE_ARTIST_PREFIX) ->
+                            loadOnlineArtistData(idString.removePrefix(REMOTE_ARTIST_PREFIX))
+                        idString.startsWith(LOOKUP_ARTIST_PREFIX) ->
+                            loadOnlineArtistByName(idString.removePrefix(LOOKUP_ARTIST_PREFIX))
+                        idString.toLongOrNull() != null -> loadArtistData(idString.toLong())
+                        else -> loadOnlineArtistData(idString)
                     }
                 } else {
                     _uiState.update { it.copy(error = context.getString(R.string.artist_detail_id_not_found), isLoading = false) }
@@ -99,6 +101,25 @@ class ArtistDetailViewModel @Inject constructor(
 
     private var currentLoadJob: Job? = null
     private var currentEnrichmentJob: Job? = null
+
+    private fun loadOnlineArtistByName(name: String) {
+        currentLoadJob?.cancel()
+        currentLoadJob = viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            val match = withTimeoutOrNull(ARTIST_PROFILE_TIMEOUT_MS) {
+                onlineMusicRepository.searchMusicStructured(name).artists
+                    .firstOrNull { it.name.equals(name, ignoreCase = true) }
+                    ?: onlineMusicRepository.searchMusicStructured(name).artists.firstOrNull()
+            }
+            if (match != null) {
+                loadOnlineArtistData(match.browseId)
+            } else {
+                _uiState.update {
+                    it.copy(error = context.getString(R.string.artist_detail_not_found), isLoading = false)
+                }
+            }
+        }
+    }
 
     private fun loadOnlineArtistData(browseId: String) {
         currentLoadJob?.cancel()
@@ -491,3 +512,5 @@ private const val IMAGE_LOOKUP_TIMEOUT_MS = 6_000L
 private const val ARTIST_PROFILE_TIMEOUT_MS = 20_000L
 private const val ALBUM_DETAILS_TIMEOUT_MS = 15_000L
 private const val RELEASE_BATCH_SIZE = 4
+private const val REMOTE_ARTIST_PREFIX = "remote_artist|"
+private const val LOOKUP_ARTIST_PREFIX = "lookup_artist|"

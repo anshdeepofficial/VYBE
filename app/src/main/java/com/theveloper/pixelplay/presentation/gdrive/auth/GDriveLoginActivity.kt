@@ -70,6 +70,7 @@ fun GDriveLoginScreen(
     val loginState by viewModel.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
 
+
     val cardShape = AbsoluteSmoothCornerShape(
         cornerRadiusTR = 20.dp, cornerRadiusTL = 20.dp,
         cornerRadiusBR = 20.dp, cornerRadiusBL = 20.dp,
@@ -177,6 +178,7 @@ fun GDriveLoginScreen(
                         )
                     }
                 }
+
 
                 is GDriveLoginState.FolderSetup -> {
                     FolderSetupContent(
@@ -563,7 +565,13 @@ private suspend fun signInWithGoogle(
         // serverAuthCode is available in the bundle data
         val serverAuthCode = credential.data.getString("com.google.android.libraries.identity.googleid.BUNDLE_KEY_SERVER_AUTH_CODE")
 
-        viewModel.processCredential(idToken, serverAuthCode)
+        viewModel.processCredential(
+            idToken = idToken,
+            serverAuthCode = serverAuthCode,
+            email = googleIdTokenCredential.id,
+            displayName = googleIdTokenCredential.displayName,
+            profilePictureUri = googleIdTokenCredential.profilePictureUri?.toString(),
+        )
     } catch (e: GetCredentialException) {
         viewModel.processCredential("", null) // Will trigger error state
     } catch (e: Exception) {

@@ -114,6 +114,8 @@ class MusicRepositoryImpl @Inject constructor(
 
     private val directoryScanMutex = Mutex()
     private val repositoryScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val dataSaverEnabled = userPreferencesRepository.dataSaverEnabledFlow
+        .stateIn(repositoryScope, SharingStarted.Eagerly, false)
     private val defaultLibraryPagingConfig = PagingConfig(
         pageSize = 50,
         enablePlaceholders = true,
@@ -484,7 +486,7 @@ class MusicRepositoryImpl @Inject constructor(
                     val artists = entities.map { it.toArtist() }
                     // Trigger prefetch for missing images (non-blocking)
                     val missingImages = artists.missingImageCandidates()
-                    if (missingImages.isNotEmpty()) {
+                    if (missingImages.isNotEmpty() && !dataSaverEnabled.value) {
                         // Cancel any in-flight prefetch before starting a new one â€” the flow
                         // can emit multiple times during sync, and concurrent launches would
                         // create N Ã— artist-count coroutines simultaneously.
@@ -518,7 +520,7 @@ class MusicRepositoryImpl @Inject constructor(
             .distinctUntilChanged()
             .onEach { artists ->
                 val missingImages = artists.missingImageCandidates()
-                if (missingImages.isNotEmpty()) {
+                if (missingImages.isNotEmpty() && !dataSaverEnabled.value) {
                     val isNewSong = currentSongArtistPrefetchSongId != songId
                     if (isNewSong) {
                         currentSongArtistPrefetchJob?.cancel()

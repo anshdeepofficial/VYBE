@@ -686,10 +686,13 @@ class DualPlayerEngine @Inject constructor(
                     )
                     if (!freshUrl.isNullOrBlank() && ::playerA.isInitialized && currentItem != null) {
                         val freshUri = Uri.parse(freshUrl)
-                        resolvedUriCache.put("yt://$cleanId", freshUri)
-                        resolvedUriCache.put("yt_$cleanId", freshUri)
-                        resolvedUriCache.put("saavn://$cleanId", freshUri)
-                        resolvedUriCache.put("saavn_$cleanId", freshUri)
+                        if (isSaavn) {
+                            resolvedUriCache.put("saavn://$cleanId", freshUri)
+                            resolvedUriCache.put("saavn_$cleanId", freshUri)
+                        } else {
+                            resolvedUriCache.put("yt://$cleanId", freshUri)
+                            resolvedUriCache.put("yt_$cleanId", freshUri)
+                        }
                         val newItem = currentItem.buildUpon().setUri(freshUri).build()
                         val pos = playerA.currentPosition.coerceAtLeast(0L)
                         playerA.setMediaItem(newItem, pos)
@@ -1185,29 +1188,28 @@ class DualPlayerEngine @Inject constructor(
                             else -> uri.lastPathSegment ?: uriString
                         }
                         val snapshot = queueSnapshot
-                        var matchedItem = snapshot.firstOrNull { 
-                            it.mediaId == "yt_$cleanId" || 
-                            it.mediaId == "saavn_$cleanId" || 
-                            it.mediaId == cleanId
-                        }
+                        val isSaavn = uriString.startsWith("saavn")
+                        val expectedMediaId = if (isSaavn) "saavn_$cleanId" else "yt_$cleanId"
+                        var matchedItem = snapshot.firstOrNull { it.mediaId == expectedMediaId }
                         if (matchedItem == null && ::playerA.isInitialized) {
                             val currentItem = playerA.currentMediaItem
-                            if (currentItem != null && (currentItem.mediaId == "yt_$cleanId" || currentItem.mediaId == "saavn_$cleanId" || currentItem.mediaId == cleanId)) {
+                            if (currentItem != null && currentItem.mediaId == expectedMediaId) {
                                 matchedItem = currentItem
                             }
                         }
                         val title = matchedItem?.mediaMetadata?.title?.toString().orEmpty()
                         val artist = matchedItem?.mediaMetadata?.artist?.toString().orEmpty()
-                        val isSaavn = uriString.startsWith("saavn") || (matchedItem?.mediaId?.startsWith("saavn") == true)
-
                         val directUrl = onlineMusicRepository.resolvePlaybackUrlSync(cleanId, title, artist, isSaavn)
                         if (!directUrl.isNullOrBlank()) {
                             val resolvedUri = Uri.parse(directUrl)
                             resolvedUriCache.put(uriString, resolvedUri)
-                            resolvedUriCache.put("yt_$cleanId", resolvedUri)
-                            resolvedUriCache.put("yt://$cleanId", resolvedUri)
-                            resolvedUriCache.put("saavn_$cleanId", resolvedUri)
-                            resolvedUriCache.put("saavn://$cleanId", resolvedUri)
+                            if (isSaavn) {
+                                resolvedUriCache.put("saavn_$cleanId", resolvedUri)
+                                resolvedUriCache.put("saavn://$cleanId", resolvedUri)
+                            } else {
+                                resolvedUriCache.put("yt_$cleanId", resolvedUri)
+                                resolvedUriCache.put("yt://$cleanId", resolvedUri)
+                            }
                             Timber.tag("DualPlayerEngine").d("resolveDataSpec: Resolved online stream dynamically for %s", cleanId)
                             return dataSpec.buildUpon().setUri(resolvedUri).build()
                         }
@@ -1352,10 +1354,13 @@ class DualPlayerEngine @Inject constructor(
             .removePrefix("saavn_")
         resolvedUriCache.put(uriString, resolvedUri)
         resolvedUriCache.put(song.id, resolvedUri)
-        resolvedUriCache.put("yt_$cleanId", resolvedUri)
-        resolvedUriCache.put("yt://$cleanId", resolvedUri)
-        resolvedUriCache.put("saavn_$cleanId", resolvedUri)
-        resolvedUriCache.put("saavn://$cleanId", resolvedUri)
+        if (song.id.startsWith("saavn_") || song.contentUriString.startsWith("saavn://")) {
+            resolvedUriCache.put("saavn_$cleanId", resolvedUri)
+            resolvedUriCache.put("saavn://$cleanId", resolvedUri)
+        } else {
+            resolvedUriCache.put("yt_$cleanId", resolvedUri)
+            resolvedUriCache.put("yt://$cleanId", resolvedUri)
+        }
         resolvedUri
     }
 
@@ -1370,14 +1375,11 @@ class DualPlayerEngine @Inject constructor(
         val isSaavn = uriString.startsWith("saavn")
         
         val snapshot = queueSnapshot
-        var matchedItem = snapshot.firstOrNull { 
-            it.mediaId == "yt_$cleanId" || 
-            it.mediaId == "saavn_$cleanId" || 
-            it.mediaId == cleanId
-        }
+        val expectedMediaId = if (isSaavn) "saavn_$cleanId" else "yt_$cleanId"
+        var matchedItem = snapshot.firstOrNull { it.mediaId == expectedMediaId }
         if (matchedItem == null && ::playerA.isInitialized) {
             val currentItem = playerA.currentMediaItem
-            if (currentItem != null && (currentItem.mediaId == "yt_$cleanId" || currentItem.mediaId == "saavn_$cleanId" || currentItem.mediaId == cleanId)) {
+            if (currentItem != null && currentItem.mediaId == expectedMediaId) {
                 matchedItem = currentItem
             }
         }
@@ -1404,10 +1406,13 @@ class DualPlayerEngine @Inject constructor(
         streamUrl?.let {
             val resolvedUri = Uri.parse(it)
             resolvedUriCache.put(uriString, resolvedUri)
-            resolvedUriCache.put("yt_$cleanId", resolvedUri)
-            resolvedUriCache.put("yt://$cleanId", resolvedUri)
-            resolvedUriCache.put("saavn_$cleanId", resolvedUri)
-            resolvedUriCache.put("saavn://$cleanId", resolvedUri)
+            if (isSaavn) {
+                resolvedUriCache.put("saavn_$cleanId", resolvedUri)
+                resolvedUriCache.put("saavn://$cleanId", resolvedUri)
+            } else {
+                resolvedUriCache.put("yt_$cleanId", resolvedUri)
+                resolvedUriCache.put("yt://$cleanId", resolvedUri)
+            }
             resolvedUri
         }
     }

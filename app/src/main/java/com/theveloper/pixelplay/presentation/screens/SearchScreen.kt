@@ -641,6 +641,7 @@ fun SearchScreen(
                             ) {
                                 SearchFilterChip(SearchFilterType.ALL, currentFilter, playerViewModel)
                                 SearchFilterChip(SearchFilterType.SONGS, currentFilter, playerViewModel)
+                                SearchFilterChip(SearchFilterType.VIDEOS, currentFilter, playerViewModel)
                                 SearchFilterChip(SearchFilterType.ALBUMS, currentFilter, playerViewModel)
                                 SearchFilterChip(SearchFilterType.ARTISTS, currentFilter, playerViewModel)
                                 SearchFilterChip(SearchFilterType.PLAYLISTS, currentFilter, playerViewModel)

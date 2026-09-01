@@ -40,14 +40,39 @@ class AlbumDetailViewModel @Inject constructor(
     init {
         val albumIdString: String? = savedStateHandle.get("albumId")
         if (albumIdString != null) {
-            val albumId = albumIdString.toLongOrNull()
-            if (albumId != null) {
-                loadAlbumData(albumId)
-            } else {
-                loadOnlineAlbumData(albumIdString)
+            when {
+                albumIdString.startsWith(REMOTE_ALBUM_PREFIX) ->
+                    loadOnlineAlbumData(albumIdString.removePrefix(REMOTE_ALBUM_PREFIX))
+                albumIdString.startsWith(LOOKUP_ALBUM_PREFIX) -> {
+                    val parts = albumIdString.removePrefix(LOOKUP_ALBUM_PREFIX).split('|', limit = 2)
+                    loadOnlineAlbumByMetadata(parts.firstOrNull().orEmpty(), parts.getOrNull(1).orEmpty())
+                }
+                albumIdString.toLongOrNull() != null -> loadAlbumData(albumIdString.toLong())
+                else -> loadOnlineAlbumData(albumIdString)
             }
         } else {
             _uiState.update { it.copy(error = context.getString(R.string.album_detail_id_not_found), isLoading = false) }
+        }
+    }
+
+    private fun loadOnlineAlbumByMetadata(title: String, artist: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            val match = runCatching {
+                onlineMusicRepository.searchMusicStructured("$title $artist").albums
+                    .firstOrNull { album ->
+                        album.title.equals(title, ignoreCase = true) &&
+                            (artist.isBlank() || album.artist.contains(artist, ignoreCase = true) ||
+                                artist.contains(album.artist, ignoreCase = true))
+                    }
+                    ?: onlineMusicRepository.searchMusicStructured(title).albums
+                        .firstOrNull { it.title.equals(title, ignoreCase = true) }
+            }.getOrNull()
+            if (match != null) {
+                loadOnlineAlbumData(match.browseId)
+            } else {
+                _uiState.update { it.copy(error = context.getString(R.string.album_detail_not_found), isLoading = false) }
+            }
         }
     }
 
@@ -178,5 +203,10 @@ class AlbumDetailViewModel @Inject constructor(
                 songs = songs
             )
         }
+    }
+
+    private companion object {
+        const val REMOTE_ALBUM_PREFIX = "remote_album|"
+        const val LOOKUP_ALBUM_PREFIX = "lookup_album|"
     }
 }

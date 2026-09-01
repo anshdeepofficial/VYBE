@@ -79,9 +79,9 @@ The following contributor names were generated from the Git history through `cee
 - jair1c
 - ori
 - Неважно
-# Chromaprint
+## Echo Music recognition design
 
-VYBE includes Chromaprint for local audio fingerprint generation.
-Chromaprint is Copyright (c) 2010-2024 Lukas Lalinsky and contributors and is
-licensed under the GNU Lesser General Public License, version 2.1 or later.
-Source: https://github.com/acoustid/chromaprint
+VYBE's ambient recognition signature implementation is adapted from
+[Echo Music](https://github.com/EchoMusicApp/Echo-Music), licensed under GPL-3.0.
+The adapted code remains available under VYBE's GPL-3.0 license.
+Copyright remains with the respective Echo Music contributors.

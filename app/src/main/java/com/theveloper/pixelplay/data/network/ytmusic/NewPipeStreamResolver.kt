@@ -14,6 +14,8 @@ import timber.log.Timber
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Resolves a YouTube video id to a current, signed stream URL containing playable audio.
@@ -46,6 +48,29 @@ class NewPipeStreamResolver @Inject constructor(
         }.getOrNull()
     }
 
+    /**
+     * Resolves a muxed (audio + video) stream for the inline player. Keeping this beside the
+     * audio resolver means the UI never has to embed a YouTube web page or own extractor state.
+     */
+    suspend fun resolveVideo(
+        videoId: String,
+        preferLowData: Boolean = false,
+    ): String? = withContext(Dispatchers.IO) {
+        val cleanId = videoId.removePrefix("yt_").trim()
+        if (cleanId.isBlank()) return@withContext null
+
+        runCatching {
+            ensureInitialized()
+            val info = StreamInfo.getInfo(
+                ServiceList.YouTube,
+                "https://www.youtube.com/watch?v=$cleanId"
+            )
+            selectPlayableMuxedStream(info.videoStreams, preferLowData)?.content
+        }.onFailure { error ->
+            Timber.tag(TAG).w(error, "NewPipe video extraction failed for %s", cleanId)
+        }.getOrNull()
+    }
+
     private fun ensureInitialized() {
         if (initialized.compareAndSet(false, true)) {
             NewPipe.init(OkHttpNewPipeDownloader(okHttpClient))
@@ -71,9 +96,19 @@ class NewPipeStreamResolver @Inject constructor(
         })
         .firstOrNull()
 
-    internal fun selectPlayableMuxedStream(streams: List<VideoStream>): VideoStream? = streams
+    internal fun selectPlayableMuxedStream(
+        streams: List<VideoStream>,
+        preferLowData: Boolean = false,
+    ): VideoStream? = streams
         .asSequence()
         .filter { it.isUrl && it.content.startsWith("http") }
+        .sortedWith(
+            if (preferLowData) {
+                compareBy<VideoStream> { it.height.takeIf { height -> height > 0 } ?: Int.MAX_VALUE }
+            } else {
+                compareByDescending<VideoStream> { it.height }
+            }
+        )
         .firstOrNull()
 
     private class OkHttpNewPipeDownloader(

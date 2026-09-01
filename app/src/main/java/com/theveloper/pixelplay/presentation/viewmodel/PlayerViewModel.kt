@@ -68,6 +68,7 @@ import com.theveloper.pixelplay.data.preferences.ThemePreference
 import com.theveloper.pixelplay.data.repository.LyricsSearchResult
 import com.theveloper.pixelplay.data.repository.MusicRepository
 import com.theveloper.pixelplay.data.repository.OnlineMusicRepository
+import com.theveloper.pixelplay.data.network.ytmusic.NewPipeStreamResolver
 import com.theveloper.pixelplay.data.listentogether.ListenTogetherRepository
 import com.theveloper.pixelplay.data.sponsorblock.SponsorBlockRepository
 import com.theveloper.pixelplay.data.listentogether.ListenTogetherState
@@ -199,6 +200,7 @@ class PlayerViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val musicRepository: MusicRepository,
     private val onlineMusicRepository: OnlineMusicRepository,
+    private val newPipeStreamResolver: NewPipeStreamResolver,
     private val listenTogetherRepository: ListenTogetherRepository,
     private val sponsorBlockRepository: SponsorBlockRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
@@ -236,6 +238,15 @@ class PlayerViewModel @Inject constructor(
     private val sessionToken: SessionToken,
     private val mediaControllerFactory: com.theveloper.pixelplay.data.media.MediaControllerFactory
 ) : ViewModel() {
+
+    val dataSaverEnabled: StateFlow<Boolean> = userPreferencesRepository.dataSaverEnabledFlow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    suspend fun resolveInlineVideoStream(songId: String): String? =
+        newPipeStreamResolver.resolveVideo(
+            videoId = songId.removePrefix("yt_"),
+            preferLowData = dataSaverEnabled.value,
+        )
 
     fun selectEqualizerOutputProfile(deviceName: String) {
         viewModelScope.launch { equalizerPreferencesRepository.switchOutputProfile(deviceName) }
@@ -3307,6 +3318,10 @@ class PlayerViewModel @Inject constructor(
     }
 
     private fun loadLyricsForCurrentSong() {
+        // This is the automatic media-transition path. In Data Saver mode lyrics remain
+        // available on demand through ensure/fetch, but no request is made just because a track
+        // started playing.
+        if (dataSaverEnabled.value) return
         val currentSong = playbackStateHolder.stablePlayerState.value.currentSong ?: return
         // Delegate to LyricsStateHolder
         lyricsStateHolder.loadLyricsForSong(currentSong, lyricsSourcePreference.value)
@@ -3316,7 +3331,8 @@ class PlayerViewModel @Inject constructor(
         val state = playbackStateHolder.stablePlayerState.value
         val hasLyrics = !state.lyrics?.synced.isNullOrEmpty() || !state.lyrics?.plain.isNullOrEmpty()
         if (!hasLyrics && !state.isLoadingLyrics) {
-            loadLyricsForCurrentSong()
+            val currentSong = state.currentSong ?: return
+            lyricsStateHolder.loadLyricsForSong(currentSong, lyricsSourcePreference.value)
         }
     }
 

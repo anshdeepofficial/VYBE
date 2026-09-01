@@ -76,6 +76,8 @@ class SpotifyLoginActivity : ComponentActivity() {
     private var errorMessage by mutableStateOf<String?>(null)
     private var loadProgress by mutableIntStateOf(0)
     private var pageCommitted by mutableStateOf(false)
+    private var pageUsable by mutableStateOf(false)
+    private var blankRecoveryAttempted = false
     private var completingAuthorization = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -98,6 +100,7 @@ class SpotifyLoginActivity : ComponentActivity() {
                     errorMessage = errorMessage,
                     progress = loadProgress,
                     pageCommitted = pageCommitted,
+                    pageUsable = pageUsable,
                     authorizationUri = authorizationUri,
                     onBack = onBackPressedDispatcher::onBackPressed,
                     onRetry = ::startLogin,
@@ -120,6 +123,8 @@ class SpotifyLoginActivity : ComponentActivity() {
         errorMessage = null
         loadProgress = 0
         pageCommitted = false
+        pageUsable = false
+        blankRecoveryAttempted = false
         loginStep = SpotifyLoginStep.SIGNING_IN
         authorizationUri = runCatching { repository.createAuthorizationUri() }
             .onFailure { showError(it.message ?: "Spotify sign-in could not be started.") }
@@ -178,6 +183,7 @@ class SpotifyLoginActivity : ComponentActivity() {
             override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
                 super.onPageStarted(view, url, favicon)
                 pageCommitted = false
+                pageUsable = false
                 errorMessage = null
             }
 
@@ -190,9 +196,17 @@ class SpotifyLoginActivity : ComponentActivity() {
                 super.onPageFinished(view, url)
                 pageCommitted = true
                 loadProgress = 100
-                view.evaluateJavascript("document.body && document.body.innerText.length") { length ->
-                    if (length == "0" && loginStep == SpotifyLoginStep.SIGNING_IN) {
+                view.evaluateJavascript("document.body ? (document.body.innerText.trim().length + document.body.querySelectorAll('input,button,a').length) : 0") { raw ->
+                    val contentCount = raw.trim('"').toIntOrNull() ?: 0
+                    if (contentCount > 0) {
+                        pageUsable = true
+                    } else if (!blankRecoveryAttempted && loginStep == SpotifyLoginStep.SIGNING_IN) {
+                        blankRecoveryAttempted = true
+                        view.setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+                        view.clearCache(false)
                         view.reload()
+                    } else if (loginStep == SpotifyLoginStep.SIGNING_IN) {
+                        showError("Spotify returned a blank sign-in page. Update Android System WebView and tap Try again.")
                     }
                 }
             }
@@ -295,6 +309,7 @@ private fun SpotifyLoginScreen(
     errorMessage: String?,
     progress: Int,
     pageCommitted: Boolean,
+    pageUsable: Boolean,
     authorizationUri: Uri?,
     onBack: () -> Unit,
     onRetry: () -> Unit,
@@ -325,7 +340,7 @@ private fun SpotifyLoginScreen(
                         modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
                     )
                 }
-                if (!pageCommitted && progress == 0) {
+                if (!pageUsable) {
                     Surface(
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.surface,

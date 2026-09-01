@@ -450,10 +450,11 @@ fun LibraryScreen(
     val onlineFavoriteSongs by playerViewModel.onlineFavoriteSongs.collectAsStateWithLifecycle()
     val favoriteIds by playerViewModel.favoriteSongIds.collectAsStateWithLifecycle() // Reintroducir favoriteIds aquí
     val playbackHistory by playerViewModel.playbackHistory.collectAsStateWithLifecycle()
-    val listeningHistorySongs = remember(playbackHistory) {
-        playbackHistory.mapNotNull { entry -> entry.track?.toSong(entry.songId) }
-            .distinctBy { it.id }
-            .take(100)
+    val listeningHistorySongs = remember(playbackHistory, libraryViewModel) {
+        libraryViewModel.rankRecommendations(
+            playbackHistory.mapNotNull { entry -> entry.track?.toSong(entry.songId) }
+                .distinctBy { it.id }
+        )
     }
     val listeningHistoryAlbums = remember(listeningHistorySongs) {
         listeningHistorySongs
@@ -1612,10 +1613,14 @@ fun LibraryScreen(
 
                                         val stableOnAlbumClick: (Album) -> Unit = remember(navController, listeningHistoryAlbums) {
                                             { album: Album ->
+                                                val destination = when {
+                                                    !album.remoteBrowseId.isNullOrBlank() ->
+                                                        "remote_album|${album.remoteBrowseId}"
+                                                    album.id > 0L -> album.id.toString()
+                                                    else -> "lookup_album|${album.title}|${album.artist}"
+                                                }
                                                 navController.navigateSafelyReplacing(
-                                                    route = album.remoteBrowseId?.takeIf(String::isNotBlank)
-                                                        ?.let(Screen.AlbumDetail::createRoute)
-                                                        ?: Screen.AlbumDetail.createRoute(album.id),
+                                                    route = Screen.AlbumDetail.createRoute(destination),
                                                     patternToPop = Screen.AlbumDetail.route
                                                 )
                                             }
@@ -1670,10 +1675,14 @@ fun LibraryScreen(
                                                 if (choices.size > 1) {
                                                     pendingArtistChoices = choices
                                                 } else {
+                                                    val destination = when {
+                                                        !artist.remoteBrowseId.isNullOrBlank() ->
+                                                            "remote_artist|${artist.remoteBrowseId}"
+                                                        artist.id > 0L -> artist.id.toString()
+                                                        else -> "lookup_artist|${artist.name}"
+                                                    }
                                                     navController.navigateSafelyReplacing(
-                                                        route = artist.remoteBrowseId?.takeIf(String::isNotBlank)
-                                                            ?.let(Screen.ArtistDetail::createRoute)
-                                                            ?: Screen.ArtistDetail.createRoute(artist.id),
+                                                        route = Screen.ArtistDetail.createRoute(destination),
                                                         patternToPop = Screen.ArtistDetail.route
                                                     )
                                                 }
@@ -2308,10 +2317,13 @@ fun LibraryScreen(
                     pendingArtistChoices.forEach { artist ->
                         TextButton(
                             onClick = {
-                                val route = artist.remoteBrowseId?.takeIf(String::isNotBlank)
-                                    ?.let(Screen.ArtistDetail::createRoute)
-                                    ?: artist.id.takeIf { it > 0L }?.let(Screen.ArtistDetail::createRoute)
-                                    ?: Screen.ArtistDetail.createRoute(Uri.encode(artist.name))
+                                val destination = when {
+                                    !artist.remoteBrowseId.isNullOrBlank() ->
+                                        "remote_artist|${artist.remoteBrowseId}"
+                                    artist.id > 0L -> artist.id.toString()
+                                    else -> "lookup_artist|${artist.name}"
+                                }
+                                val route = Screen.ArtistDetail.createRoute(destination)
                                 pendingArtistChoices = emptyList()
                                 navController.navigateSafelyReplacing(route, Screen.ArtistDetail.route)
                             },

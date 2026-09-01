@@ -60,6 +60,7 @@ class MusicRepositoryImplTest {
         every { mockUserPreferencesRepository.mockGenresEnabledFlow } returns flowOf(false)
         coEvery { mockUserPreferencesRepository.initialSetupDoneFlow } returns flowOf(true)
         coEvery { mockUserPreferencesRepository.isFolderFilterActiveFlow } returns flowOf(false)
+        every { mockUserPreferencesRepository.dataSaverEnabledFlow } returns flowOf(false)
         // Populate artists
         val dummyArtists = listOf(
             ArtistEntity(101L, "ArtistName1", 5, null),

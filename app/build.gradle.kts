@@ -140,10 +140,6 @@ android {
             ?.trim()
             ?.takeIf(String::isNotBlank)
             ?: "VYBE"
-        val acoustIdClientKey = localProperties.getProperty("ACOUSTID_CLIENT_KEY")
-            ?.trim()
-            ?.takeIf(String::isNotBlank)
-            ?: "05gzX3uQQv"
         buildConfigField("int", "TELEGRAM_API_ID", telegramApiId)
         buildConfigField("String", "TELEGRAM_API_HASH", "\"$telegramApiHash\"")
         buildConfigField("String", "GOOGLE_DRIVE_WEB_CLIENT_ID", "\"$googleDriveWebClientId\"")
@@ -151,14 +147,6 @@ android {
         buildConfigField("String", "SPOTIFY_REDIRECT_URI", "\"$spotifyRedirectUri\"")
         buildConfigField("String", "VYBE_GITHUB_OWNER", "\"$vybeGitHubOwner\"")
         buildConfigField("String", "VYBE_GITHUB_REPO", "\"$vybeGitHubRepo\"")
-        buildConfigField("String", "ACOUSTID_CLIENT_KEY", "\"$acoustIdClientKey\"")
-
-        externalNativeBuild {
-            cmake {
-                cppFlags += listOf("-std=c++17", "-fexceptions")
-                arguments += "-DANDROID_STL=c++_static"
-            }
-        }
     }
 
     signingConfigs {
@@ -205,13 +193,6 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
-    }
-
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.22.1"
-        }
     }
 
 

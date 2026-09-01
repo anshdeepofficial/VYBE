@@ -14,6 +14,10 @@ import com.theveloper.pixelplay.data.network.ytmusic.YouTubeAccountManager
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.data.repository.OnlineMusicRepository
 import com.theveloper.pixelplay.data.repository.MusicRepository
+import com.theveloper.pixelplay.data.stats.PlaybackStatsRepository
+import com.theveloper.pixelplay.data.recommendation.RecommendationProfile
+import com.theveloper.pixelplay.data.recommendation.RecommendationSurface
+import com.theveloper.pixelplay.data.recommendation.UnifiedRecommendationEngine
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.CancellationException
@@ -49,6 +53,8 @@ class OnlineSearchViewModel @Inject constructor(
     private val engine: YouTubeMusicEngine,
     private val musicRepository: MusicRepository,
     private val youTubeAccountManager: YouTubeAccountManager,
+    private val recommendationEngine: UnifiedRecommendationEngine,
+    private val playbackStatsRepository: PlaybackStatsRepository,
 ) : ViewModel() {
 
     private val _searchFilter = MutableStateFlow(OnlineSearchFilter.ALL)
@@ -128,7 +134,9 @@ class OnlineSearchViewModel @Inject constructor(
     }
 
     init {
-        loadTrendingAndRecommendations()
+        viewModelScope.launch {
+            if (!userPrefs.dataSaverEnabledFlow.first()) loadTrendingAndRecommendations()
+        }
         viewModelScope.launch {
             searchHistoryEnabled.collectLatest { enabled ->
                 if (enabled) loadRecentSearches() else _recentSearches.value = emptyList()
@@ -183,6 +191,10 @@ class OnlineSearchViewModel @Inject constructor(
     private fun loadTrendingAndRecommendations() {
         discoveryJob?.cancel()
         discoveryJob = viewModelScope.launch {
+            if (userPrefs.dataSaverEnabledFlow.first()) {
+                _isLoading.value = false
+                return@launch
+            }
             _isLoading.value = true
             try {
                 val region = normalizedRegion(userPrefs.userRegionFlow.first())
@@ -197,7 +209,7 @@ class OnlineSearchViewModel @Inject constructor(
                 val fastTracks = withTimeoutOrNull(3_500L) { fastRequest.await() }.orEmpty()
                 if (fastTracks.isNotEmpty()) {
                     _aiRecommendations.value = rankForInterests(fastTracks, interests)
-                        .shuffled(kotlin.random.Random(System.currentTimeMillis())).take(12)
+                        .take(12)
                     _searchError.value = null
                     _isLoading.value = false
                 }
@@ -220,7 +232,7 @@ class OnlineSearchViewModel @Inject constructor(
                 val recommendationPool = (fastTracks + chartTracks + releases).distinctBy { it.id }
                 if (recommendationPool.isNotEmpty()) {
                     _aiRecommendations.value = rankForInterests(recommendationPool, interests)
-                        .shuffled(kotlin.random.Random(System.currentTimeMillis())).take(12)
+                        .take(12)
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
@@ -399,10 +411,16 @@ class OnlineSearchViewModel @Inject constructor(
                         }
                     }
 
-                    // Now wait for the fallback results to augment the list, but don't block the initial render.
-                    val fallbackSongs = withTimeoutOrNull(3_500L) { fallbackRequest.await() }
-                        .orEmpty()
-                        .let { rankSearchSongs(trimmed, it, retainRelated = false) }
+                    // A fallback provider must not inject a second same-title recording into a
+                    // successful YouTube Music result set. Use it only when YouTube has no songs.
+                    val fallbackSongs = if (youtubeResult.songs.isEmpty()) {
+                        withTimeoutOrNull(3_500L) { fallbackRequest.await() }
+                            .orEmpty()
+                            .let { rankSearchSongs(trimmed, it, retainRelated = false) }
+                    } else {
+                        fallbackRequest.cancel()
+                        emptyList()
+                    }
 
                     youtubeResult.copy(
                         songs = rankSearchSongs(trimmed, youtubeResult.songs, retainRelated = true)
@@ -541,12 +559,18 @@ class OnlineSearchViewModel @Inject constructor(
         return song.title.isNotBlank() && song.artist.isNotBlank() && nonMusicTerms.none(metadata::contains)
     }
 
-    private fun rankForInterests(songs: List<Song>, interests: List<String>): List<Song> {
-        val keys = interests.map { it.lowercase() }
-        return songs.distinctBy { it.id }.sortedByDescending { song ->
-            val metadata = "${song.title} ${song.artist} ${song.album} ${song.genre.orEmpty()}".lowercase()
-            keys.count(metadata::contains)
-        }
+    private suspend fun rankForInterests(songs: List<Song>, interests: List<String>): List<Song> {
+        val tasteSongs = runCatching {
+            playbackStatsRepository.loadPlaybackHistory(200)
+                .mapNotNull { it.track?.toSong(it.songId) }
+        }.getOrDefault(emptyList())
+        val profile = RecommendationProfile.fromTaste(
+            songs = tasteSongs,
+            preferredArtists = interests.toSet() + userPrefs.preferredArtists.first(),
+            preferredGenres = interests.toSet() + userPrefs.preferredGenres.first(),
+            blockedArtists = userPrefs.blockedArtists.first(),
+        )
+        return recommendationEngine.rank(songs, profile, RecommendationSurface.SEARCH)
     }
 
     fun loadMore() {

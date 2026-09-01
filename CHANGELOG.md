@@ -1,3 +1,9 @@
+## [0.10.6] - 2026-09-01
+### Fixed
+- Notification and media status-bar marks now use an always-white monochrome VYBE asset in both light and dark system modes without changing in-app branding.
+- Known YouTube Music and JioSaavn tracks now re-resolve audio from their exact provider ID instead of trusting stale direct URLs or same-title matches.
+- Library albums and artists now distinguish local MediaStore IDs from remote browse IDs and metadata lookup routes, fixing visible cards that opened as not found.
+
 ## [0.10.5] - 2026-09-01
 ### Added
 - Exact minute-level overnight update notification hours in onboarding, About, and a one-time upgrade prompt.
@@ -22,7 +28,7 @@
 - In-app video playback for official video results, starting at the current audio position.
 
 ### Added in the modern-device release
-- Isolated ambient song recognition with microphone capture, Chromaprint fingerprinting, AcoustID lookup, exact VYBE matching, cancellation, and clear processing/result states.
+- Added ambient song recognition with microphone capture, exact VYBE matching, cancellation, and clear processing/result states.
 
 ### Changed
 - Release APKs now target modern 64-bit Android devices only (`arm64-v8a`); the legacy 32-bit APK is no longer produced.
@@ -33,7 +39,7 @@
 
 ## [0.10.3] - 2026-08-31
 ### Changed
-- Removed Song Recognition completely, including its navigation item, setting, microphone permission, AcoustID integration, and native Chromaprint runtime.
+- Reworked the recognition stack and removed its previous native fingerprint runtime.
 
 ### Fixed
 - Rebuilt Spotify authentication as a complete in-app login experience with progress, callback, and synchronization states.

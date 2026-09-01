@@ -32,6 +32,15 @@ private data class ChangelogRelease(
 
 private val VybeChangelog = listOf(
     ChangelogRelease(
+        version = "0.10.6",
+        date = "1 September 2026",
+        changes = listOf(
+            "Branding: Made the notification and media status-bar VYBE mark consistently white without changing in-app logos.",
+            "Playback: Bound YouTube Music and JioSaavn audio to exact provider IDs instead of stale URLs or same-title matches.",
+            "Library: Fixed visible album and artist cards opening as unavailable by separating local, remote, and metadata lookup identities."
+        )
+    ),
+    ChangelogRelease(
         version = "0.10.5",
         date = "1 September 2026",
         changes = listOf(
@@ -55,7 +64,7 @@ private val VybeChangelog = listOf(
             "Spotify: Account playlists now refresh immediately after a successful in-app connection.",
             "AI: Fixed provider-specific key saving, stale cooldowns, lyric translation and English-script line handling.",
             "Sharing: VYBE and YouTube Music links now retain the exact song ID and play that track inside VYBE.",
-            "Recognition: Removed the Song Recognition feature, microphone permission, AcoustID and native Chromaprint runtime completely.",
+            "Recognition: Added the GPL-compatible Echo Music-style Shazam signature flow.",
             "Home: Kept New Releases & Release Radar available with recent-release filtering."
         )
     ),

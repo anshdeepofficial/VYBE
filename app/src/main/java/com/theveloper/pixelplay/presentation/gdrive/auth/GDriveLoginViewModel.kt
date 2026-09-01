@@ -42,14 +42,21 @@ class GDriveLoginViewModel @Inject constructor(
      * Process the credential from Credential Manager.
      * Exchanges the server auth code for access + refresh tokens.
      */
-    fun processCredential(idToken: String, serverAuthCode: String?) {
+    fun processCredential(
+        idToken: String,
+        serverAuthCode: String?,
+        email: String? = null,
+        displayName: String? = null,
+        profilePictureUri: String? = null,
+    ) {
         _state.value = GDriveLoginState.Loading
         viewModelScope.launch {
-            val result = repository.loginWithCredential(idToken, serverAuthCode)
+            val result = repository.loginWithCredential(
+                idToken, serverAuthCode, email, displayName, profilePictureUri
+            )
             result.fold(
                 onSuccess = { email ->
                     _state.value = GDriveLoginState.LoggedIn(email)
-                    // Automatically transition to folder setup
                     browseFolders("root")
                 },
                 onFailure = { error ->
@@ -59,6 +66,7 @@ class GDriveLoginViewModel @Inject constructor(
             )
         }
     }
+
 
     private val breadcrumb = mutableListOf(FolderItem("root", "My Drive"))
 

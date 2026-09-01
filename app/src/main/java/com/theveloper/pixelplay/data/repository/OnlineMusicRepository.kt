@@ -14,6 +14,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -24,6 +25,26 @@ class OnlineMusicRepository @Inject constructor(
     private val onlineSongCacheDao: OnlineSongCacheDao,
     private val userPreferencesRepository: com.theveloper.pixelplay.data.preferences.UserPreferencesRepository,
 ) {
+    private data class MoodSource(val browseId: String, val aliases: Set<String>)
+    private data class MoodCacheEntry(val songs: List<Song>, val storedAtMs: Long)
+
+    private val moodSources = listOf(
+        MoodSource("FEmusic_moods_and_genres_chill", setOf("chill", "calm", "easy")),
+        MoodSource("FEmusic_moods_and_genres_happy", setOf("happy", "feel good", "joy")),
+        MoodSource("FEmusic_moods_and_genres_workout", setOf("workout", "gym", "energy")),
+        MoodSource("FEmusic_moods_and_genres_focus", setOf("focus", "study", "work")),
+        MoodSource("FEmusic_moods_and_genres_romance", setOf("romantic", "romance", "love")),
+        MoodSource("FEmusic_moods_and_genres_sad", setOf("sad", "heartbreak", "melancholy")),
+        MoodSource("FEmusic_moods_and_genres_party", setOf("party", "dance", "celebration")),
+        MoodSource("FEmusic_moods_and_genres_relax", setOf("relax", "relaxing", "unwind")),
+        MoodSource("FEmusic_moods_and_genres_sleep", setOf("sleep", "bedtime", "night")),
+    )
+    private val moodCache = ConcurrentHashMap<String, MoodCacheEntry>()
+
+    private fun moodSource(label: String): MoodSource? {
+        val normalized = label.trim().lowercase()
+        return moodSources.firstOrNull { source -> normalized in source.aliases }
+    }
     suspend fun searchSongs(query: String, region: String = "IN"): List<Song> = withContext(Dispatchers.IO) {
         var results = youTubeEngine.search(query, region).map { it.toSong() }
         
@@ -89,18 +110,6 @@ class OnlineMusicRepository @Inject constructor(
     }
 
 suspend fun getFastPersonalizedDiscovery(interestLabels: List<String>): List<Song> = coroutineScope {
-        val moodToBrowseId = mapOf(
-            "chill" to "FEmusic_moods_and_genres_chill",
-            "happy" to "FEmusic_moods_and_genres_happy",
-            "workout" to "FEmusic_moods_and_genres_workout",
-            "focus" to "FEmusic_moods_and_genres_focus",
-            "romantic" to "FEmusic_moods_and_genres_romance",
-            "sad" to "FEmusic_moods_and_genres_sad",
-            "party" to "FEmusic_moods_and_genres_party",
-            "relax" to "FEmusic_moods_and_genres_relax",
-            "sleep" to "FEmusic_moods_and_genres_sleep"
-        )
-
         val moods = interestLabels
             .map(String::trim)
             .filter(String::isNotBlank)
@@ -113,22 +122,33 @@ suspend fun getFastPersonalizedDiscovery(interestLabels: List<String>): List<Son
             return@coroutineScope getTrendingTracks(region)
         }
 
-        val ytTracks = moods.map { mood ->
+        val resolvedMoodSources = moods.mapNotNull(::moodSource).distinctBy(MoodSource::browseId)
+        // This API also powers artist/genre discovery labels. Only apply strict mood behavior
+        // when the caller supplied a known mood; non-mood interests retain normal discovery.
+        if (resolvedMoodSources.isEmpty()) return@coroutineScope getTrendingTracks(region)
+
+        val ytTracks = resolvedMoodSources.map { source ->
             async(Dispatchers.IO) {
-                val browseId = moodToBrowseId[mood.lowercase()]
-                if (browseId != null) {
-                    runCatching { youTubeEngine.getMoodTracks(browseId, region) }.getOrDefault(emptyList())
-                } else {
-                    emptyList<com.theveloper.pixelplay.data.network.ytmusic.YouTubeTrack>()
-                }
+                val cacheKey = "${source.browseId}:$region"
+                val cached = moodCache[cacheKey]
+                    ?.takeIf { System.currentTimeMillis() - it.storedAtMs < MOOD_CACHE_TTL_MS }
+                    ?.songs
+                if (cached != null) return@async cached
+
+                val songs = runCatching {
+                    youTubeEngine.getMoodTracks(source.browseId, region)
+                        .map { it.toSong() }
+                        .filter(::isUsefulDiscoverySong)
+                        .distinctBy(Song::id)
+                }.getOrDefault(emptyList())
+                if (songs.isNotEmpty()) moodCache[cacheKey] = MoodCacheEntry(songs, System.currentTimeMillis())
+                songs.ifEmpty { moodCache[cacheKey]?.songs.orEmpty() }
             }
         }.map { it.await() }.flatten()
 
-        val rawList = if (ytTracks.isNotEmpty()) {
-            ytTracks.map { it.toSong() }.take(50)
-        } else {
-            getTrendingTracks(region)
-        }
+        // A mood page must never silently turn into a generic trending list. If YouTube Music
+        // cannot supply that mood, return the last valid cache (or empty) so the UI can retry.
+        val rawList = ytTracks.distinctBy(Song::id).take(50)
         
         return@coroutineScope filterAndPrioritizeRecommendations(rawList)
     }
@@ -231,25 +251,33 @@ suspend fun getFastPersonalizedDiscovery(interestLabels: List<String>): List<Son
     }
 
     suspend fun getTrackDetails(videoId: String, region: String = "IN"): Song? = withContext(Dispatchers.IO) {
-        if (videoId.startsWith("yt_")) {
-            youTubeEngine.getTrackDetails(videoId, normalizedRegion(region))?.toSong()
-        } else {
-            null
-        }
+        if (videoId.startsWith("saavn_") || videoId.startsWith("saavn://")) return@withContext null
+        val cleanId = videoId.removePrefix("yt_").removePrefix("yt://")
+        cleanId.takeIf { it.isNotBlank() }
+            ?.let { youTubeEngine.getTrackDetails(it, normalizedRegion(region))?.toSong() }
     }
 
     suspend fun resolvePlaybackUrl(song: Song): String? = withContext(Dispatchers.IO) {
+        // Provider identity wins over a persisted direct URL. Signed stream URLs expire and a
+        // URL copied onto the wrong metadata row can otherwise play a different same-title song.
+        // Re-resolving the immutable provider ID keeps artwork, title and audio bound together.
+        if (song.id.startsWith("saavn_") || song.path.startsWith("saavn://")) {
+            return@withContext saavnEngine.resolveStreamById(song.id)
+        }
+        
+        val isExactYouTubeTrack = song.id.startsWith("yt_") || song.contentUriString.startsWith("yt://")
+        if (isExactYouTubeTrack) {
+            // Never replace a known YouTube video ID with a title-based provider match. That
+            // could play a different recording which happens to have the same song title.
+            val exactId = song.contentUriString.removePrefix("yt://")
+                .takeIf { song.contentUriString.startsWith("yt://") && it.isNotBlank() }
+                ?: song.id.removePrefix("yt_")
+            return@withContext youTubeEngine.resolveStreamUrl(exactId)
+        }
+
         if (song.path.startsWith("http://") || song.path.startsWith("https://") || song.path.startsWith("/")) {
             return@withContext song.path
         }
-        if (song.id.startsWith("saavn_") || song.path.startsWith("saavn://")) {
-            val saavnUrl = saavnEngine.resolveStreamByQuery("${song.title} ${song.artist}".trim())
-            if (!saavnUrl.isNullOrBlank()) return@withContext saavnUrl
-        }
-        
-        // 1. Try YouTube stream resolution
-        val ytUrl = youTubeEngine.resolveStreamUrl(song.id)
-        if (!ytUrl.isNullOrBlank()) return@withContext ytUrl
 
         // 2. Fallback to Saavn by query
         val query = "${song.title} ${song.artist}".trim()
@@ -269,7 +297,7 @@ suspend fun getFastPersonalizedDiscovery(interestLabels: List<String>): List<Son
             }
             song.id.startsWith("saavn_") || song.contentUriString.startsWith("saavn://") -> {
                 saavnEngine.invalidateCache(song.id)
-                saavnEngine.resolveStreamByQuery("${song.title} ${song.artist}".trim())
+                saavnEngine.resolveStreamById(song.id)
             }
             else -> resolvePlaybackUrl(song)
         }
@@ -277,25 +305,12 @@ suspend fun getFastPersonalizedDiscovery(interestLabels: List<String>): List<Son
 
     fun resolvePlaybackUrlSync(videoId: String, title: String, artist: String, isSaavn: Boolean): String? {
         if (isSaavn) {
-            val query = "$title $artist".trim()
-            if (query.isNotBlank()) {
-                return kotlinx.coroutines.runBlocking(Dispatchers.IO) {
-                    saavnEngine.resolveStreamByQuery(query)
-                }
-            }
+            return kotlinx.coroutines.runBlocking(Dispatchers.IO) { saavnEngine.resolveStreamById(videoId) }
         }
 
-        val ytUrl = youTubeEngine.resolveStreamUrlSync(videoId)
-        if (!ytUrl.isNullOrBlank()) return ytUrl
-
-        // Fallback to JioSaavn if YouTube fails
-        val query = "$title $artist".trim()
-        if (query.isNotBlank()) {
-            return kotlinx.coroutines.runBlocking(Dispatchers.IO) {
-                saavnEngine.resolveStreamByQuery(query)
-            }
-        }
-        return null
+        // A non-Saavn item reaching this path carries an exact YouTube video ID. Preserve that
+        // identity even when one resolver temporarily fails; a title query is not equivalent.
+        return youTubeEngine.resolveStreamUrlSync(videoId)
     }
 
     fun invalidateStreamUrl(videoId: String) {
@@ -305,5 +320,9 @@ suspend fun getFastPersonalizedDiscovery(interestLabels: List<String>): List<Son
 
     suspend fun getSearchSuggestions(query: String, region: String): List<String> {
         return youTubeEngine.getSearchSuggestions(query, region)
+    }
+
+    private companion object {
+        const val MOOD_CACHE_TTL_MS = 6L * 60L * 60L * 1000L
     }
 }

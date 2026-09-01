@@ -25,3 +25,6 @@ interface RecognitionProvider {
     suspend fun recognize(fingerprint: String, durationSeconds: Int): RecognitionMetadata?
 }
 
+class RateLimitedException : java.io.IOException("Recognition service rate limit reached")
+class RecognitionHttpException(val statusCode: Int) : java.io.IOException("Recognition HTTP error ($statusCode)")
+class MalformedRecognitionException : java.io.IOException("Recognition response was malformed")

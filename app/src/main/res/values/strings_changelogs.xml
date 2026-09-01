@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string-array name="changelog_0106">
+        <item>Made the VYBE notification and media status-bar mark consistently white in light and dark modes.</item>
+        <item>Bound streamed audio to exact provider IDs to prevent a different same-title song from playing.</item>
+        <item>Fixed Library album and artist cards opening as unavailable even when their metadata and artwork were visible.</item>
+    </string-array>
     <string-array name="changelog_0101">
         <item>Skip now suppresses the selected update until a newer release or manual check.</item>
         <item>Made Android versionCode authoritative so an installed build is never offered again.</item>
@@ -18,7 +23,7 @@
         <item>Fixed saved AI keys being misreported as missing and clarified where AI is used.</item>
     </string-array>
     <string-array name="changelog_096">
-        <item>Added real microphone song recognition using local Chromaprint fingerprints and AcoustID.</item>
+        <item>Added Echo Music-style ambient recognition using a local Shazam DejaVu signature and in-app track resolution.</item>
         <item>Recognition results now search and play inside VYBE instead of opening Google.</item>
         <item>Kept Spotify authentication inside VYBE and refined the Recently Played layout.</item>
     </string-array>

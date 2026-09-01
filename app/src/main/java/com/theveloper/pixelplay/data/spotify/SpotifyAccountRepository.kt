@@ -80,6 +80,8 @@ class SpotifyAccountRepository @Inject constructor(
     val accountName: StateFlow<String> = _accountName.asStateFlow()
     private val _tasteProfile = MutableStateFlow(SpotifyTasteProfile())
     val tasteProfile: StateFlow<SpotifyTasteProfile> = _tasteProfile.asStateFlow()
+    private val _playlists = MutableStateFlow<List<SpotifyRemotePlaylist>>(emptyList())
+    val playlists: StateFlow<List<SpotifyRemotePlaylist>> = _playlists.asStateFlow()
 
     val isConfigured: Boolean get() = BuildConfig.SPOTIFY_CLIENT_ID.isNotBlank()
 
@@ -176,7 +178,7 @@ class SpotifyAccountRepository @Inject constructor(
             }
             offset += items.length()
         } while (items.length() > 0 && offset < page.optInt("total", offset))
-        result.distinctBy { it.id }
+        result.distinctBy { it.id }.also { _playlists.value = it }
     }
 
     suspend fun getPlaylistForImport(playlistId: String): SpotifyAccountPlaylist = withContext(Dispatchers.IO) {

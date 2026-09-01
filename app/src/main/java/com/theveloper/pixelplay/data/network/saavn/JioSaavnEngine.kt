@@ -33,6 +33,28 @@ class JioSaavnEngine @Inject constructor(
 
     private val streamCache = ConcurrentHashMap<String, String>()
 
+    /** Resolve a known Saavn item by its provider ID; never substitute a same-title result. */
+    suspend fun resolveStreamById(songId: String): String? = withContext(Dispatchers.IO) {
+        val cleanId = songId.removePrefix("saavn_").removePrefix("saavn://").trim()
+        if (cleanId.isBlank()) return@withContext null
+        val cacheKey = "id:$cleanId"
+        streamCache[cacheKey]?.let { return@withContext it }
+        runCatching {
+            val encodedId = URLEncoder.encode(cleanId, StandardCharsets.UTF_8.name())
+            val request = Request.Builder()
+                .url("https://www.jiosaavn.com/api.php?__call=song.getDetails&_format=json&_marker=0&ctx=web6dot0&pids=$encodedId")
+                .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/128.0.0.0 Mobile Safari/537.36")
+                .build()
+            okHttpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@use null
+                val root = JSONObject(response.body?.string().orEmpty())
+                val item = root.optJSONObject(cleanId)
+                    ?: root.keys().asSequence().mapNotNull(root::optJSONObject).firstOrNull()
+                item?.let(::nativeStreamUrl)
+            }
+        }.getOrNull()?.takeIf(String::isNotBlank)?.also { streamCache[cacheKey] = it }
+    }
+
     /**
      * Resolve direct playable 320kbps/160kbps CDN stream URL by song query or title + artist.
      */
@@ -279,6 +301,9 @@ class JioSaavnEngine @Inject constructor(
         .replace("&amp;", "&")
 
     fun invalidateCache(query: String) {
-        streamCache.remove(query.trim())
+        val normalized = query.trim()
+        val cleanId = normalized.removePrefix("saavn_").removePrefix("saavn://")
+        streamCache.remove(normalized)
+        streamCache.remove("id:$cleanId")
     }
 }

@@ -164,7 +164,9 @@ Found a reproducible problem or have a focused feature request? Open a [GitHub i
 
 ## License
 
-This repository is distributed under the terms in [LICENSE](LICENSE). Review those terms before using, modifying, redistributing, or publishing the project.
+VYBE is free and open-source software licensed under the
+[GNU General Public License v3.0](LICENSE). Source distributions and derivatives
+must preserve the same license and corresponding-source requirements.
 
 ---
 

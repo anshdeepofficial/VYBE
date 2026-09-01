@@ -1,5 +1,6 @@
 package com.theveloper.pixelplay.presentation.navigation
 
+import android.net.Uri
 import androidx.compose.runtime.Immutable
 
 @Immutable
@@ -30,12 +31,12 @@ sealed class Screen(val route: String) {
     object DJSpace : Screen("dj_space")
     object AlbumDetail : Screen("album_detail/{albumId}") {
         fun createRoute(albumId: Long) = "album_detail/$albumId"
-        fun createRoute(albumId: String) = "album_detail/$albumId"
+        fun createRoute(albumId: String) = "album_detail/${Uri.encode(albumId)}"
     }
 
     object ArtistDetail : Screen("artist_detail/{artistId}") {
         fun createRoute(artistId: Long) = "artist_detail/$artistId"
-        fun createRoute(artistId: String) = "artist_detail/$artistId"
+        fun createRoute(artistId: String) = "artist_detail/${Uri.encode(artistId)}"
     }
 
     object EditTransition : Screen("edit_transition?playlistId={playlistId}") {

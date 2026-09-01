@@ -3,10 +3,10 @@ package com.theveloper.pixelplay.presentation.viewmodel
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.theveloper.pixelplay.data.recognition.AcoustIdRecognitionProvider
 import com.theveloper.pixelplay.data.recognition.AmbientSongRecognizer
 import com.theveloper.pixelplay.data.recognition.RecognitionResult
 import com.theveloper.pixelplay.data.recognition.RecognitionTrackResolver
+import com.theveloper.pixelplay.data.recognition.ShazamRecognitionProvider
 import com.theveloper.pixelplay.data.repository.OnlineMusicRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -33,10 +33,11 @@ data class AmbientRecognitionUiState(
 class AmbientRecognitionViewModel @Inject constructor(
     @ApplicationContext context: Context,
     repository: OnlineMusicRepository,
+    recognitionProvider: ShazamRecognitionProvider,
 ) : ViewModel() {
     private val recognizer = AmbientSongRecognizer(
         context,
-        AcoustIdRecognitionProvider(),
+        recognitionProvider,
         RecognitionTrackResolver(repository),
     )
     private val _state = MutableStateFlow(AmbientRecognitionUiState())
