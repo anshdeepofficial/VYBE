@@ -53,7 +53,7 @@ class GitHubUpdateService {
                 val manifest = runCatching {
                     manifestUpdate(context, owner, repo, respectDismissal)
                 }.getOrNull()
-                if (manifest?.available == true) return@runCatching manifest.update
+                if (manifest?.update != null) return@runCatching manifest.update
 
                 val connection = openConnection(
                     "https://api.github.com/repos/$owner/$repo/releases/latest",

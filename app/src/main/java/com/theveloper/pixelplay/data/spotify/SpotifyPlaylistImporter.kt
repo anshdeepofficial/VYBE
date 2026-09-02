@@ -95,8 +95,8 @@ class SpotifyPlaylistImporter @Inject constructor(
         playlistId: String,
         onProgress: (SpotifyImportProgress) -> Unit,
     ): SpotifyImportResult = withContext(Dispatchers.IO) {
-        val accountPlaylist = spotifyAccountRepository.getPlaylistForImport(playlistId)
-        importPayload(
+        val payload = runCatching {
+            val accountPlaylist = spotifyAccountRepository.getPlaylistForImport(playlistId)
             SpotifyPlaylistPayload(
                 id = accountPlaylist.id,
                 name = accountPlaylist.name,
@@ -111,9 +111,11 @@ class SpotifyPlaylistImporter @Inject constructor(
                         durationMs = track.durationMs,
                     )
                 },
-            ),
-            onProgress,
-        )
+            )
+        }.getOrElse {
+            fetchPlaylist(playlistId)
+        }
+        importPayload(payload, onProgress)
     }
 
     private suspend fun importPayload(
@@ -228,7 +230,19 @@ class SpotifyPlaylistImporter @Inject constructor(
     private fun extractPlaylistId(input: String): String? {
         val value = input.trim()
         SPOTIFY_URI.find(value)?.groupValues?.getOrNull(1)?.let { return it }
-        return SPOTIFY_URL.find(value)?.groupValues?.getOrNull(1)
+        SPOTIFY_URL.find(value)?.groupValues?.getOrNull(1)?.let { return it }
+        if (value.startsWith("http://", ignoreCase = true) || value.startsWith("https://", ignoreCase = true)) {
+            val resolvedUrl = runCatching {
+                val req = Request.Builder().url(value).head().build()
+                httpClient.newCall(req).execute().use { response ->
+                    response.request.url.toString()
+                }
+            }.getOrNull()
+            if (resolvedUrl != null) {
+                SPOTIFY_URL.find(resolvedUrl)?.groupValues?.getOrNull(1)?.let { return it }
+            }
+        }
+        return null
     }
 
     private fun fetchPlaylist(playlistId: String): SpotifyPlaylistPayload {

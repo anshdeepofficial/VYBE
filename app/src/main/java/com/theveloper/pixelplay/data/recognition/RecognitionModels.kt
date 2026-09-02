@@ -8,6 +8,7 @@ data class RecognitionMetadata(
     val album: String? = null,
     val artworkUrl: String? = null,
     val isrc: String? = null,
+    val matchedOffsetSeconds: Float? = null,
 )
 
 sealed interface RecognitionResult {

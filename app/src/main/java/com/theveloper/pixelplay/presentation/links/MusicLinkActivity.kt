@@ -34,6 +34,18 @@ class MusicLinkActivity : ComponentActivity() {
             return
         }
 
+        val reelUrl = musicLinkRouter.parseSocialReelUrl(intent)
+        if (reelUrl != null) {
+            val mainIntent = Intent(this, MainActivity::class.java).apply {
+                action = MainActivityIntentContract.ACTION_RECOGNIZE_REEL_LINK
+                putExtra(MainActivityIntentContract.EXTRA_REEL_URL, reelUrl)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            }
+            startActivity(mainIntent)
+            finish()
+            return
+        }
+
         val trackId = musicLinkRouter.parseIntent(intent)
         if (trackId != null) {
             // Forward to MainActivity

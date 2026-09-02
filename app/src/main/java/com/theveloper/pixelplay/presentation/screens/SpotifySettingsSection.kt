@@ -33,13 +33,12 @@ fun SpotifySettingsSection(settingsViewModel: SettingsViewModel, context: Contex
 
     SettingsSubsection(title = "Spotify account") {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (!settingsViewModel.isSpotifyConfigured) {
+            if (!loggedIn) {
                 Text(
-                    "Spotify sign-in is ready. Add SPOTIFY_CLIENT_ID to local.properties and register vybe://spotify-callback in the Spotify dashboard.",
+                    "Connect Spotify to sync private, collaborative, followed, and public playlists without Developer Mode limits.",
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            } else if (!loggedIn) {
-                Text("Connect Spotify to scan private, collaborative, followed, and public playlists.")
                 Button(
                     onClick = { context.startActivity(Intent(context, SpotifyLoginActivity::class.java)) },
                     modifier = Modifier.fillMaxWidth(),
@@ -60,60 +59,92 @@ fun SpotifySettingsSection(settingsViewModel: SettingsViewModel, context: Contex
                 }
                 if (library.isLoading) LinearProgressIndicator(Modifier.fillMaxWidth())
                 library.errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-                LazyColumn(Modifier.fillMaxWidth().heightIn(max = 420.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(library.playlists, key = { it.id }) { playlist ->
-                        Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
-                            Column(Modifier.fillMaxWidth().padding(12.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Checkbox(
-                                        checked = playlist.id in library.selectedPlaylistIds,
-                                        onCheckedChange = { settingsViewModel.toggleSpotifyPlaylistSelection(playlist.id) },
-                                        enabled = !library.isImporting && playlist.canImportItems,
-                                    )
-                                    Column(Modifier.weight(1f)) {
-                                        Text(playlist.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                        Text("${playlist.trackCount} songs - ${playlist.ownerName}", style = MaterialTheme.typography.bodySmall)
-                                        if (!playlist.canImportItems) {
-                                            Text(
-                                                "Spotify currently exposes songs only for playlists you own or collaborate on.",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            )
+                
+                if (library.playlists.isNotEmpty()) {
+                    LazyColumn(Modifier.fillMaxWidth().heightIn(max = 420.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(library.playlists, key = { it.id }) { playlist ->
+                            Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
+                                Column(Modifier.fillMaxWidth().padding(12.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Checkbox(
+                                            checked = playlist.id in library.selectedPlaylistIds,
+                                            onCheckedChange = { settingsViewModel.toggleSpotifyPlaylistSelection(playlist.id) },
+                                            enabled = !library.isImporting && playlist.canImportItems,
+                                        )
+                                        Column(Modifier.weight(1f)) {
+                                            Text(playlist.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                            Text("${playlist.trackCount} songs - ${playlist.ownerName}", style = MaterialTheme.typography.bodySmall)
+                                            if (!playlist.canImportItems) {
+                                                Text(
+                                                    "Spotify currently exposes songs only for playlists you own or collaborate on.",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                )
+                                            }
                                         }
                                     }
-                                }
-                                if (playlist.id in library.selectedPlaylistIds) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text("Also sync to YouTube Music", Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-                                        Switch(
-                                            checked = playlist.id in library.youtubeSyncPlaylistIds,
-                                            onCheckedChange = { settingsViewModel.setSpotifyPlaylistYouTubeSync(playlist.id, it) },
-                                            enabled = !library.isImporting,
-                                        )
+                                    if (playlist.id in library.selectedPlaylistIds) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text("Also sync to YouTube Music", Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                                            Switch(
+                                                checked = playlist.id in library.youtubeSyncPlaylistIds,
+                                                onCheckedChange = { settingsViewModel.setSpotifyPlaylistYouTubeSync(playlist.id, it) },
+                                                enabled = !library.isImporting,
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
                     }
+                    Button(
+                        onClick = settingsViewModel::importSelectedSpotifyPlaylists,
+                        enabled = library.selectedPlaylistIds.isNotEmpty() && !library.isImporting,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(if (library.isImporting) "Importing ${library.processedPlaylists}/${library.totalPlaylists}..." else "Import selected playlists") }
+                } else if (!library.isLoading) {
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                "⚡ Direct Playlist Import",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                            )
+                            Text(
+                                "Due to Spotify API Development Mode limits, private library listing is restricted. You can import any playlist instantly by copying its link in Spotify and pasting it in the box below.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
-                Button(
-                    onClick = settingsViewModel::importSelectedSpotifyPlaylists,
-                    enabled = library.selectedPlaylistIds.isNotEmpty() && !library.isImporting,
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text(if (library.isImporting) "Importing ${library.processedPlaylists}/${library.totalPlaylists}..." else "Import selected playlists") }
                 if (library.isImporting) LinearProgressIndicator(Modifier.fillMaxWidth())
                 library.successMessage?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
             }
         }
     }
 
+    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
     SettingsSubsection(title = "Public playlist URL") {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Public-link import remains available without signing in.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Public-link import works for any Spotify playlist link without account restrictions.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             OutlinedTextField(
                 value = playlistUrl,
                 onValueChange = { playlistUrl = it },
                 label = { Text("Spotify playlist URL") },
+                trailingIcon = {
+                    TextButton(onClick = {
+                        clipboardManager.getText()?.text?.let { text ->
+                            if (text.isNotBlank()) playlistUrl = text.trim()
+                        }
+                    }) {
+                        Text("Paste")
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
             )

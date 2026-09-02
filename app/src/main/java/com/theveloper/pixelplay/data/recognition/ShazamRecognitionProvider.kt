@@ -53,6 +53,13 @@ class ShazamRecognitionProvider @Inject constructor(
                     }
                 }
                 val images = track.optJSONObject("images")
+                val matches = root.optJSONArray("matches")
+                val matchedOffset = if (matches != null && matches.length() > 0) {
+                    val first = matches.optJSONObject(0)
+                    first?.optDouble("offset")?.toFloat()?.takeIf { !it.isNaN() && it >= 0f }
+                } else {
+                    track.optDouble("offset").toFloat().takeIf { !it.isNaN() && it >= 0f }
+                }
                 RecognitionMetadata(
                     title = title,
                     artist = artist,
@@ -60,6 +67,7 @@ class ShazamRecognitionProvider @Inject constructor(
                     artworkUrl = images?.optString("coverarthq")?.takeIf(String::isNotBlank)
                         ?: images?.optString("coverart")?.takeIf(String::isNotBlank),
                     isrc = track.optString("isrc").takeIf(String::isNotBlank),
+                    matchedOffsetSeconds = matchedOffset,
                 )
             }
         }

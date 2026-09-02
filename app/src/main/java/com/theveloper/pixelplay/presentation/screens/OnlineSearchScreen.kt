@@ -586,31 +586,6 @@ fun OnlineSearchScreen(
                 contentPadding = PaddingValues(bottom = bottomPadding),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                if (discoveryArtists.isNotEmpty()) {
-                    item(key = "discovery_artists") {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text(
-                                text = "Artists",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                            )
-                            LazyRow(
-                                contentPadding = PaddingValues(horizontal = 16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            ) {
-                                items(discoveryArtists, key = { "discovery_artist_${it.browseId}" }) { artist ->
-                                    ArtistSearchCard(
-                                        artist = artist,
-                                        onClick = {
-                                            navController.navigate(Screen.ArtistDetail.createRoute(artist.browseId))
-                                        },
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
 
                 // AI Recommendations row
                 if ((selectedGenre == null || selectedGenre == "Trending") && aiRecommendations.isNotEmpty()) {

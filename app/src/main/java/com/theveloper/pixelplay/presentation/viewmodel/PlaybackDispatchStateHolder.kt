@@ -525,6 +525,7 @@ class PlaybackDispatchStateHolder @Inject constructor(
         queueName: String = "None",
         playlistId: String? = null,
         respectPersistentShuffle: Boolean = true,
+        startPositionMs: Long = 0L,
     ) {
         com.theveloper.pixelplay.utils.PerformanceTracker.start()
         cancelPendingFullQueuePlayback()
@@ -597,7 +598,7 @@ class PlaybackDispatchStateHolder @Inject constructor(
             throwIfDirectPlaybackRequestIsStale(requestToken)
 
             // Send the final list (shuffled or not) to the player engine
-            internalPlaySongs(finalSongsToPlay, validStartSong, queueName, playlistId)
+            internalPlaySongs(finalSongsToPlay, validStartSong, queueName, playlistId, startPositionMs)
             if (requestToken == directPlaybackToken) {
                 directPlaybackJob = null
             }
@@ -857,7 +858,13 @@ class PlaybackDispatchStateHolder @Inject constructor(
         }
     }
 
-    suspend fun internalPlaySongs(songsToPlay: List<Song>, startSong: Song, queueName: String = "None", playlistId: String? = null) {
+    suspend fun internalPlaySongs(
+        songsToPlay: List<Song>,
+        startSong: Song,
+        queueName: String = "None",
+        playlistId: String? = null,
+        startPositionMs: Long = 0L,
+    ) {
         if (songsToPlay.isEmpty()) {
             clearPreparingSongIfMatching()
             return
@@ -926,7 +933,8 @@ class PlaybackDispatchStateHolder @Inject constructor(
                     val enginePlayer = dualPlayerEngine.masterPlayer
 
                     com.theveloper.pixelplay.utils.PerformanceTracker.markT4()
-                    enginePlayer.setMediaItem(startMediaItem, 0L)
+                    enginePlayer.setMediaItem(startMediaItem, startPositionMs.coerceAtLeast(0L))
+                    playbackStateHolder.setCurrentPosition(startPositionMs.coerceAtLeast(0L))
                     com.theveloper.pixelplay.utils.PerformanceTracker.markT5()
                     enginePlayer.prepare()
                     enginePlayer.play()

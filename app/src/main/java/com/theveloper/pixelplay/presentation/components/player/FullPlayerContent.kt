@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.res.Configuration
 import android.net.Uri
 import android.widget.Toast
+import kotlinx.coroutines.delay
 import com.theveloper.pixelplay.data.model.Lyrics
 import com.theveloper.pixelplay.presentation.components.PlaylistBottomSheet
 import com.theveloper.pixelplay.presentation.components.TimerOptionsBottomSheet
@@ -224,28 +225,59 @@ private fun NativeInlineVideoArtwork(
     playerViewModel: PlayerViewModel,
     modifier: Modifier = Modifier,
 ) {
-    var isFullscreen by rememberSaveable { mutableStateOf(false) }
-    var showQualityMenu by remember { mutableStateOf(false) }
-    var qualityLabel by rememberSaveable { mutableStateOf("Auto") }
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    var isFullscreen by rememberSaveable { mutableStateOf(false) }
+    var showOverlayControls by remember { mutableStateOf(true) }
+    var showQualityPicker by remember { mutableStateOf(false) }
+    var selectedQualityLabel by rememberSaveable { mutableStateOf("1080p") }
+    var selectedTargetHeight by rememberSaveable { mutableStateOf<Int?>(1080) }
     val sessionPlayer = playerViewModel.inlineVideoPlayer()
 
-    val videoSurface: @Composable (Modifier) -> Unit = { surfaceModifier ->
+    LaunchedEffect(showOverlayControls, isFullscreen) {
+        if (showOverlayControls) {
+            delay(5000L)
+            showOverlayControls = false
+        }
+    }
+
+    val qualityOptions = remember {
+        listOf(
+            "4K (2160p)" to 2160,
+            "1080p Full HD" to 1080,
+            "720p HD" to 720,
+            "480p SD" to 480,
+            "360p" to 360,
+        )
+    }
+
+    val videoSurface: @Composable (Modifier, Boolean) -> Unit = { surfaceModifier, enableControls ->
         AndroidView(
             modifier = surfaceModifier.background(Color.Black),
             factory = { viewContext ->
                 PlayerView(viewContext).apply {
-                    useController = true
+                    useController = enableControls
                     player = sessionPlayer
                     setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
                     resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
                 }
             },
-            update = { it.player = playerViewModel.inlineVideoPlayer() },
+            update = {
+                it.player = playerViewModel.inlineVideoPlayer()
+                it.useController = enableControls
+            },
         )
     }
 
-    Box(modifier.clip(RoundedCornerShape(22.dp)).background(Color.Black).clipToBounds()) {
+    // Strictly square-bounded artwork container
+    Box(
+        modifier = modifier
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(22.dp))
+            .background(Color.Black)
+            .clipToBounds()
+            .clickable { showOverlayControls = !showOverlayControls },
+    ) {
         AsyncImage(
             model = artworkUrl,
             contentDescription = null,
@@ -253,48 +285,182 @@ private fun NativeInlineVideoArtwork(
             modifier = Modifier.fillMaxSize().blur(32.dp).graphicsLayer { alpha = 0.58f },
         )
         if (sessionPlayer != null && !isFullscreen) {
-            videoSurface(Modifier.fillMaxWidth().aspectRatio(16f / 9f).align(Alignment.Center))
+            videoSurface(
+                Modifier.fillMaxSize().align(Alignment.Center),
+                false // Square inline video has NO overlay player buttons
+            )
         } else {
             CircularProgressIndicator(Modifier.align(Alignment.Center))
         }
-        if (sessionPlayer != null) {
-            FilledIconButton(
-                onClick = { isFullscreen = true },
-                modifier = Modifier.align(Alignment.BottomEnd).padding(10.dp),
-            ) { Icon(Icons.Rounded.Fullscreen, contentDescription = "Fullscreen video") }
-        }
-        Box(Modifier.align(Alignment.BottomStart).padding(10.dp)) {
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
-                modifier = Modifier.clickable { showQualityMenu = true },
-            ) { Text(qualityLabel, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) }
-            DropdownMenu(expanded = showQualityMenu, onDismissRequest = { showQualityMenu = false }) {
-                listOf("Auto" to null, "Data saver" to true, "High" to false).forEach { (label, lowData) ->
-                    DropdownMenuItem(
-                        text = { Text(label) },
-                        onClick = {
-                            showQualityMenu = false
-                            qualityLabel = label
-                            scope.launch { playerViewModel.setInlineVideoMode(songId, true, lowData) }
-                        },
-                    )
+
+        // Overlay controls for Square mode (Quality + Fullscreen only, auto-hiding after 5s)
+        AnimatedVisibility(
+            visible = showOverlayControls && sessionPlayer != null && !isFullscreen,
+            enter = fadeIn(tween(180)),
+            exit = fadeOut(tween(180)),
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            Box(Modifier.fillMaxSize()) {
+                // Top End: Fullscreen Button
+                FilledIconButton(
+                    onClick = {
+                        isFullscreen = true
+                        showOverlayControls = true
+                    },
+                    modifier = Modifier.align(Alignment.TopEnd).padding(10.dp),
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = Color.Black.copy(alpha = 0.65f),
+                        contentColor = Color.White,
+                    ),
+                ) {
+                    Icon(Icons.Rounded.Fullscreen, contentDescription = "Horizontal fullscreen video")
+                }
+
+                // Bottom Start: Quality Selector Chip
+                Box(Modifier.align(Alignment.BottomStart).padding(10.dp)) {
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color.Black.copy(alpha = 0.72f),
+                        modifier = Modifier.clickable { showQualityPicker = true },
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        ) {
+                            Icon(
+                                painterResource(com.theveloper.pixelplay.R.drawable.outline_high_quality_24),
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                selectedQualityLabel,
+                                color = Color.White,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+
+                    DropdownMenu(
+                        expanded = showQualityPicker,
+                        onDismissRequest = { showQualityPicker = false },
+                    ) {
+                        qualityOptions.forEach { (label, height) ->
+                            DropdownMenuItem(
+                                text = { Text(label, fontWeight = if (selectedTargetHeight == height) FontWeight.Bold else FontWeight.Normal) },
+                                onClick = {
+                                    showQualityPicker = false
+                                    selectedQualityLabel = label
+                                    selectedTargetHeight = height
+                                    showOverlayControls = true
+                                    scope.launch {
+                                        playerViewModel.setInlineVideoMode(
+                                            songId = songId,
+                                            enabled = true,
+                                            targetHeight = height,
+                                        )
+                                    }
+                                },
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 
     if (isFullscreen) {
+        val activity = context as? android.app.Activity
+        DisposableEffect(isFullscreen) {
+            val originalOrientation = activity?.requestedOrientation ?: android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            onDispose {
+                activity?.requestedOrientation = originalOrientation
+            }
+        }
+
         Dialog(
             onDismissRequest = { isFullscreen = false },
             properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
         ) {
-            Box(Modifier.fillMaxSize().background(Color.Black)) {
-                videoSurface(Modifier.fillMaxSize())
-                FilledIconButton(
-                    onClick = { isFullscreen = false },
-                    modifier = Modifier.align(Alignment.TopEnd).padding(20.dp),
-                ) { Icon(Icons.Rounded.FullscreenExit, contentDescription = "Exit fullscreen") }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
+                    .clickable { showOverlayControls = !showOverlayControls },
+            ) {
+                // Horizontal Landscape Video
+                videoSurface(Modifier.fillMaxSize(), true)
+
+                // Landscape Fullscreen Top Header Controls
+                AnimatedVisibility(
+                    visible = showOverlayControls,
+                    enter = fadeIn(tween(180)),
+                    exit = fadeOut(tween(180)),
+                    modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(Color.Black.copy(alpha = 0.78f), Color.Transparent)
+                                )
+                            )
+                            .padding(horizontal = 24.dp, vertical = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box {
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = Color.White.copy(alpha = 0.2f),
+                                modifier = Modifier.clickable { showQualityPicker = true },
+                            ) {
+                                Text(
+                                    selectedQualityLabel,
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showQualityPicker,
+                                onDismissRequest = { showQualityPicker = false },
+                            ) {
+                                qualityOptions.forEach { (label, height) ->
+                                    DropdownMenuItem(
+                                        text = { Text(label) },
+                                        onClick = {
+                                            showQualityPicker = false
+                                            selectedQualityLabel = label
+                                            selectedTargetHeight = height
+                                            scope.launch {
+                                                playerViewModel.setInlineVideoMode(
+                                                    songId = songId,
+                                                    enabled = true,
+                                                    targetHeight = height,
+                                                )
+                                            }
+                                        },
+                                    )
+                                }
+                            }
+                        }
+
+                        FilledIconButton(
+                            onClick = { isFullscreen = false },
+                            colors = IconButtonDefaults.filledIconButtonColors(
+                                containerColor = Color.White.copy(alpha = 0.25f),
+                                contentColor = Color.White,
+                            ),
+                        ) {
+                            Icon(Icons.Rounded.FullscreenExit, contentDescription = "Exit fullscreen")
+                        }
+                    }
+                }
             }
         }
     }
@@ -362,6 +528,7 @@ fun FullPlayerContent(
     var showTimerBottomSheet by remember { mutableStateOf(false) }
     val isYouTubeSource = song.id.startsWith("yt_") || song.contentUriString.startsWith("yt://") || song.isMusicVideo
     var showVideoPlayer by remember { mutableStateOf(false) }
+    var isVideoToggling by remember { mutableStateOf(false) }
     var videoAvailable by remember(song.id, song.isMusicVideo) { mutableStateOf(isYouTubeSource) }
 
     LaunchedEffect(song.id, song.isMusicVideo) {
@@ -1144,11 +1311,14 @@ fun FullPlayerContent(
         if (videoAvailable) {
             FilledIconButton(
                 onClick = {
+                    if (isVideoToggling) return@FilledIconButton
                     videoToggleScope.launch {
+                        isVideoToggling = true
                         val target = !showVideoPlayer
                         if (playerViewModel.setInlineVideoMode(song.id, target)) {
                             showVideoPlayer = target
                         }
+                        isVideoToggling = false
                     }
                 },
                 colors = if (showVideoPlayer) IconButtonDefaults.filledIconButtonColors(
@@ -1157,10 +1327,18 @@ fun FullPlayerContent(
                 ) else IconButtonDefaults.filledIconButtonColors(),
                 modifier = Modifier.align(Alignment.TopEnd).padding(top = 108.dp, end = 20.dp),
             ) {
-                Icon(
-                    painterResource(R.drawable.rounded_play_circle_24),
-                    contentDescription = if (showVideoPlayer) "Show artwork" else "Play video",
-                )
+                if (isVideoToggling) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = if (showVideoPlayer) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
+                    )
+                } else {
+                    Icon(
+                        painterResource(R.drawable.rounded_play_circle_24),
+                        contentDescription = if (showVideoPlayer) "Show artwork" else "Play video",
+                    )
+                }
             }
         }
     }

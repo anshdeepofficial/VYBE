@@ -55,7 +55,7 @@ data class SpotifyAccountPlaylist(
     val tracks: List<SpotifyAccountTrack>,
 )
 
-/** Official Spotify Web API + OAuth PKCE account integration. */
+/** Official Spotify Web API + OAuth PKCE + Web Session account integration. */
 @Singleton
 class SpotifyAccountRepository @Inject constructor(
     @ApplicationContext context: Context,
@@ -84,10 +84,10 @@ class SpotifyAccountRepository @Inject constructor(
     private val _playlists = MutableStateFlow<List<SpotifyRemotePlaylist>>(emptyList())
     val playlists: StateFlow<List<SpotifyRemotePlaylist>> = _playlists.asStateFlow()
 
-    val isConfigured: Boolean get() = BuildConfig.SPOTIFY_CLIENT_ID.isNotBlank()
+    val isConfigured: Boolean get() = true
 
     fun createAuthorizationUri(): Uri {
-        check(isConfigured) { "Add SPOTIFY_CLIENT_ID to local.properties for Spotify sign-in." }
+        check(BuildConfig.SPOTIFY_CLIENT_ID.isNotBlank()) { "Add SPOTIFY_CLIENT_ID to local.properties for Spotify sign-in." }
         val verifier = randomUrlSafe(64)
         val state = randomUrlSafe(32)
         val challenge = Base64.encodeToString(
@@ -107,6 +107,41 @@ class SpotifyAccountRepository @Inject constructor(
             .appendQueryParameter("state", state)
             .appendQueryParameter("scope", SCOPES)
             .build()
+    }
+
+    suspend fun loginWithSpDc(spDc: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val cleanCookie = spDc.trim().removePrefix("sp_dc=").trim()
+            require(cleanCookie.isNotBlank()) { "Invalid Spotify session cookie." }
+            preferences.edit().putString(KEY_SP_DC, cleanCookie).apply()
+            val tokenObj = fetchWebPlayerToken(cleanCookie)
+            val accessToken = tokenObj.getString("accessToken")
+            val expMs = tokenObj.optLong("accessTokenExpirationTimestampMs", System.currentTimeMillis() + 3600_000L)
+            preferences.edit()
+                .putString(KEY_ACCESS_TOKEN, accessToken)
+                .putLong(KEY_EXPIRES_AT, expMs)
+                .apply()
+            refreshProfileAndTaste()
+            _isLoggedIn.value = true
+        }.onFailure {
+            _isLoggedIn.value = false
+            preferences.edit().remove(KEY_SP_DC).apply()
+        }
+    }
+
+    private fun fetchWebPlayerToken(spDc: String): JSONObject {
+        val req = Request.Builder()
+            .url("https://open.spotify.com/get_access_token?reason=transport&productType=web_player")
+            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36")
+            .header("Cookie", "sp_dc=$spDc")
+            .header("Accept", "application/json")
+            .build()
+        val responseBody = execute(req)
+        val json = JSONObject(responseBody)
+        if (json.optBoolean("isAnonymous", false) || !json.has("accessToken")) {
+            error("Invalid or expired Spotify session cookie.")
+        }
+        return json
     }
 
     suspend fun completeAuthorization(callback: Uri): Result<Unit> = withContext(Dispatchers.IO) {
@@ -163,33 +198,53 @@ class SpotifyAccountRepository @Inject constructor(
     suspend fun getCurrentUserPlaylists(): List<SpotifyRemotePlaylist> = withContext(Dispatchers.IO) {
         val result = mutableListOf<SpotifyRemotePlaylist>()
         var offset = 0
-        do {
-            val page = authorizedGet("/me/playlists?limit=$PLAYLIST_PAGE_SIZE&offset=$offset")
-            val items = page.optJSONArray("items") ?: JSONArray()
-            for (index in 0 until items.length()) {
-                val item = items.optJSONObject(index) ?: continue
-                val id = item.optString("id").trim()
-                if (id.isEmpty()) continue
-                val owner = item.optJSONObject("owner")
-                val ownerId = owner?.optString("account_id")?.ifBlank { owner.optString("id") }.orEmpty()
-                val ownAccountId = preferences.getString(KEY_ACCOUNT_ID, null).orEmpty()
-                val collaborative = item.optBoolean("collaborative", false)
-                result += SpotifyRemotePlaylist(
-                    id = id,
-                    name = item.optString("name").ifBlank { "Spotify Playlist" },
-                    coverUrl = item.optJSONArray("images")?.optJSONObject(0)
-                        ?.optString("url")?.takeIf(String::isNotBlank),
-                    trackCount = item.optJSONObject("items")?.optInt("total")
-                        ?: item.optJSONObject("tracks")?.optInt("total")
-                        ?: 0,
-                    ownerName = owner?.optString("display_name")
-                        ?.ifBlank { owner.optString("id") }
-                        .orEmpty(),
-                    canImportItems = collaborative || ownAccountId.isBlank() || ownerId == ownAccountId,
-                )
+        val ownAccountId = preferences.getString(KEY_ACCOUNT_ID, null).orEmpty()
+        val webApiResult = runCatching {
+            do {
+                val page = authorizedGet("/me/playlists?limit=$PLAYLIST_PAGE_SIZE&offset=$offset")
+                val items = page.optJSONArray("items") ?: JSONArray()
+                for (index in 0 until items.length()) {
+                    val item = items.optJSONObject(index) ?: continue
+                    val id = item.optString("id").trim()
+                    if (id.isEmpty()) continue
+                    val owner = item.optJSONObject("owner")
+                    val ownerId = owner?.optString("account_id")?.ifBlank { owner.optString("id") }.orEmpty()
+                    val collaborative = item.optBoolean("collaborative", false)
+                    result += SpotifyRemotePlaylist(
+                        id = id,
+                        name = item.optString("name").ifBlank { "Spotify Playlist" },
+                        coverUrl = item.optJSONArray("images")?.optJSONObject(0)
+                            ?.optString("url")?.takeIf(String::isNotBlank),
+                        trackCount = item.optJSONObject("items")?.optInt("total")
+                            ?: item.optJSONObject("tracks")?.optInt("total")
+                            ?: 0,
+                        ownerName = owner?.optString("display_name")
+                            ?.ifBlank { owner.optString("id") }
+                            .orEmpty(),
+                        canImportItems = collaborative || ownAccountId.isBlank() || ownerId == ownAccountId,
+                    )
+                }
+                offset += items.length()
+            } while (items.length() > 0 && offset < page.optInt("total", offset))
+            result.distinctBy { it.id }
+        }
+
+        if (webApiResult.isSuccess && result.isNotEmpty()) {
+            return@withContext result.also { _playlists.value = it }
+        }
+
+        if (webApiResult.isFailure) {
+            val exception = webApiResult.exceptionOrNull()
+            val msg = exception?.message.orEmpty()
+            if (msg.contains("403") || msg.contains("denied", ignoreCase = true) || msg.contains("Development Mode", ignoreCase = true)) {
+                // In Development Mode without user dashboard registration, Spotify restricts direct /me/playlists access.
+                // Return empty list safely so the UI gracefully shows the direct playlist URL import method.
+                _playlists.value = emptyList()
+                return@withContext emptyList()
             }
-            offset += items.length()
-        } while (items.length() > 0 && offset < page.optInt("total", offset))
+            throw exception ?: Exception("Could not load Spotify playlists")
+        }
+
         result.distinctBy { it.id }.also { _playlists.value = it }
     }
 
@@ -268,21 +323,37 @@ class SpotifyAccountRepository @Inject constructor(
 
     private fun validAccessToken(): String {
         val expiresAt = preferences.getLong(KEY_EXPIRES_AT, 0L)
-        if (System.currentTimeMillis() < expiresAt - 60_000L) {
-            return preferences.getString(KEY_ACCESS_TOKEN, null)
-                ?: error("Spotify session is missing.")
+        val currentToken = preferences.getString(KEY_ACCESS_TOKEN, null)
+        if (!currentToken.isNullOrBlank() && System.currentTimeMillis() < expiresAt - 60_000L) {
+            return currentToken
         }
+
+        val spDc = preferences.getString(KEY_SP_DC, null)
+        if (!spDc.isNullOrBlank()) {
+            val refreshed = fetchWebPlayerToken(spDc)
+            val accessToken = refreshed.getString("accessToken")
+            val expMs = refreshed.optLong("accessTokenExpirationTimestampMs", System.currentTimeMillis() + 3600_000L)
+            preferences.edit()
+                .putString(KEY_ACCESS_TOKEN, accessToken)
+                .putLong(KEY_EXPIRES_AT, expMs)
+                .apply()
+            return accessToken
+        }
+
         val refreshToken = preferences.getString(KEY_REFRESH_TOKEN, null)
-            ?: error("Spotify session expired. Please sign in again.")
-        val refreshed = exchangeToken(
-            FormBody.Builder()
-                .add("client_id", BuildConfig.SPOTIFY_CLIENT_ID)
-                .add("grant_type", "refresh_token")
-                .add("refresh_token", refreshToken)
-                .build()
-        )
-        persistToken(refreshed, refreshToken)
-        return refreshed.getString("access_token")
+        if (!refreshToken.isNullOrBlank() && BuildConfig.SPOTIFY_CLIENT_ID.isNotBlank()) {
+            val refreshed = exchangeToken(
+                FormBody.Builder()
+                    .add("client_id", BuildConfig.SPOTIFY_CLIENT_ID)
+                    .add("grant_type", "refresh_token")
+                    .add("refresh_token", refreshToken)
+                    .build()
+            )
+            persistToken(refreshed, refreshToken)
+            return refreshed.getString("access_token")
+        }
+
+        error("Spotify session expired. Please sign in again.")
     }
 
     private fun exchangeToken(body: FormBody): JSONObject = JSONObject(
@@ -317,8 +388,11 @@ class SpotifyAccountRepository @Inject constructor(
         payload
     }
 
-    private fun hasUsableSession(): Boolean =
-        !preferences.getString(KEY_REFRESH_TOKEN, null).isNullOrBlank() && isConfigured
+    private fun hasUsableSession(): Boolean {
+        val hasSpDc = !preferences.getString(KEY_SP_DC, null).isNullOrBlank()
+        val hasOAuth = !preferences.getString(KEY_REFRESH_TOKEN, null).isNullOrBlank() && BuildConfig.SPOTIFY_CLIENT_ID.isNotBlank()
+        return hasSpDc || hasOAuth
+    }
 
     private fun randomUrlSafe(byteCount: Int): String {
         val bytes = ByteArray(byteCount).also(SecureRandom()::nextBytes)
@@ -336,6 +410,7 @@ class SpotifyAccountRepository @Inject constructor(
         private const val PREFS_NAME = "spotify_account_secure_prefs"
         private const val KEY_ACCESS_TOKEN = "access_token"
         private const val KEY_REFRESH_TOKEN = "refresh_token"
+        private const val KEY_SP_DC = "sp_dc"
         private const val KEY_EXPIRES_AT = "expires_at"
         private const val KEY_ACCOUNT_NAME = "account_name"
         private const val KEY_ACCOUNT_ID = "account_id"

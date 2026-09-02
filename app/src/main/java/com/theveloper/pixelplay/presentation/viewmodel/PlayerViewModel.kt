@@ -236,16 +236,22 @@ class PlayerViewModel @Inject constructor(
     private val playbackDispatchStateHolder: PlaybackDispatchStateHolder,
     private val mediaControllerSyncStateHolder: MediaControllerSyncStateHolder,
     private val sessionToken: SessionToken,
-    private val mediaControllerFactory: com.theveloper.pixelplay.data.media.MediaControllerFactory
+    private val mediaControllerFactory: com.theveloper.pixelplay.data.media.MediaControllerFactory,
+    private val socialReelAudioRecognizer: com.theveloper.pixelplay.data.recognition.SocialReelAudioRecognizer,
 ) : ViewModel() {
 
     val dataSaverEnabled: StateFlow<Boolean> = userPreferencesRepository.dataSaverEnabledFlow
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
-    suspend fun resolveInlineVideoStream(songId: String, preferLowData: Boolean? = null): String? =
+    suspend fun resolveInlineVideoStream(
+        songId: String,
+        preferLowData: Boolean? = null,
+        targetHeight: Int? = null,
+    ): String? =
         newPipeStreamResolver.resolveVideo(
             videoId = songId.removePrefix("yt_"),
             preferLowData = preferLowData ?: dataSaverEnabled.value,
+            targetHeight = targetHeight,
         )
 
     private var inlineVideoOriginalItem: MediaItem? = null
@@ -257,12 +263,13 @@ class PlayerViewModel @Inject constructor(
         songId: String,
         enabled: Boolean,
         preferLowData: Boolean? = null,
+        targetHeight: Int? = null,
     ): Boolean {
         val controller = mediaController ?: return false
         val cleanId = songId.removePrefix("yt_")
         val expectedMediaId = "yt_$cleanId"
         if (controller.currentMediaItem?.mediaId != expectedMediaId) return false
-        val streamUrl = if (enabled) resolveInlineVideoStream(cleanId, preferLowData) ?: return false else null
+        val streamUrl = if (enabled) resolveInlineVideoStream(cleanId, preferLowData, targetHeight) ?: return false else null
         return withContext(Dispatchers.Main.immediate) {
             val index = controller.currentMediaItemIndex
             if (index < 0) return@withContext false
@@ -2673,9 +2680,45 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    // rebuildPlayerQueue functionality moved to PlaybackStateHolder (simplified)
-    fun playSongs(songsToPlay: List<Song>, startSong: Song, queueName: String = "None", playlistId: String? = null) =
-        playbackDispatchStateHolder.playSongs(songsToPlay, startSong, queueName, playlistId)
+    private val _reelRecognitionResult = MutableStateFlow<com.theveloper.pixelplay.data.recognition.ReelRecognitionResult?>(null)
+    val reelRecognitionResult: StateFlow<com.theveloper.pixelplay.data.recognition.ReelRecognitionResult?> = _reelRecognitionResult.asStateFlow()
+
+    private val _isReelRecognizing = MutableStateFlow(false)
+    val isReelRecognizing: StateFlow<Boolean> = _isReelRecognizing.asStateFlow()
+
+    fun recognizeSocialReel(url: String) {
+        viewModelScope.launch {
+            _isReelRecognizing.value = true
+            val result = runCatching {
+                socialReelAudioRecognizer.recognizeFromUrl(url)
+            }.getOrNull()
+            _reelRecognitionResult.value = result
+            _isReelRecognizing.value = false
+            if (result == null) {
+                // Fallback to direct stream / query resolution
+                playExternalMusicId(url.trim())
+            }
+        }
+    }
+
+    fun clearReelRecognition() {
+        _reelRecognitionResult.value = null
+        _isReelRecognizing.value = false
+    }
+
+    fun playSongs(
+        songsToPlay: List<Song>,
+        startSong: Song,
+        queueName: String = "None",
+        playlistId: String? = null,
+        startPositionMs: Long = 0L,
+    ) = playbackDispatchStateHolder.playSongs(
+        songsToPlay = songsToPlay,
+        startSong = startSong,
+        queueName = queueName,
+        playlistId = playlistId,
+        startPositionMs = startPositionMs,
+    )
 
     /** Plays saved playlist songs first, then a temporary radio continuation. */
     fun playPlaylistWithContinuation(

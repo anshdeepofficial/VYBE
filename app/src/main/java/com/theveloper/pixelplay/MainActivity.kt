@@ -130,6 +130,7 @@ import com.theveloper.pixelplay.presentation.components.DrawerDestination
 import com.theveloper.pixelplay.presentation.components.GitHubUpdateDialog
 import com.theveloper.pixelplay.presentation.components.MiniPlayerBottomSpacer
 import com.theveloper.pixelplay.presentation.components.MiniPlayerHeight
+import com.theveloper.pixelplay.presentation.components.ReelRecognitionBottomSheet
 import com.theveloper.pixelplay.presentation.components.PlayerInternalNavigationBar
 import com.theveloper.pixelplay.presentation.components.PlayStoreAnnouncementDefaults
 import com.theveloper.pixelplay.presentation.components.PlayStoreAnnouncementDialog
@@ -442,6 +443,13 @@ class MainActivity : ComponentActivity() {
             intent.action == MainActivityIntentContract.ACTION_PLAY_MUSIC_LINK -> {
                 intent.getStringExtra(MainActivityIntentContract.EXTRA_TRACK_ID)?.let { trackId ->
                     playerViewModel.playExternalMusicId(trackId)
+                }
+                intent.action = null
+            }
+
+            intent.action == MainActivityIntentContract.ACTION_RECOGNIZE_REEL_LINK -> {
+                intent.getStringExtra(MainActivityIntentContract.EXTRA_REEL_URL)?.let { url ->
+                    playerViewModel.recognizeSocialReel(url)
                 }
                 intent.action = null
             }
@@ -1144,6 +1152,18 @@ class MainActivity : ComponentActivity() {
                                 onUndo = onUndoDismissPlaylist,
                                 onClose = onCloseDismissUndoBar,
                                 durationMillis = dismissUndoBarSlice.durationMillis
+                            )
+                        }
+
+                        val reelRecognitionResult by playerViewModel.reelRecognitionResult.collectAsStateWithLifecycle()
+                        val isReelRecognizing by playerViewModel.isReelRecognizing.collectAsStateWithLifecycle()
+
+                        if (isReelRecognizing || reelRecognitionResult != null) {
+                            ReelRecognitionBottomSheet(
+                                result = reelRecognitionResult,
+                                isLoading = isReelRecognizing,
+                                onDismiss = { playerViewModel.clearReelRecognition() },
+                                playerViewModel = playerViewModel,
                             )
                         }
 

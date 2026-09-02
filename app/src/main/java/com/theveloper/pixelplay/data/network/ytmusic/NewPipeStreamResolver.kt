@@ -55,6 +55,7 @@ class NewPipeStreamResolver @Inject constructor(
     suspend fun resolveVideo(
         videoId: String,
         preferLowData: Boolean = false,
+        targetHeight: Int? = null,
     ): String? = withContext(Dispatchers.IO) {
         val cleanId = videoId.removePrefix("yt_").trim()
         if (cleanId.isBlank()) return@withContext null
@@ -65,7 +66,12 @@ class NewPipeStreamResolver @Inject constructor(
                 ServiceList.YouTube,
                 "https://www.youtube.com/watch?v=$cleanId"
             )
-            selectPlayableMuxedStream(info.videoStreams, preferLowData)?.content
+            if (targetHeight != null) {
+                selectMuxedStreamByQuality(info.videoStreams, targetHeight)?.content
+                    ?: selectPlayableMuxedStream(info.videoStreams, preferLowData)?.content
+            } else {
+                selectPlayableMuxedStream(info.videoStreams, preferLowData)?.content
+            }
         }.onFailure { error ->
             Timber.tag(TAG).w(error, "NewPipe video extraction failed for %s", cleanId)
         }.getOrNull()
@@ -110,6 +116,14 @@ class NewPipeStreamResolver @Inject constructor(
             }
         )
         .firstOrNull()
+
+    internal fun selectMuxedStreamByQuality(
+        streams: List<VideoStream>,
+        targetHeight: Int,
+    ): VideoStream? = streams
+        .asSequence()
+        .filter { it.isUrl && it.content.startsWith("http") }
+        .minByOrNull { kotlin.math.abs((it.height.takeIf { h -> h > 0 } ?: 360) - targetHeight) }
 
     private class OkHttpNewPipeDownloader(
         private val client: OkHttpClient

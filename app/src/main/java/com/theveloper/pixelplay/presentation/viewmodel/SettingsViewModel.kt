@@ -511,6 +511,21 @@ class SettingsViewModel @Inject constructor(
     }
 
     
+    fun loginSpotifyWithSpDc(spDc: String) {
+        viewModelScope.launch {
+            _spotifyLibraryState.update { it.copy(isLoading = true, errorMessage = null) }
+            spotifyAccountRepository.loginWithSpDc(spDc)
+                .onSuccess {
+                    loadSpotifyAccountPlaylists()
+                }
+                .onFailure { error ->
+                    _spotifyLibraryState.update {
+                        it.copy(isLoading = false, errorMessage = error.message ?: "Spotify session login failed")
+                    }
+                }
+        }
+    }
+
     fun logoutSpotify() {
         spotifyAccountRepository.logout()
     }

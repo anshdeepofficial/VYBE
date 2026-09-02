@@ -1,3 +1,21 @@
+## [0.11.0] - 2026-09-02
+### Added
+- **Constrained Square Artwork Video Player**: Inline video playback is strictly constrained within the square album cover boundaries without expanding vertically or obscuring bottom playback controls.
+- **Video Toggle Loading Spinner**: Live visual loading spinner directly on the player video button while streams buffer or switch.
+- **Clean In-Player Video Surface & Explicit Quality Selector**: In-line square video removes all cluttered playback icons and displays only auto-hiding (5s) Quality selector (4K 2160p, 1080p Full HD, 720p HD, 480p SD, 360p) and Fullscreen controls.
+- **Landscape / Horizontal Fullscreen Mode**: Fullscreen video opens in true horizontal landscape orientation with full playback controls, scrub bar, and quality picker.
+- **Home Release Radar (Last 30 Days)**: Replaced Moods with a dedicated Release Radar section featuring fresh releases from the last 30 days, sorted descending with exact release date badges ("Today", "Yesterday", "1 Sep", "30 Aug").
+- **Instant Trending Search**: Pre-warmed search discovery displaying trending playlists and trending songs instantly without blank delay or cluttered artist bubbles.
+- **Enhanced Song Recognition**: Added Cancel button while listening, instant playback handoff with sheet auto-dismiss, and Listen Again / Skip controls.
+- **Default Downloads Library Tab & Resilient Album Loading**: Library opens to Downloads tab by default and guarantees album metadata and song resolution without "Album not found" errors.
+- **Spotify Web Player Token & `sp_dc` Cookie Authentication**: Seamless in-app WebView session capture and direct `sp_dc` cookie authentication bypassing Spotify 403 / 25-user Development Mode quotas.
+
+## [0.10.9] - 2026-09-02
+### Added
+- **Social Reel & Video Audio Recognition**: Share Instagram Reels and YouTube Shorts directly to VYBE to automatically analyze the background audio and recognize the exact song and matched timestamp offset (e.g., "Matched at 1:10").
+- **Timestamp Offset Playback ("Play from Matched Time")**: Choose between "Play from beginning (0:00)" or "Play from matched timestamp (e.g. 1:10)" to jump straight to the viral reel chorus.
+- **Ambient Recognition Auto-Dismiss & Player Handoff**: Tapping "Play in VYBE" on ambiently recognized songs or reel audio immediately dismisses the recognition sheet and opens the full player.
+
 ## [0.10.8] - 2026-09-02
 ### Added
 - **Playlist Radio & Auto-Continuation**: When a playlist finishes, seamless recommended continuation songs matching the playlist's artists, genre, and style start playing without altering the saved playlist.

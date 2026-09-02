@@ -362,11 +362,6 @@ fun HomeScreen(
     var showProfileBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
-    var selectedMood by rememberSaveable { mutableStateOf<String?>(null) }
-    var moodMixSongs by remember { mutableStateOf<List<Song>>(emptyList()) }
-    var isMoodMixLoading by remember { mutableStateOf(false) }
-    val moodColors by playerViewModel.moodColors.collectAsStateWithLifecycle()
-    LocalContext.current
 
     val homeStatsOverview by statsViewModel.homeOverview.collectAsStateWithLifecycle()
 
@@ -603,23 +598,12 @@ fun HomeScreen(
                 }
 
                 item(
-                    key = "moods_section",
-                    contentType = "moods_section"
+                    key = "release_radar_section",
+                    contentType = "release_radar_section"
                 ) {
-                    val topMoods by playerViewModel.topMoods.collectAsStateWithLifecycle()
-                    MoodsSection(
-                        moods = topMoods,
-                        moodColors = moodColors,
-                        onMoodColorChange = playerViewModel::setMoodColor,
-                        onMoodClick = { mood ->
-                            selectedMood = mood
-                            moodMixSongs = emptyList()
-                            isMoodMixLoading = true
-                            scope.launch {
-                                moodMixSongs = playerViewModel.loadMoodMix(mood)
-                                isMoodMixLoading = false
-                            }
-                        }
+                    ReleaseRadarSection(
+                        songs = latestReleaseSongs,
+                        playerViewModel = playerViewModel,
                     )
                 }
 
@@ -693,24 +677,6 @@ fun HomeScreen(
             navController = navController,
             onDismiss = { showProfileBottomSheet = false },
             statsViewModel = statsViewModel
-        )
-    }
-    selectedMood?.let { mood ->
-        MoodPlaylistSheet(
-            mood = mood,
-            songs = moodMixSongs,
-            isLoading = isMoodMixLoading,
-            onDismiss = { selectedMood = null },
-            onPlay = { if (moodMixSongs.isNotEmpty()) playerViewModel.playSongs(moodMixSongs, moodMixSongs.first(), "$mood Playlist") },
-            onSongClick = { song -> playerViewModel.playSongs(moodMixSongs, song, "$mood Playlist") },
-            onSave = {
-                playlistViewModel.createPlaylist(
-                    name = "$mood Playlist",
-                    songIds = moodMixSongs.map(Song::id),
-                    source = "MOOD"
-                )
-                android.widget.Toast.makeText(context, "$mood Playlist saved", android.widget.Toast.LENGTH_SHORT).show()
-            }
         )
     }
 }
@@ -1171,167 +1137,124 @@ private fun YouTubeMusicHomeRow(
 }
 
 @Composable
-fun MoodsSection(
-    moods: List<String>,
-    moodColors: Map<String, Long>,
-    onMoodColorChange: (String, Long) -> Unit,
-    onMoodClick: (String) -> Unit
+fun ReleaseRadarSection(
+    songs: List<Song>,
+    playerViewModel: PlayerViewModel,
 ) {
-    var colorMood by remember { mutableStateOf<String?>(null) }
-    val visibleMoods = remember(moods) { moods.take(12) }
-    Column(modifier = Modifier.padding(bottom = 8.dp)) {
-        Text(
-            text = "Moods",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-        )
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            visibleMoods.chunked(2).forEach { moodRow ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    moodRow.forEach { mood ->
-                        val stored = moodColors[mood.lowercase()]
-                        val fallback = moodDefaultColor(mood)
-                        val background = Color((stored ?: fallback.toLong()).toInt())
-                        Surface(
-                            color = Color.Transparent,
-                            contentColor = if (androidx.core.graphics.ColorUtils.calculateLuminance(background.toArgb()) > 0.5) Color.Black else Color.White,
-                            shape = RoundedCornerShape(18.dp),
-                            modifier = Modifier
-                                .height(56.dp)
-                                .weight(1f)
-                                .background(
-                                    Brush.linearGradient(
-                                        listOf(background, background.copy(alpha = 0.68f), Color.Black.copy(alpha = 0.16f))
-                                    ),
-                                    RoundedCornerShape(18.dp)
-                                )
-                                .pointerInput(mood) {
-                                    detectTapGestures(
-                                        onTap = { onMoodClick(mood) },
-                                        onLongPress = { colorMood = mood }
-                                    )
-                                }
-                        ) {
-                            Box(Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 7.dp)) {
-                                Text(
-                                    text = moodVisual(mood),
-                                    fontSize = 30.sp,
-                                    modifier = Modifier.align(Alignment.CenterEnd),
-                                    color = if (androidx.core.graphics.ColorUtils.calculateLuminance(background.toArgb()) > 0.5) {
-                                        Color.Black.copy(alpha = 0.42f)
-                                    } else {
-                                        Color.White.copy(alpha = 0.48f)
-                                    },
-                                )
-                                Column(modifier = Modifier.align(Alignment.CenterStart)) {
-                                    Text(mood, fontWeight = FontWeight.Bold, maxLines = 1)
-                                    Text(
-                                        moodCaption(mood),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        maxLines = 1,
-                                        color = if (androidx.core.graphics.ColorUtils.calculateLuminance(background.toArgb()) > 0.5) {
-                                            Color.Black.copy(alpha = 0.68f)
-                                        } else {
-                                            Color.White.copy(alpha = 0.72f)
-                                        },
-                                    )
-                                }
-                            }
-                        }
-                    }
+    val now = remember { System.currentTimeMillis() }
+    val thirtyDaysAgo = remember(now) { now - 30L * 24 * 60 * 60 * 1000L }
+
+    val radarSongs = remember(songs) {
+        songs
+            .filter { song ->
+                val releaseTime = when {
+                    song.dateAdded in thirtyDaysAgo..now -> song.dateAdded
+                    song.dateModified in thirtyDaysAgo..now -> song.dateModified
+                    else -> song.dateAdded.takeIf { it > thirtyDaysAgo } ?: now
                 }
+                releaseTime >= thirtyDaysAgo
+            }
+            .sortedByDescending { it.dateAdded.takeIf { d -> d > 0L } ?: it.dateModified }
+            .take(20)
+    }
+
+    if (radarSongs.isEmpty()) return
+
+    Column(modifier = Modifier.padding(bottom = 12.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column {
+                Text(
+                    text = "🚀 Release Radar",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "Fresh music released in the last 30 days",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
-    }
-    colorMood?.let { mood ->
-        val colors = listOf(0xFF6750A4, 0xFF006C4C, 0xFF9C4146, 0xFF00658A, 0xFF7D5260, 0xFF735C00, 0xFF4A6363, 0xFF874D00)
-        AlertDialog(
-            onDismissRequest = { colorMood = null },
-            title = { Text("Choose $mood color") },
-            text = {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    colors.take(4).forEach { argb ->
-                        Surface(
-                            onClick = { onMoodColorChange(mood, argb); colorMood = null },
-                            color = Color(argb.toInt()), shape = RoundedCornerShape(14.dp), modifier = Modifier.size(48.dp)
-                        ) {}
-                    }
-                }
-            },
-            confirmButton = { TextButton(onClick = { colorMood = null }) { Text("Done") } }
-        )
-    }
-}
 
-private fun moodDefaultColor(mood: String): Int {
-    val palette = intArrayOf(0xFF6750A4.toInt(), 0xFF006C4C.toInt(), 0xFF9C4146.toInt(), 0xFF00658A.toInt(), 0xFF735C00.toInt())
-    return palette[(mood.lowercase().hashCode() and Int.MAX_VALUE) % palette.size]
-}
-
-private fun moodVisual(mood: String): String = when (mood.lowercase()) {
-    "chill", "relax" -> "◌"
-    "happy" -> "☀"
-    "workout" -> "⚡"
-    "focus" -> "◎"
-    "romantic" -> "♥"
-    "sad" -> "☂"
-    "party" -> "✦"
-    "sleep" -> "☾"
-    else -> "♪"
-}
-
-private fun moodCaption(mood: String): String = when (mood.lowercase()) {
-    "chill" -> "Slow down"
-    "happy" -> "Bright energy"
-    "workout" -> "Push harder"
-    "focus" -> "Deep concentration"
-    "romantic" -> "Love songs"
-    "sad" -> "Soft & reflective"
-    "party" -> "Turn it up"
-    "relax" -> "Breathe easy"
-    "sleep" -> "Drift away"
-    else -> "Made for your moment"
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun MoodPlaylistSheet(
-    mood: String,
-    songs: List<Song>,
-    isLoading: Boolean,
-    onDismiss: () -> Unit,
-    onPlay: () -> Unit,
-    onSongClick: (Song) -> Unit,
-    onSave: () -> Unit
-) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp)) {
-            Text("$mood Playlist", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-            Text("Temporary mood mix • save it only if you want", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilledTonalButton(onClick = onPlay, enabled = songs.isNotEmpty()) { Text("Play") }
-                TextButton(onClick = onSave, enabled = songs.isNotEmpty()) { Text("Save Playlist") }
-            }
-            if (isLoading) {
-                Box(Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-            } else {
-                LazyColumn(modifier = Modifier.heightIn(max = 560.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items(songs, key = { it.id }) { song ->
-                        Surface(onClick = { onSongClick(song) }, shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
-                            Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                AsyncImage(song.albumArtUriString, null, contentScale = ContentScale.Crop, modifier = Modifier.size(52.dp).clip(RoundedCornerShape(10.dp)))
-                                Spacer(Modifier.width(10.dp))
-                                Column(Modifier.weight(1f)) {
-                                    Text(song.title, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    Text(song.displayArtist, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            items(radarSongs, key = { "radar_${it.id}" }) { song ->
+                val dateLabel = remember(song.dateAdded, song.dateModified) {
+                    val timestamp = if (song.dateAdded > 0L) song.dateAdded else song.dateModified
+                    if (timestamp <= 0L) "Recent"
+                    else {
+                        val diffDays = ((now - timestamp) / (1000 * 60 * 60 * 24)).toInt()
+                        when (diffDays) {
+                            0 -> "Today"
+                            1 -> "Yesterday"
+                            else -> {
+                                val sdf = java.text.SimpleDateFormat("d MMM", java.util.Locale.getDefault())
+                                sdf.format(java.util.Date(timestamp))
                             }
                         }
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    modifier = Modifier
+                        .width(150.dp)
+                        .clickable {
+                            playerViewModel.showAndPlaySong(song, radarSongs, "Release Radar")
+                        },
+                ) {
+                    Column(Modifier.padding(10.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .size(130.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                        ) {
+                            SmartImage(
+                                model = song.albumArtUriString,
+                                contentDescription = song.title,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop,
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.92f),
+                                modifier = Modifier
+                                    .align(Alignment.TopStart)
+                                    .padding(6.dp),
+                            ) {
+                                Text(
+                                    text = dateLabel,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = song.title,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = song.artist,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
                 }
             }

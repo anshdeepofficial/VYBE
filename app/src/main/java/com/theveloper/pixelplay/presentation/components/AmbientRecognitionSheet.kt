@@ -10,12 +10,14 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -72,29 +74,102 @@ fun AmbientRecognitionSheet(
             Spacer(Modifier.height(18.dp))
             if (listening) {
                 CircularProgressIndicator()
-                Spacer(Modifier.height(14.dp))
-                OutlinedButton(onClick = viewModel::cancel) { Text("Cancel") }
+                Spacer(Modifier.height(16.dp))
+                OutlinedButton(
+                    onClick = {
+                        viewModel.cancel()
+                        onDismiss()
+                    }
+                ) {
+                    Text("Cancel")
+                }
             } else {
                 state.result?.let { match ->
+                    val offset = match.metadata.matchedOffsetSeconds
+                    val offsetText = if (offset != null && offset > 0f) {
+                        val minutes = (offset / 60).toInt()
+                        val seconds = (offset % 60).toInt()
+                        "%d:%02d".format(minutes, seconds)
+                    } else null
+
                     AsyncImage(
                         model = match.metadata.artworkUrl ?: match.song?.albumArtUriString,
                         contentDescription = null,
-                        modifier = Modifier.size(150.dp),
+                        modifier = Modifier.size(150.dp).clip(RoundedCornerShape(16.dp)),
                         contentScale = ContentScale.Crop,
                     )
-                    Text(match.metadata.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text(match.metadata.artist)
-                    match.metadata.album?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(10.dp))
+                    Text(match.metadata.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                    Text(match.metadata.artist, textAlign = TextAlign.Center)
+                    match.metadata.album?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center) }
+                    
+                    if (offsetText != null) {
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            "Matched at $offsetText",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+
+                    Spacer(Modifier.height(16.dp))
                     match.song?.let { song ->
-                        Button(onClick = { playerViewModel.playSongs(listOf(song), song, "Recognized song") }) { Text("Play in VYBE") }
-                    } ?: Text("Matched, but no playable VYBE track was found.", color = MaterialTheme.colorScheme.error)
+                        if (offsetText != null && offset != null && offset > 0f) {
+                            val offsetMs = (offset * 1000L).toLong()
+                            Button(
+                                onClick = {
+                                    viewModel.cancel()
+                                    playerViewModel.playSongs(listOf(song), song, "Recognized song ($offsetText)", startPositionMs = offsetMs)
+                                    onDismiss()
+                                    playerViewModel.showPlayer()
+                                },
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
+                            ) { Text("Play from $offsetText") }
+                            Spacer(Modifier.height(6.dp))
+                            OutlinedButton(
+                                onClick = {
+                                    viewModel.cancel()
+                                    playerViewModel.playSongs(listOf(song), song, "Recognized song", startPositionMs = 0L)
+                                    onDismiss()
+                                    playerViewModel.showPlayer()
+                                },
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
+                            ) { Text("Play from beginning (0:00)") }
+                        } else {
+                            Button(
+                                onClick = {
+                                    viewModel.cancel()
+                                    playerViewModel.playSongs(listOf(song), song, "Recognized song", startPositionMs = 0L)
+                                    onDismiss()
+                                    playerViewModel.showPlayer()
+                                },
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
+                            ) { Text("Play in VYBE") }
+                        }
+                    } ?: Text("Matched, but no playable track was found.", color = MaterialTheme.colorScheme.error)
                 }
                 state.message?.let { Text(it, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
-                Spacer(Modifier.height(12.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(onClick = start) { Text(if (state.phase == AmbientRecognitionPhase.READY) "Listen" else "Try Again") }
-                    if (state.phase != AmbientRecognitionPhase.READY) OutlinedButton(onClick = { viewModel.cancel(); onDismiss() }) { Text("Close") }
+                Spacer(Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.padding(horizontal = 32.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Button(
+                        onClick = start,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(if (state.phase == AmbientRecognitionPhase.READY) "Listen" else "Listen Again")
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            viewModel.cancel()
+                            onDismiss()
+                        },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text("Skip")
+                    }
                 }
             }
             Spacer(Modifier.height(28.dp))
