@@ -195,6 +195,7 @@ fun PlaylistDetailScreen(
     val isYouTubeSyncEnabled = currentPlaylist?.id in uiState.youtubeSyncEnabledPlaylistIds
     val isFolderPlaylist = currentPlaylist?.id?.startsWith(FOLDER_PLAYLIST_PREFIX) == true
     val songsInPlaylist = uiState.currentPlaylistSongs
+    val recommendedNextSongs = uiState.recommendedNextSongs
 
     LaunchedEffect(playlistId) {
         playlistViewModel.loadPlaylistDetails(playlistId)
@@ -372,10 +373,12 @@ fun PlaylistDetailScreen(
                     androidx.compose.material3.FloatingActionButton(
                         onClick = {
                             if (localReorderableSongs.isNotEmpty()) {
-                                playerViewModel.playSongs(
-                                    localReorderableSongs,
-                                    localReorderableSongs.first(),
-                                    currentPlaylist.name
+                                playerViewModel.playPlaylistWithContinuation(
+                                    playlistSongs = localReorderableSongs,
+                                    recommendedNext = recommendedNextSongs,
+                                    startSong = localReorderableSongs.first(),
+                                    queueName = currentPlaylist.name,
+                                    playlistId = currentPlaylist.id,
                                 )
                                 if (playerStableState.isShuffleEnabled) playerViewModel.toggleShuffle()
                             }
@@ -388,11 +391,12 @@ fun PlaylistDetailScreen(
                     androidx.compose.material3.FloatingActionButton(
                         onClick = {
                             if (localReorderableSongs.isNotEmpty()) {
-                                playerViewModel.playSongsShuffled(
-                                    songsToPlay = localReorderableSongs,
+                                playerViewModel.playPlaylistWithContinuation(
+                                    playlistSongs = localReorderableSongs,
+                                    recommendedNext = recommendedNextSongs,
                                     queueName = currentPlaylist.name,
                                     playlistId = currentPlaylist.id,
-                                    startAtZero = true,
+                                    shufflePlaylist = true,
                                 )
                             }
                         },
@@ -404,10 +408,12 @@ fun PlaylistDetailScreen(
                     androidx.compose.material3.FloatingActionButton(
                         onClick = {
                             if (localReorderableSongs.isNotEmpty()) {
-                                playerViewModel.playSongs(
-                                    localReorderableSongs,
-                                    localReorderableSongs.first(),
-                                    currentPlaylist.name
+                                playerViewModel.playPlaylistWithContinuation(
+                                    playlistSongs = localReorderableSongs,
+                                    recommendedNext = recommendedNextSongs,
+                                    startSong = localReorderableSongs.first(),
+                                    queueName = currentPlaylist.name,
+                                    playlistId = currentPlaylist.id,
                                 )
                                 playerViewModel.cycleRepeatMode()
                             }
@@ -704,11 +710,12 @@ fun PlaylistDetailScreen(
                                                 scaleY = scale
                                             },
                                         onClick = {
-                                            playerViewModel.playSongs(
-                                                localReorderableSongs,
-                                                song,
-                                                currentPlaylist.name,
-                                                currentPlaylist.id
+                                            playerViewModel.playPlaylistWithContinuation(
+                                                playlistSongs = localReorderableSongs,
+                                                recommendedNext = recommendedNextSongs,
+                                                startSong = song,
+                                                queueName = currentPlaylist.name,
+                                                playlistId = currentPlaylist.id,
                                             )
                                         },
                                         song = song,
@@ -756,6 +763,51 @@ fun PlaylistDetailScreen(
                                                 )
                                             }
                                         }
+                                    )
+                                }
+                            }
+                            if (!isReorderModeEnabled && !isRemoveModeEnabled &&
+                                (uiState.isLoadingRecommendedNext || recommendedNextSongs.isNotEmpty())
+                            ) {
+                                item(key = "recommended_next_header", contentType = "section_header") {
+                                    Column(
+                                        Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 4.dp)
+                                    ) {
+                                        Text("Recommended next", style = MaterialTheme.typography.titleLarge)
+                                        Text(
+                                            "Plays only after every song in this playlist",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                        if (uiState.isLoadingRecommendedNext) {
+                                            Spacer(Modifier.height(8.dp))
+                                            androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth())
+                                        }
+                                    }
+                                }
+                                items(
+                                    recommendedNextSongs,
+                                    key = { "recommended_${it.id}" },
+                                    contentType = { "recommended_song" },
+                                ) { song ->
+                                    QueuePlaylistSongItem(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        onClick = {
+                                            val queue = localReorderableSongs + recommendedNextSongs
+                                                .filterNot { candidate -> localReorderableSongs.any { it.id == candidate.id } }
+                                            playerViewModel.playSongs(queue, song, currentPlaylist.name, currentPlaylist.id)
+                                        },
+                                        song = song,
+                                        isCurrentSong = playerStableState.currentSong?.id == song.id,
+                                        isPlaying = playerStableState.isPlaying,
+                                        isDragging = false,
+                                        onRemoveClick = {},
+                                        isFromPlaylist = false,
+                                        isReorderModeEnabled = false,
+                                        isDragHandleVisible = false,
+                                        isRemoveButtonVisible = false,
+                                        onMoreOptionsClick = stableOnMoreOptionsClick,
+                                        dragHandle = {},
                                     )
                                 }
                             }

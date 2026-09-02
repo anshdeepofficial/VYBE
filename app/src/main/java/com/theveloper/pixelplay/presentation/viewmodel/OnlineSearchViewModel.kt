@@ -405,8 +405,11 @@ class OnlineSearchViewModel @Inject constructor(
                         if (currentQuery == trimmed) {
                             _searchResultsSongs.value = rankSearchSongs(trimmed, youtubeResult.songs, retainRelated = true)
                             _searchResultsVideos.value = rankSearchSongs(trimmed, youtubeResult.videos, retainRelated = true)
-                            _searchResultsAlbums.value = youtubeResult.albums
-                            _searchResultsArtists.value = rankSearchArtists(trimmed, youtubeResult.artists)
+                                .map { it.copy(isMusicVideo = true) }
+                            _searchResultsAlbums.value = rankSearchAlbums(trimmed, youtubeResult.albums)
+                            _searchResultsArtists.value = rankSearchArtists(
+                                trimmed, youtubeResult.artists, youtubeResult.songs + youtubeResult.videos
+                            )
                             _isLoading.value = false
                         }
                     }
@@ -430,8 +433,10 @@ class OnlineSearchViewModel @Inject constructor(
                 }
                 if (currentQuery != trimmed) return@launch
                 val rankedResult = result.copy(
+                    videos = rankSearchSongs(trimmed, result.videos, retainRelated = true)
+                        .map { it.copy(isMusicVideo = true) },
                     albums = rankSearchAlbums(trimmed, result.albums),
-                    artists = rankSearchArtists(trimmed, result.artists),
+                    artists = rankSearchArtists(trimmed, result.artists, result.songs + result.videos),
                 )
                 if (rankedResult.songs.isNotEmpty() || rankedResult.videos.isNotEmpty() || rankedResult.albums.isNotEmpty() || rankedResult.artists.isNotEmpty()) {
                     structuredSearchCache[trimmed.lowercase()] = rankedResult
@@ -498,7 +503,13 @@ class OnlineSearchViewModel @Inject constructor(
                 }
                 song to score
             }
-            .filter { (_, score) -> retainRelated || score > 0 }
+            .filter { (song, score) ->
+                if (!retainRelated) score > 0 else {
+                    val searchable = "${song.title} ${song.artist} ${song.album}".lowercase()
+                    val covered = tokens.count(searchable::contains)
+                    score > 0 && (tokens.size <= 1 || covered >= (tokens.size + 1) / 2)
+                }
+            }
             .sortedByDescending { it.second }
             .map { it.first }
     }
@@ -525,28 +536,47 @@ class OnlineSearchViewModel @Inject constructor(
                         (if (title.contains(token)) 24 else 0) + (if (artist.contains(token)) 12 else 0)
                     }
                 }
-                album to score
+                val titleCoverage = tokens.count(title::contains)
+                val artistCoverage = tokens.count(artist::contains)
+                album to if (titleCoverage > 0 && (artistCoverage > 0 || tokens.size == 1)) score else 0
             }
             .filter { (_, score) -> score > 0 }
             .sortedByDescending { it.second }
             .map { it.first }
     }
 
-    private fun rankSearchArtists(query: String, artists: List<YouTubeArtist>): List<YouTubeArtist> {
+    private fun rankSearchArtists(
+        query: String,
+        artists: List<YouTubeArtist>,
+        matchedTracks: List<Song> = emptyList(),
+    ): List<YouTubeArtist> {
         val wanted = query.trim().lowercase()
         val tokens = wanted.split(Regex("\\s+")).filter { it.length > 1 }
+        val linkedArtistIds = matchedTracks.flatMap(Song::artists)
+            .mapNotNull { it.remoteBrowseId?.takeIf(String::isNotBlank) }
+            .toSet()
         return artists
             .filter { it.browseId.isNotBlank() && it.name.isNotBlank() }
+            .filter { artist ->
+                val coverage = tokens.count(artist.name.lowercase()::contains)
+                artist.browseId in linkedArtistIds || coverage >= (tokens.size.coerceAtLeast(1) + 1) / 2
+            }
             .distinctBy { it.browseId }
             .sortedByDescending { artist ->
                 val name = artist.name.trim().lowercase()
-                when {
+                val base = when {
+                    artist.browseId in linkedArtistIds -> 200_000
                     name == wanted -> 100_000
                     name.startsWith(wanted) -> 50_000
                     name.contains(wanted) -> 20_000
                     else -> tokens.count(name::contains) * 100 +
                         if (!artist.thumbnailUrl.isNullOrBlank()) 10 else 0
                 }
+                val songNumberPenalty = if (
+                    tokens.any { token -> token.all(Char::isDigit) && name.contains(token) } &&
+                    artist.browseId !in linkedArtistIds
+                ) 75_000 else 0
+                base - songNumberPenalty + if (!artist.thumbnailUrl.isNullOrBlank()) 25 else 0
             }
     }
 

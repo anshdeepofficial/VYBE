@@ -230,8 +230,13 @@ fun HomeScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = accountsViewModel::skipYouTubeMusicSettingsRestore) {
-                    Text("Skip")
+                Row {
+                    TextButton(onClick = accountsViewModel::backupCurrentYouTubeMusicSettings) {
+                        Text("Back up this phone")
+                    }
+                    TextButton(onClick = accountsViewModel::skipYouTubeMusicSettingsRestore) {
+                        Text("Skip")
+                    }
                 }
             },
         )

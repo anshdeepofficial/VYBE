@@ -25,19 +25,23 @@ class OnlineMusicRepository @Inject constructor(
     private val onlineSongCacheDao: OnlineSongCacheDao,
     private val userPreferencesRepository: com.theveloper.pixelplay.data.preferences.UserPreferencesRepository,
 ) {
-    private data class MoodSource(val browseId: String, val aliases: Set<String>)
+    private data class MoodSource(
+        val browseId: String,
+        val aliases: Set<String>,
+        val searchQueries: List<String>,
+    )
     private data class MoodCacheEntry(val songs: List<Song>, val storedAtMs: Long)
 
     private val moodSources = listOf(
-        MoodSource("FEmusic_moods_and_genres_chill", setOf("chill", "calm", "easy")),
-        MoodSource("FEmusic_moods_and_genres_happy", setOf("happy", "feel good", "joy")),
-        MoodSource("FEmusic_moods_and_genres_workout", setOf("workout", "gym", "energy")),
-        MoodSource("FEmusic_moods_and_genres_focus", setOf("focus", "study", "work")),
-        MoodSource("FEmusic_moods_and_genres_romance", setOf("romantic", "romance", "love")),
-        MoodSource("FEmusic_moods_and_genres_sad", setOf("sad", "heartbreak", "melancholy")),
-        MoodSource("FEmusic_moods_and_genres_party", setOf("party", "dance", "celebration")),
-        MoodSource("FEmusic_moods_and_genres_relax", setOf("relax", "relaxing", "unwind")),
-        MoodSource("FEmusic_moods_and_genres_sleep", setOf("sleep", "bedtime", "night")),
+        MoodSource("FEmusic_moods_and_genres_chill", setOf("chill", "calm", "easy"), listOf("chill songs", "chill music")),
+        MoodSource("FEmusic_moods_and_genres_happy", setOf("happy", "feel good", "joy"), listOf("happy feel good songs", "happy songs")),
+        MoodSource("FEmusic_moods_and_genres_workout", setOf("workout", "gym", "energy"), listOf("workout gym songs", "high energy songs")),
+        MoodSource("FEmusic_moods_and_genres_focus", setOf("focus", "study", "work"), listOf("focus study music", "deep focus music")),
+        MoodSource("FEmusic_moods_and_genres_romance", setOf("romantic", "romance", "love"), listOf("romantic love songs", "love songs")),
+        MoodSource("FEmusic_moods_and_genres_sad", setOf("sad", "heartbreak", "melancholy"), listOf("sad heartbreak songs", "melancholy songs")),
+        MoodSource("FEmusic_moods_and_genres_party", setOf("party", "dance", "celebration"), listOf("party dance songs", "celebration songs")),
+        MoodSource("FEmusic_moods_and_genres_relax", setOf("relax", "relaxing", "unwind"), listOf("relaxing songs", "unwind music")),
+        MoodSource("FEmusic_moods_and_genres_sleep", setOf("sleep", "bedtime", "night"), listOf("sleep music", "bedtime calming music")),
     )
     private val moodCache = ConcurrentHashMap<String, MoodCacheEntry>()
 
@@ -136,10 +140,15 @@ suspend fun getFastPersonalizedDiscovery(interestLabels: List<String>): List<Son
                 if (cached != null) return@async cached
 
                 val songs = runCatching {
-                    youTubeEngine.getMoodTracks(source.browseId, region)
+                    val browseSongs = youTubeEngine.getMoodTracks(source.browseId, region)
+                    val fallbackSongs = if (browseSongs.isEmpty()) {
+                        source.searchQueries.flatMap { query -> youTubeEngine.search(query, region) }
+                    } else emptyList()
+                    (browseSongs + fallbackSongs)
                         .map { it.toSong() }
                         .filter(::isUsefulDiscoverySong)
                         .distinctBy(Song::id)
+                        .take(50)
                 }.getOrDefault(emptyList())
                 if (songs.isNotEmpty()) moodCache[cacheKey] = MoodCacheEntry(songs, System.currentTimeMillis())
                 songs.ifEmpty { moodCache[cacheKey]?.songs.orEmpty() }
@@ -201,6 +210,40 @@ suspend fun getFastPersonalizedDiscovery(interestLabels: List<String>): List<Son
             .take(49)
             
         filterAndPrioritizeRecommendations(rawList)
+    }
+
+    /**
+     * Builds a temporary continuation for a user playlist. The saved playlist is never mutated:
+     * callers append these tracks only to the playback queue after every original item.
+     */
+    suspend fun getPlaylistContinuation(
+        playlistSongs: List<Song>,
+        limit: Int = 20,
+    ): List<Song> = coroutineScope {
+        if (playlistSongs.isEmpty() || userPreferencesRepository.dataSaverEnabledFlow.first()) {
+            return@coroutineScope emptyList()
+        }
+        val region = normalizedRegion(userPreferencesRepository.userRegionFlow.first())
+        val originalIds = playlistSongs.map(Song::id).toSet()
+        val representativeSeeds = buildList {
+            playlistSongs.lastOrNull()?.let(::add)
+            playlistSongs.groupBy { it.artist.trim().lowercase() }
+                .maxByOrNull { it.value.size }?.value?.firstOrNull()?.let(::add)
+            playlistSongs.getOrNull(playlistSongs.size / 2)?.let(::add)
+        }.distinctBy(Song::id).take(3)
+
+        val candidates = representativeSeeds.map { seed ->
+            async(Dispatchers.IO) {
+                runCatching { getAutoplayQueue(seed, region) }.getOrDefault(emptyList())
+            }
+        }.map { it.await() }.flatten()
+
+        candidates.asSequence()
+            .filterNot { it.id in originalIds }
+            .filter(::isUsefulDiscoverySong)
+            .distinctBy(Song::id)
+            .take(limit)
+            .toList()
     }
 
     /** Prevents autoplay from jumping between unrelated languages/styles. */

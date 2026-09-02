@@ -65,6 +65,7 @@ class AccountsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     fun restoreYouTubeMusicSettings() = youTubeSettingsSyncManager.restore()
+    fun backupCurrentYouTubeMusicSettings() = youTubeSettingsSyncManager.backupCurrentDevice()
     fun skipYouTubeMusicSettingsRestore() = youTubeSettingsSyncManager.skipRestore()
 
     fun markFirstYouTubeMusicSignInPromptShown() {

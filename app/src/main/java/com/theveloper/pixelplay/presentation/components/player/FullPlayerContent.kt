@@ -360,13 +360,16 @@ fun FullPlayerContent(
     var showPlaylistBottomSheet by remember { mutableStateOf(false) }
     var showPlaybackSpeedBottomSheet by remember { mutableStateOf(false) }
     var showTimerBottomSheet by remember { mutableStateOf(false) }
+    val isYouTubeSource = song.id.startsWith("yt_") || song.contentUriString.startsWith("yt://") || song.isMusicVideo
     var showVideoPlayer by remember { mutableStateOf(false) }
-    var videoAvailable by remember(song.id) { mutableStateOf(false) }
+    var videoAvailable by remember(song.id, song.isMusicVideo) { mutableStateOf(isYouTubeSource) }
 
-    LaunchedEffect(song.id) {
+    LaunchedEffect(song.id, song.isMusicVideo) {
         showVideoPlayer = false
-        videoAvailable = song.isMusicVideo &&
-            playerViewModel.resolveInlineVideoStream(song.id.removePrefix("yt_")) != null
+        val cleanId = song.contentUriString.removePrefix("yt://")
+            .takeIf { song.contentUriString.startsWith("yt://") && it.isNotBlank() }
+            ?: song.id.removePrefix("yt_")
+        videoAvailable = (isYouTubeSource || song.isMusicVideo) && cleanId.isNotBlank() && !cleanId.startsWith("saavn_")
     }
     
     val isTimerActive by playerViewModel.activeTimerValueDisplay.collectAsStateWithLifecycle()

@@ -36,6 +36,7 @@ data class SpotifyRemotePlaylist(
     val coverUrl: String?,
     val trackCount: Int,
     val ownerName: String,
+    val canImportItems: Boolean = true,
 )
 
 data class SpotifyAccountTrack(
@@ -131,6 +132,8 @@ class SpotifyAccountRepository @Inject constructor(
             )
             persistToken(token)
             preferences.edit().remove(KEY_PENDING_STATE).remove(KEY_PENDING_VERIFIER).apply()
+            // A valid Spotify login must not be rejected just because an optional
+            // taste endpoint is unavailable for this account/app mode.
             refreshProfileAndTaste()
             _isLoggedIn.value = true
         }.onFailure { _isLoggedIn.value = false }
@@ -138,15 +141,19 @@ class SpotifyAccountRepository @Inject constructor(
 
     suspend fun refreshProfileAndTaste(): SpotifyTasteProfile = withContext(Dispatchers.IO) {
         val profile = authorizedGet("/me")
-        val displayName = profile.optString("display_name").ifBlank { profile.optString("id", "Spotify User") }
-        val playlists = authorizedGet("/me/playlists?limit=1").optInt("total")
-        val saved = authorizedGet("/me/tracks?limit=1").optInt("total")
-        val topTracks = authorizedGet("/me/top/tracks?limit=50&time_range=medium_term")
-            .optJSONArray("items")?.length() ?: 0
-        val topArtists = authorizedGet("/me/top/artists?limit=50&time_range=medium_term")
-            .optJSONArray("items")?.length() ?: 0
+        val accountId = profile.optString("account_id").ifBlank { profile.optString("id") }
+        val displayName = profile.optString("display_name").ifBlank { "Spotify User" }
+        val playlists = optionalAuthorizedGet("/me/playlists?limit=1")?.optInt("total") ?: 0
+        val saved = optionalAuthorizedGet("/me/tracks?limit=1")?.optInt("total") ?: 0
+        val topTracks = optionalAuthorizedGet("/me/top/tracks?limit=10&time_range=medium_term")
+            ?.optJSONArray("items")?.length() ?: 0
+        val topArtists = optionalAuthorizedGet("/me/top/artists?limit=10&time_range=medium_term")
+            ?.optJSONArray("items")?.length() ?: 0
         val taste = SpotifyTasteProfile(playlists, saved, topTracks, topArtists)
-        preferences.edit().putString(KEY_ACCOUNT_NAME, displayName).apply()
+        preferences.edit()
+            .putString(KEY_ACCOUNT_NAME, displayName)
+            .putString(KEY_ACCOUNT_ID, accountId)
+            .apply()
         _accountName.value = displayName
         _tasteProfile.value = taste
         _isLoggedIn.value = true
@@ -163,6 +170,10 @@ class SpotifyAccountRepository @Inject constructor(
                 val item = items.optJSONObject(index) ?: continue
                 val id = item.optString("id").trim()
                 if (id.isEmpty()) continue
+                val owner = item.optJSONObject("owner")
+                val ownerId = owner?.optString("account_id")?.ifBlank { owner.optString("id") }.orEmpty()
+                val ownAccountId = preferences.getString(KEY_ACCOUNT_ID, null).orEmpty()
+                val collaborative = item.optBoolean("collaborative", false)
                 result += SpotifyRemotePlaylist(
                     id = id,
                     name = item.optString("name").ifBlank { "Spotify Playlist" },
@@ -171,9 +182,10 @@ class SpotifyAccountRepository @Inject constructor(
                     trackCount = item.optJSONObject("items")?.optInt("total")
                         ?: item.optJSONObject("tracks")?.optInt("total")
                         ?: 0,
-                    ownerName = item.optJSONObject("owner")?.optString("display_name")
-                        ?.ifBlank { item.optJSONObject("owner")?.optString("id") }
+                    ownerName = owner?.optString("display_name")
+                        ?.ifBlank { owner.optString("id") }
                         .orEmpty(),
+                    canImportItems = collaborative || ownAccountId.isBlank() || ownerId == ownAccountId,
                 )
             }
             offset += items.length()
@@ -249,6 +261,11 @@ class SpotifyAccountRepository @Inject constructor(
         return JSONObject(response)
     }
 
+    private fun optionalAuthorizedGet(path: String): JSONObject? = runCatching {
+        authorizedGet(path)
+    }.onFailure { timber.log.Timber.w(it, "Optional Spotify endpoint unavailable: %s", path) }
+        .getOrNull()
+
     private fun validAccessToken(): String {
         val expiresAt = preferences.getLong(KEY_EXPIRES_AT, 0L)
         if (System.currentTimeMillis() < expiresAt - 60_000L) {
@@ -285,7 +302,18 @@ class SpotifyAccountRepository @Inject constructor(
 
     private fun execute(request: Request): String = httpClient.newCall(request).execute().use { response ->
         val payload = response.body?.string().orEmpty()
-        if (!response.isSuccessful) error("Spotify request failed (${response.code})")
+        if (!response.isSuccessful) {
+            val apiMessage = runCatching {
+                JSONObject(payload).optJSONObject("error")?.optString("message")
+            }.getOrNull().orEmpty()
+            val guidance = when (response.code) {
+                401 -> "Spotify session expired. Sign in again."
+                403 -> "Spotify denied this request. In Development Mode the account must be added in the Spotify dashboard and the app owner must have Spotify Premium. Followed playlists can expose songs only when the user owns or collaborates on them."
+                429 -> "Spotify rate limit reached. Please wait and retry."
+                else -> "Spotify request failed (${response.code})."
+            }
+            error(listOf(guidance, apiMessage).filter { it.isNotBlank() }.distinct().joinToString(" "))
+        }
         payload
     }
 
@@ -310,6 +338,7 @@ class SpotifyAccountRepository @Inject constructor(
         private const val KEY_REFRESH_TOKEN = "refresh_token"
         private const val KEY_EXPIRES_AT = "expires_at"
         private const val KEY_ACCOUNT_NAME = "account_name"
+        private const val KEY_ACCOUNT_ID = "account_id"
         private const val KEY_PENDING_VERIFIER = "pending_verifier"
         private const val KEY_PENDING_STATE = "pending_state"
     }

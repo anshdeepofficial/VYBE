@@ -14,6 +14,7 @@ import com.theveloper.pixelplay.data.model.SortOption
 import com.theveloper.pixelplay.data.playlist.M3uManager
 import com.theveloper.pixelplay.data.preferences.PlaylistPreferencesRepository
 import com.theveloper.pixelplay.data.repository.MusicRepository
+import com.theveloper.pixelplay.data.repository.OnlineMusicRepository
 import com.theveloper.pixelplay.data.network.ytmusic.YouTubeAccountManager
 import com.theveloper.pixelplay.data.network.ytmusic.YouTubeSyncState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -51,6 +52,8 @@ data class PlaylistUiState(
     val telegramTopicDisplayMode: TelegramTopicDisplayMode = TelegramTopicDisplayMode.CHANNELS_AND_TOPICS,
     val currentPlaylistSongs: List<Song> = emptyList(),
     val currentPlaylistDetails: Playlist? = null,
+    val recommendedNextSongs: List<Song> = emptyList(),
+    val isLoadingRecommendedNext: Boolean = false,
     val isLoading: Boolean = false,
     val playlistNotFound: Boolean = false,
     val youtubeSyncEnabledPlaylistIds: Set<String> = emptySet(),
@@ -77,6 +80,7 @@ sealed class PlaylistSongsOrderMode {
 class PlaylistViewModel @Inject constructor(
     private val playlistPreferencesRepository: PlaylistPreferencesRepository,
     private val musicRepository: MusicRepository,
+    private val onlineMusicRepository: OnlineMusicRepository,
     private val dailyMixManager: DailyMixManager,
     private val aiPlaylistGenerator: AiPlaylistGenerator,
     private val m3uManager: M3uManager,
@@ -208,7 +212,9 @@ class PlaylistViewModel @Inject constructor(
                     isLoading = true,
                     playlistNotFound = false,
                     currentPlaylistDetails = if (shouldKeepExisting) it.currentPlaylistDetails else null,
-                    currentPlaylistSongs = if (shouldKeepExisting) it.currentPlaylistSongs else emptyList()
+                    currentPlaylistSongs = if (shouldKeepExisting) it.currentPlaylistSongs else emptyList(),
+                    recommendedNextSongs = if (shouldKeepExisting) it.recommendedNextSongs else emptyList(),
+                    isLoadingRecommendedNext = false,
                 )
             } // Resetear detalles y canciones
             try {
@@ -284,6 +290,7 @@ class PlaylistViewModel @Inject constructor(
                                 playlistNotFound = false
                             )
                         }
+                        loadRecommendedNext(orderedSongs)
                     } else {
                         Log.w("PlaylistVM", "Playlist with id $playlistId not found.")
                         _uiState.update {
@@ -307,6 +314,23 @@ class PlaylistViewModel @Inject constructor(
                         currentPlaylistSongs = emptyList()
                     )
                 }
+            }
+        }
+    }
+
+    private fun loadRecommendedNext(playlistSongs: List<Song>) {
+        if (playlistSongs.isEmpty()) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingRecommendedNext = true) }
+            val recommendations = runCatching {
+                onlineMusicRepository.getPlaylistContinuation(playlistSongs)
+            }.getOrDefault(emptyList())
+            val currentIds = _uiState.value.currentPlaylistSongs.map(Song::id).toSet()
+            _uiState.update {
+                it.copy(
+                    recommendedNextSongs = recommendations.filterNot { song -> song.id in currentIds },
+                    isLoadingRecommendedNext = false,
+                )
             }
         }
     }

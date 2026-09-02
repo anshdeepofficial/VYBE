@@ -128,6 +128,23 @@ class YouTubeSettingsSyncManager @Inject constructor(
         _state.value = YouTubeSettingsSyncState.Idle
     }
 
+    /** Keep this device's settings and replace the older account snapshot. */
+    fun backupCurrentDevice() {
+        val identity = accountManager.accountIdentityFlow.value
+        if (identity.isBlank()) return
+        scope.launch {
+            _state.value = YouTubeSettingsSyncState.Checking
+            runCatching {
+                uploadCurrentSettings(identity)
+                markHandled(identity, optedOut = false)
+            }.onSuccess {
+                _state.value = YouTubeSettingsSyncState.Idle
+            }.onFailure { error ->
+                _state.value = YouTubeSettingsSyncState.Error(error.message ?: "Settings backup upload failed")
+            }
+        }
+    }
+
     private suspend fun checkRemoteBackup(identity: String) {
         if (isHandled(identity)) {
             _state.value = YouTubeSettingsSyncState.Idle

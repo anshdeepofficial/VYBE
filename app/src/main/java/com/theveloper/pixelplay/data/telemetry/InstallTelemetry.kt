@@ -3,6 +3,7 @@ package com.theveloper.pixelplay.data.telemetry
 import android.content.Context
 import android.os.Build
 import android.provider.Settings
+import android.content.pm.PackageManager
 import com.theveloper.pixelplay.BuildConfig
 import com.google.android.gms.appset.AppSet
 import java.security.MessageDigest
@@ -26,6 +27,7 @@ object InstallTelemetry {
     private const val KEY_INSTALLATION_HASH = "installation_hash"
     private const val ENDPOINT = "https://vybetune.vercel.app/api/install"
     private const val DAY_MS = 86_400_000L
+    private const val OFFICIAL_RELEASE_CERT_SHA256 = "e28e1736116244bdd3bf2e3e4faa0bc11c7ba9fb7338e62f7c9540f963f3f084"
     private val client = OkHttpClient()
     private val backgroundScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -51,6 +53,8 @@ object InstallTelemetry {
 
     suspend fun recordIfDue(context: Context, force: Boolean = false): Boolean = withContext(Dispatchers.IO) {
         if (!hasConsent(context)) return@withContext false
+        // Debug, re-signed and modified APKs must never inflate the public install count.
+        if (!hasOfficialReleaseSignature(context)) return@withContext false
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val now = System.currentTimeMillis()
         if (!force && now - prefs.getLong(KEY_LAST_SENT, 0L) < DAY_MS) return@withContext true
@@ -79,4 +83,26 @@ object InstallTelemetry {
             }
         }.getOrDefault(false)
     }
+
+    @Suppress("DEPRECATION")
+    private fun hasOfficialReleaseSignature(context: Context): Boolean = runCatching {
+        val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            context.packageManager.getPackageInfo(
+                context.packageName,
+                PackageManager.GET_SIGNING_CERTIFICATES,
+            )
+        } else {
+            context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNATURES)
+        }
+        val certificates = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            packageInfo.signingInfo?.apkContentsSigners?.map { it.toByteArray() }.orEmpty()
+        } else {
+            packageInfo.signatures?.map { it.toByteArray() }.orEmpty()
+        }
+        certificates.any { certificate ->
+            MessageDigest.getInstance("SHA-256").digest(certificate)
+                .joinToString("") { "%02x".format(it) }
+                .equals(OFFICIAL_RELEASE_CERT_SHA256, ignoreCase = true)
+        }
+    }.getOrDefault(false)
 }

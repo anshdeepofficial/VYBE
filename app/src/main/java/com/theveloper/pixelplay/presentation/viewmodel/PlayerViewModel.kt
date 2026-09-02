@@ -2677,6 +2677,31 @@ class PlayerViewModel @Inject constructor(
     fun playSongs(songsToPlay: List<Song>, startSong: Song, queueName: String = "None", playlistId: String? = null) =
         playbackDispatchStateHolder.playSongs(songsToPlay, startSong, queueName, playlistId)
 
+    /** Plays saved playlist songs first, then a temporary radio continuation. */
+    fun playPlaylistWithContinuation(
+        playlistSongs: List<Song>,
+        recommendedNext: List<Song>,
+        startSong: Song? = null,
+        queueName: String,
+        playlistId: String,
+        shufflePlaylist: Boolean = false,
+    ) {
+        if (playlistSongs.isEmpty()) return
+        val originals = if (shufflePlaylist) playlistSongs.shuffled() else playlistSongs
+        val originalIds = originals.map(Song::id).toSet()
+        val continuation = recommendedNext.filterNot { it.id in originalIds }.distinctBy(Song::id)
+        val queue = originals + continuation
+        val start = if (shufflePlaylist) originals.first() else
+            startSong?.let { wanted -> originals.firstOrNull { it.id == wanted.id } } ?: originals.first()
+        playbackDispatchStateHolder.playSongs(
+            songsToPlay = queue,
+            startSong = start,
+            queueName = queueName,
+            playlistId = playlistId,
+            respectPersistentShuffle = false,
+        )
+    }
+
     fun saveCurrentQueue(name: String) {
         val songs = queueFlow.value
         val cleanName = name.trim()

@@ -1,23 +1,19 @@
-## [0.10.7] - 2026-09-02
+## [0.10.8] - 2026-09-02
 ### Added
-- **Artwork-Container Video Player**: Embedded video playback fits strictly inside the square artwork viewport with blurred background padding; controls, title, progress bar, lyrics, and action buttons remain intact. Supports seamless fullscreen horizontal expansion and quality selection (Auto, Data Saver, 360p, 480p, 720p, 1080p).
-- **Artist Follow & Block System**: Added Follow and Block actions on Artist Detail screens with full state persistence, synchronization with Preferred Artists, and strict exclusion of blocked artists from home/moods/autoplay.
-- **Smart AI Equalizer**: Added smart genre-aware equalizer presets (Pop, Rock, Hip-hop, Classical, Punjabi, Electronic) with seamless interpolation and Data Saver toggle integration.
-- **Quick Picks Long-Press Menu**: Long-pressing any song in Quick Picks opens the comprehensive context menu with download, queue, playlist, artist, album, and sharing actions.
-- **Installation Telemetry & Heartbeat Counter**: Added privacy-friendly, hashed installation and active-device counters with lightweight heartbeat workers and website API endpoints.
-
-### Changed
-- **AI Settings Simplification**: Removed confusing developer parameters (Temperature, Top-P, raw generation parameters, and internal data configuration) while keeping stable production defaults active internally.
-- **Home Top Bar Brand Alignment**: Fine-tuned "VYBE" header logo padding to align crisply to the left screen margin.
-- **Profile Bottom Sheet Layout**: Removed excessive blank bottom spacing; now wraps snugly to listening stats and habits.
+- **Playlist Radio & Auto-Continuation**: When a playlist finishes, seamless recommended continuation songs matching the playlist's artists, genre, and style start playing without altering the saved playlist.
+- **Account-Linked Settings Backup & Restore**: Automatic encrypted backup of settings, EQ configurations, and preferences linked to the user account with prompt for "Restore Backup", "Back up this phone", or "Skip".
+- **Artwork-Container Video Player & Player Video Button**: Embedded video playback strictly within square artwork container with instant video toggle button in full player.
+- **Artist Follow & Block System**: Follow and block actions on Artist Detail screens with full state persistence and exclusion of blocked artists from autoplay/moods.
+- **Smart AI Equalizer**: Auto-adapts EQ presets based on music genre with Data Saver awareness.
+- **Quick Picks Long-Press Sheet**: Context bottom sheet for download, playlist, queue, artist, album, and sharing.
+- **Installation Telemetry & Deduped Active Device Counter**: Privacy-safe App Set ID hashing and heartbeat tracking.
 
 ### Fixed
-- **Audio Focus & Call Interruption Handling**: Auto-resumes playback smoothly after incoming phone calls end and after external media interruptions (Instagram Reels, VLC).
-- **Exact Artist Albums & Discovery Navigation**: Fixed artist profile album listings using immutable browse IDs to prevent unrelated compilations from appearing.
-- **Original Content & Search Filtering**: Prioritized official audio and music videos in search results, filtering out jukeboxes, fan edits, and unofficial mashups.
-- **Theme-Aware App Open Splash**: Configured splash screen for crisp white/black logo rendering matching system light/dark theme.
-- **App Icon Change Restart Dialog**: Prompting users with an immediate restart dialog upon changing the logo mode in Appearance settings.
-- **Spotify In-App Auth & Verification**: Hardened PKCE authentication, error retry mechanisms, and playlist sync handling.
+- **Moods Playlists Loading**: Resolved empty state issue for all moods (Chill, Happy, Workout, Focus, Romance, Sad, Party, Relax, Sleep) with fallback queries.
+- **Exact Search & Artist Verification**: Prioritized official audio and official music videos in search results (e.g. "295 Sidhu Moose Wala"), showing verified artist profile and official video.
+- **Spotify 403 & Session Handling**: Clear user error guidance and graceful degradation for Spotify Developer Mode limitations and followed playlists.
+- **Audio Focus & Call Auto-Resume**: Smooth auto-resume on call disconnect and media abandonment (Instagram Reels, VLC).
+- **Home UI & Splash Theme-Awareness**: Left-aligned VYBE logo and clean light/dark splash rendering.
 
 ## [0.10.5] - 2026-09-01
 ### Added

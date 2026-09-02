@@ -519,7 +519,13 @@ class PlaybackDispatchStateHolder @Inject constructor(
         }
     }
 
-    fun playSongs(songsToPlay: List<Song>, startSong: Song, queueName: String = "None", playlistId: String? = null) {
+    fun playSongs(
+        songsToPlay: List<Song>,
+        startSong: Song,
+        queueName: String = "None",
+        playlistId: String? = null,
+        respectPersistentShuffle: Boolean = true,
+    ) {
         com.theveloper.pixelplay.utils.PerformanceTracker.start()
         cancelPendingFullQueuePlayback()
         val requestToken = beginDirectPlaybackRequest()
@@ -576,7 +582,7 @@ class PlaybackDispatchStateHolder @Inject constructor(
             }
 
             // If shuffle is persistent and currently ON, we shuffle the new songs immediately
-            val finalSongsToPlay = if (isPersistent && isShuffleOn) {
+            val finalSongsToPlay = if (respectPersistentShuffle && isPersistent && isShuffleOn) {
                 // Shuffle the list but make sure the song you clicked stays at its current index or starts first
                 withContext(Dispatchers.Default) {
                     QueueUtils.buildAnchoredShuffleQueueSuspending(

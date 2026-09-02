@@ -81,6 +81,7 @@ class YouTubeMusicEngine @Inject constructor(
         private const val SEARCH_FILTER_ALBUMS = "EgWKAQIYAWoSEAMQBBAKEAUQCRAOEBAQFRAR"
         private const val SEARCH_FILTER_ARTISTS = "EgWKAQIgAWoSEAMQBBAKEAUQCRAOEBAQFRAR"
         private const val SEARCH_FILTER_SONGS = "EgWKAQIIAWoKEAkQBRAKEAMQBA%3D%3D"
+        private const val SEARCH_FILTER_VIDEOS = "EgWKAQIQAWoKEAkQChAFEAMQBA%3D%3D"
     }
 
     private val streamUrlCache = ConcurrentHashMap<String, Pair<String, Long>>()
@@ -164,6 +165,14 @@ class YouTubeMusicEngine @Inject constructor(
                     )
                 }
             }
+            val exactVideos = async(Dispatchers.IO) {
+                mutableListOf<Song>().also { filtered ->
+                    searchStructuredEndpoint(
+                        cleanQuery, region, mutableListOf(), mutableListOf(),
+                        mutableListOf(), filtered, SEARCH_FILTER_VIDEOS,
+                    )
+                }
+            }
             val mixedResults = async(Dispatchers.IO) {
                 val mixedSongs = mutableListOf<Song>()
                 val mixedAlbums = mutableListOf<YouTubeAlbum>()
@@ -173,6 +182,7 @@ class YouTubeMusicEngine @Inject constructor(
                 StructuredSearchBuckets(mixedSongs, mixedAlbums, mixedArtists, mixedVideos)
             }
             songs += exactSongs.await()
+            videos += exactVideos.await().map { it.copy(isMusicVideo = true) }
             val mixed = mixedResults.await()
             songs += mixed.songs
             albums += mixed.albums

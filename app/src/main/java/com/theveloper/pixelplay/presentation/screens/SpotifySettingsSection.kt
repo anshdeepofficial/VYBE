@@ -68,11 +68,18 @@ fun SpotifySettingsSection(settingsViewModel: SettingsViewModel, context: Contex
                                     Checkbox(
                                         checked = playlist.id in library.selectedPlaylistIds,
                                         onCheckedChange = { settingsViewModel.toggleSpotifyPlaylistSelection(playlist.id) },
-                                        enabled = !library.isImporting,
+                                        enabled = !library.isImporting && playlist.canImportItems,
                                     )
                                     Column(Modifier.weight(1f)) {
                                         Text(playlist.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         Text("${playlist.trackCount} songs - ${playlist.ownerName}", style = MaterialTheme.typography.bodySmall)
+                                        if (!playlist.canImportItems) {
+                                            Text(
+                                                "Spotify currently exposes songs only for playlists you own or collaborate on.",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
                                     }
                                 }
                                 if (playlist.id in library.selectedPlaylistIds) {
