@@ -16,6 +16,7 @@
 <p align="center">
   <a href="https://github.com/anshdeepofficial/VYBE/releases/latest"><img src="https://img.shields.io/github/v/release/anshdeepofficial/VYBE?style=for-the-badge&logo=github&label=Latest%20Release" alt="Latest release" /></a>
   <img src="https://img.shields.io/github/downloads/anshdeepofficial/VYBE/total?style=for-the-badge&logo=github&label=Release%20Downloads" alt="Total GitHub release downloads" />
+  <img src="https://vybetune.vercel.app/api/install-badge" alt="Anonymous VYBE install count" />
   <img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android 8.0+" />
   <img src="https://img.shields.io/badge/iPhone-iOS%2017%2B-000000?style=for-the-badge&logo=apple&logoColor=white" alt="iOS 17+" />
   <img src="https://img.shields.io/badge/Kotlin-Jetpack%20Compose-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin and Jetpack Compose" />

@@ -78,8 +78,8 @@ jobs:
           mkdir -p release/android
           shopt -s nullglob
           apks=(app/build/outputs/apk/release/*-release.apk)
-          if (( ${#apks[@]} < 2 )); then
-            echo "Expected both ARM64 and ARMv7 release APKs." >&2
+          if (( ${#apks[@]} != 1 )); then
+            echo "Expected exactly one modern ARM64 release APK." >&2
             exit 1
           fi
           for apk in "${apks[@]}"; do
@@ -87,7 +87,6 @@ jobs:
             "$ANDROID_HOME/build-tools/$BUILD_TOOLS_VERSION/apksigner" verify --verbose "$apk"
             case "$apk" in
               *arm64-v8a*) ABI="arm64-v8a" ;;
-              *armeabi-v7a*) ABI="armeabi-v7a" ;;
               *) echo "Unknown APK ABI: $apk" >&2; exit 1 ;;
             esac
             cp "$apk" "release/android/VYBE-Android-${{ steps.version.outputs.value }}-${ABI}.apk"

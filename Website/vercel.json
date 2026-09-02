@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/auth/spotify/callback", "destination": "/auth/spotify/callback.html" },
     { "source": "/play", "destination": "/play.html" },
     { "source": "/watch", "destination": "/play.html" }
   ],

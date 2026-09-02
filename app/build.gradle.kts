@@ -307,6 +307,8 @@ dependencies {
     ksp(libs.androidx.hilt.compiler)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.navigation.runtime.ktx)
+    implementation(libs.androidx.browser)
+    implementation(libs.play.services.appset)
 
     // Storage & Paging
     implementation(libs.androidx.room.runtime)

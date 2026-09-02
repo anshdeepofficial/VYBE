@@ -299,6 +299,7 @@ class UserPreferencesRepository @Inject constructor(
         val SCREENSHOT_PRIVACY = booleanPreferencesKey("screenshot_privacy")
         val SPONSOR_BLOCK_ENABLED = booleanPreferencesKey("sponsor_block_enabled")
         val DATA_SAVER_ENABLED = booleanPreferencesKey("data_saver_enabled")
+        val SMART_EQ_ENABLED = booleanPreferencesKey("smart_eq_enabled")
         val DYNAMIC_ISLAND_ENABLED = booleanPreferencesKey("dynamic_island_enabled")
         val ANIMATED_ARTWORK_ENABLED = booleanPreferencesKey("animated_artwork_enabled")
         val HIGH_REFRESH_RATE_ENABLED = booleanPreferencesKey("high_refresh_rate_enabled")
@@ -497,6 +498,12 @@ class UserPreferencesRepository @Inject constructor(
 
     suspend fun setDataSaverEnabled(enabled: Boolean) {
         dataStore.edit { it[PreferencesKeys.DATA_SAVER_ENABLED] = enabled }
+    }
+
+    val smartEqEnabledFlow: Flow<Boolean> = pref { it[PreferencesKeys.SMART_EQ_ENABLED] ?: false }
+
+    suspend fun setSmartEqEnabled(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.SMART_EQ_ENABLED] = enabled }
     }
 
     val dynamicIslandEnabledFlow: Flow<Boolean> =

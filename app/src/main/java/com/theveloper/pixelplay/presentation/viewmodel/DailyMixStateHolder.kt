@@ -64,6 +64,9 @@ class DailyMixStateHolder @Inject constructor(
     private val _trendingSongs = MutableStateFlow<ImmutableList<Song>>(persistentListOf())
     val trendingSongs: StateFlow<ImmutableList<Song>> = _trendingSongs.asStateFlow()
 
+    private val _discoverySongs = MutableStateFlow<ImmutableList<Song>>(persistentListOf())
+    val discoverySongs: StateFlow<ImmutableList<Song>> = _discoverySongs.asStateFlow()
+
     private val _topMoods = MutableStateFlow<ImmutableList<String>>(persistentListOf("Chill", "Happy", "Workout", "Focus", "Romantic", "Sad", "Party", "Relax"))
     val topMoods: StateFlow<ImmutableList<String>> = _topMoods.asStateFlow()
 
@@ -153,6 +156,30 @@ class DailyMixStateHolder @Inject constructor(
                 preferredArtists = preferredArtists,
                 preferredGenres = preferredGenres,
             ).sortedByDescending { it.releaseDateEpochMillis }.take(30).toImmutableList()
+
+            val heardIds = recentHistorySongs.mapTo(mutableSetOf(), Song::id)
+            val relatedDiscovery = recentHistorySongs.take(3).flatMap { seed ->
+                runCatching { onlineMusicRepository.getAutoplayQueue(seed, region).drop(1).take(20) }
+                    .getOrDefault(emptyList())
+            }
+            val discoveryProfile = RecommendationProfile.fromTaste(
+                songs = tasteCandidates,
+                preferredArtists = preferredArtists,
+                preferredGenres = preferredGenres,
+                blockedArtists = blockedArtists,
+            )
+            val weeklySeed = java.time.LocalDate.now()
+                .get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR)
+            _discoverySongs.value = recommendationEngine.rank(
+                candidates = (relatedDiscovery + verifiedRecentReleases)
+                    .filterNot { it.id in heardIds }
+                    .distinctBy(Song::id),
+                profile = discoveryProfile,
+                surface = RecommendationSurface.HOME,
+                limit = 40,
+            ).sortedBy { song -> ("$weeklySeed:${song.id}").hashCode() }
+                .take(10)
+                .toImmutableList()
 
             // Latest releases are used only for cold-start discovery, never mixed into an
             // established profile as generic chart filler.

@@ -161,6 +161,7 @@ fun EqualizerScreen(
     equalizerViewModel: EqualizerViewModel = hiltViewModel()
 ) {
     val uiState by equalizerViewModel.uiState.collectAsStateWithLifecycle()
+    val smartEqEnabled by equalizerViewModel.smartEqEnabled.collectAsStateWithLifecycle()
 
     // Sheet States
     var showCustomPresetsSheet by remember { mutableStateOf(false) }
@@ -300,6 +301,28 @@ fun EqualizerScreen(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
+            item(key = "smart_eq") {
+                Surface(
+                    shape = RoundedCornerShape(24.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Smart EQ", style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                "Automatically matches the preset to the current song genre. Disabled in Data Saver.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Switch(checked = smartEqEnabled, onCheckedChange = equalizerViewModel::setSmartEqEnabled)
+                    }
+                }
+            }
             // Preset Tabs
             item(key = "preset_tabs") {
                 val visiblePresets = remember(uiState.accessiblePresets) {

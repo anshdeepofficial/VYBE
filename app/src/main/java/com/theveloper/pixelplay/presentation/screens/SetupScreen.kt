@@ -143,6 +143,7 @@ import com.theveloper.pixelplay.data.backup.model.BackupTransferProgressUpdate
 import com.theveloper.pixelplay.data.backup.model.RestorePlan
 import com.theveloper.pixelplay.data.preferences.AppThemeMode
 import com.theveloper.pixelplay.data.worker.UpdateCheckSchedule
+import com.theveloper.pixelplay.data.telemetry.InstallTelemetry
 import com.theveloper.pixelplay.presentation.components.PermissionIconCollage
 import com.theveloper.pixelplay.presentation.components.BackupModuleSelectionDialog
 import com.theveloper.pixelplay.presentation.components.subcomps.MaterialYouVectorDrawable
@@ -384,6 +385,7 @@ fun SetupScreen(
                         onPermissionStateUpdated = { setupViewModel.checkPermissions(context) }
                     )
                     SetupPage.UpdateSchedule -> UpdateSchedulePage()
+                    SetupPage.InstallTelemetry -> InstallTelemetryPage()
                     SetupPage.BatteryOptimization -> BatteryOptimizationPage(
                         onSkip = {
                             navigateToPage(pagerState.currentPage + 1)
@@ -553,6 +555,7 @@ sealed class SetupPage {
     object ThemeSelection : SetupPage()
     object NotificationsPermission : SetupPage()
     object UpdateSchedule : SetupPage()
+    object InstallTelemetry : SetupPage()
     object LibraryLayout : SetupPage()
     object NavBarLayout : SetupPage()
     object BatteryOptimization : SetupPage()
@@ -572,6 +575,7 @@ private fun buildSetupPages(
         pages += SetupPage.NotificationsPermission
     }
     pages += SetupPage.UpdateSchedule
+    pages += SetupPage.InstallTelemetry
 
     pages += SetupPage.BackupRestore
     if (includeDirectorySelection) {
@@ -628,6 +632,40 @@ private fun formatSetupTime(hour: Int, minute: Int): String {
     val normalized = hour.coerceIn(0, 23)
     val display = when (val h = normalized % 12) { 0 -> 12; else -> h }
     return "$display:${minute.coerceIn(0, 59).toString().padStart(2, '0')} ${if (normalized < 12) "AM" else "PM"}"
+}
+
+@Composable
+private fun InstallTelemetryPage() {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var enabled by remember { mutableStateOf(InstallTelemetry.hasConsent(context)) }
+    Column(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 28.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Icon(painterResource(R.drawable.rounded_monitoring_24), contentDescription = null, modifier = Modifier.size(72.dp))
+        Spacer(Modifier.height(20.dp))
+        Text("Anonymous install count", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Help show how many devices use VYBE. This sends only a one-way installation hash, app version and Android version - never your email, music, searches or playlists.",
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(24.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Share anonymous usage", modifier = Modifier.weight(1f))
+            Switch(
+                checked = enabled,
+                onCheckedChange = { selected ->
+                    enabled = selected
+                    InstallTelemetry.setConsent(context, selected)
+                    if (selected) scope.launch { InstallTelemetry.recordIfDue(context, force = true) }
+                },
+            )
+        }
+    }
 }
 
 private fun firstBlockedForwardPageIndex(

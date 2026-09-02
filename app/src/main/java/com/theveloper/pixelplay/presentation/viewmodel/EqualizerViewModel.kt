@@ -69,9 +69,17 @@ data class EqualizerUiState(
 class EqualizerViewModel @Inject constructor(
     private val equalizerManager: EqualizerManager,
     private val equalizerPreferencesRepository: EqualizerPreferencesRepository,
+    private val userPreferencesRepository: UserPreferencesRepository,
     private val dualPlayerEngine: DualPlayerEngine,
     @param:dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
+
+    val smartEqEnabled: StateFlow<Boolean> = userPreferencesRepository.smartEqEnabledFlow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    fun setSmartEqEnabled(enabled: Boolean) {
+        viewModelScope.launch { userPreferencesRepository.setSmartEqEnabled(enabled) }
+    }
     
     companion object {
         private const val TAG = "EqualizerViewModel"

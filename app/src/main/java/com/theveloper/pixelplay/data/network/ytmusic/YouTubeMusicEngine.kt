@@ -388,22 +388,64 @@ class YouTubeMusicEngine @Inject constructor(
             Log.w(TAG, "Browse charts failed: ${e.message}")
         }
 
-        // Tier 2: High-yield regional trending queries
-        if (tracks.isEmpty()) {
-            val trendingQuery = when (region.uppercase()) {
-                "IN" -> "Trending Hindi Punjabi Songs Top Charts"
-                "US" -> "Billboard Hot 100 Top Hits"
-                "GB", "UK" -> "Official UK Top 40 Singles Chart"
-                "KR" -> "K-Pop Top Hits Trending"
-                "JP" -> "J-Pop Top Hits Trending"
-                "ES", "MX" -> "Top Exitos Espanol Trending"
-                else -> "Global Top Hits Trending Songs"
-            }
-            tracks.addAll(search(trendingQuery, region))
-        }
-
-        tracks.distinctBy { it.videoId }
+        val official = tracks.distinctBy { it.videoId }
             .filter { isCleanTrendingTrack(it.title, it.artist) }
+        if (official.isNotEmpty()) {
+            saveOfficialChart(region, official)
+            official
+        } else {
+            // Never label broad text-search results as an official chart. Reuse the last
+            // successfully parsed provider-ranked snapshot when the chart endpoint is down.
+            loadOfficialChart(region)
+        }
+    }
+
+    private fun saveOfficialChart(region: String, tracks: List<YouTubeTrack>) {
+        val payload = JSONArray().apply {
+            tracks.take(100).forEach { track ->
+                put(JSONObject().apply {
+                    put("id", track.videoId)
+                    put("title", track.title)
+                    put("artist", track.artist)
+                    put("album", track.album)
+                    put("duration", track.durationSeconds)
+                    put("thumbnail", track.thumbnailUrl)
+                    put("type", track.resultType.name)
+                    put("official", track.isOfficial)
+                })
+            }
+        }
+        context.getSharedPreferences("ytm_official_charts", Context.MODE_PRIVATE).edit()
+            .putString("chart_${region.uppercase()}", payload.toString())
+            .putLong("chart_${region.uppercase()}_fetched_at", System.currentTimeMillis())
+            .apply()
+    }
+
+    private fun loadOfficialChart(region: String): List<YouTubeTrack> {
+        val raw = context.getSharedPreferences("ytm_official_charts", Context.MODE_PRIVATE)
+            .getString("chart_${region.uppercase()}", null) ?: return emptyList()
+        return runCatching {
+            val array = JSONArray(raw)
+            buildList {
+                for (index in 0 until array.length()) {
+                    val item = array.getJSONObject(index)
+                    add(
+                        YouTubeTrack(
+                            videoId = item.getString("id"),
+                            title = item.getString("title"),
+                            artist = item.getString("artist"),
+                            album = item.optString("album", "YouTube Music"),
+                            durationSeconds = item.optLong("duration"),
+                            thumbnailUrl = item.optString("thumbnail").takeIf(String::isNotBlank),
+                            resultType = runCatching {
+                                YouTubeMusicEntityType.valueOf(item.optString("type"))
+                            }.getOrDefault(YouTubeMusicEntityType.SONG),
+                            isOfficial = item.optBoolean("official"),
+                        )
+                    )
+                }
+            }
+        }.getOrDefault(emptyList())
     }
 
     /** Fetches the real YouTube Music New Releases browse feed. */

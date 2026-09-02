@@ -66,6 +66,8 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.LoadingIndicator
 // import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults // Removed
 // import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState // Removed
@@ -217,64 +219,16 @@ private suspend fun validateLyricsImport(
 
 @Composable
 private fun NativeInlineVideoArtwork(
-    videoId: String,
+    songId: String,
     artworkUrl: String?,
-    currentAudioPositionProvider: () -> Long,
     playerViewModel: PlayerViewModel,
-    onVideoReady: () -> Unit,
-    onClose: (positionMs: Long, wasPlaying: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val context = LocalContext.current
-    var streamUrl by remember(videoId) { mutableStateOf<String?>(null) }
-    var errorMessage by remember(videoId) { mutableStateOf<String?>(null) }
-    var isReady by remember(videoId) { mutableStateOf(false) }
-    var isFullscreen by rememberSaveable(videoId) { mutableStateOf(false) }
-    val latestPositionProvider by rememberUpdatedState(currentAudioPositionProvider)
-    val latestOnReady by rememberUpdatedState(onVideoReady)
-    val latestOnClose by rememberUpdatedState(onClose)
-    val exoPlayer = remember(videoId) { ExoPlayer.Builder(context).build() }
-
-    LaunchedEffect(videoId) {
-        errorMessage = null
-        streamUrl = playerViewModel.resolveInlineVideoStream(videoId)
-        if (streamUrl == null) errorMessage = "Video is not available for this track."
-    }
-
-    DisposableEffect(exoPlayer, streamUrl) {
-        val listener = object : Player.Listener {
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == Player.STATE_READY && !isReady) {
-                    val handoffPosition = latestPositionProvider().coerceAtLeast(0L)
-                    exoPlayer.seekTo(handoffPosition)
-                    isReady = true
-                    latestOnReady()
-                    exoPlayer.playWhenReady = true
-                }
-            }
-
-            override fun onPlayerError(error: PlaybackException) {
-                errorMessage = "Video could not be played. Audio playback is still available."
-            }
-        }
-        exoPlayer.addListener(listener)
-        streamUrl?.let { url ->
-            exoPlayer.setMediaItem(MediaItem.fromUri(url))
-            exoPlayer.prepare()
-        }
-        onDispose { exoPlayer.removeListener(listener) }
-    }
-
-    DisposableEffect(exoPlayer) {
-        onDispose { exoPlayer.release() }
-    }
-
-    val closeVideo = {
-        val position = if (isReady) exoPlayer.currentPosition else latestPositionProvider()
-        val wasPlaying = isReady && exoPlayer.playWhenReady
-        exoPlayer.pause()
-        latestOnClose(position, wasPlaying)
-    }
+    var isFullscreen by rememberSaveable { mutableStateOf(false) }
+    var showQualityMenu by remember { mutableStateOf(false) }
+    var qualityLabel by rememberSaveable { mutableStateOf("Auto") }
+    val scope = rememberCoroutineScope()
+    val sessionPlayer = playerViewModel.inlineVideoPlayer()
 
     val videoSurface: @Composable (Modifier) -> Unit = { surfaceModifier ->
         AndroidView(
@@ -282,12 +236,12 @@ private fun NativeInlineVideoArtwork(
             factory = { viewContext ->
                 PlayerView(viewContext).apply {
                     useController = true
-                    player = exoPlayer
+                    player = sessionPlayer
                     setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
                     resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
                 }
             },
-            update = { it.player = exoPlayer },
+            update = { it.player = playerViewModel.inlineVideoPlayer() },
         )
     }
 
@@ -298,22 +252,35 @@ private fun NativeInlineVideoArtwork(
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize().blur(32.dp).graphicsLayer { alpha = 0.58f },
         )
-        if (streamUrl != null && !isFullscreen) {
+        if (sessionPlayer != null && !isFullscreen) {
             videoSurface(Modifier.fillMaxWidth().aspectRatio(16f / 9f).align(Alignment.Center))
-        } else if (errorMessage == null) {
+        } else {
             CircularProgressIndicator(Modifier.align(Alignment.Center))
         }
-        errorMessage?.let {
-            Text(it, color = Color.White, modifier = Modifier.align(Alignment.Center).padding(24.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-        }
-        FilledIconButton(onClick = closeVideo, modifier = Modifier.align(Alignment.TopEnd).padding(10.dp)) {
-            Icon(painterResource(R.drawable.rounded_close_24), contentDescription = "Close video")
-        }
-        if (isReady) {
+        if (sessionPlayer != null) {
             FilledIconButton(
                 onClick = { isFullscreen = true },
                 modifier = Modifier.align(Alignment.BottomEnd).padding(10.dp),
             ) { Icon(Icons.Rounded.Fullscreen, contentDescription = "Fullscreen video") }
+        }
+        Box(Modifier.align(Alignment.BottomStart).padding(10.dp)) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
+                modifier = Modifier.clickable { showQualityMenu = true },
+            ) { Text(qualityLabel, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) }
+            DropdownMenu(expanded = showQualityMenu, onDismissRequest = { showQualityMenu = false }) {
+                listOf("Auto" to null, "Data saver" to true, "High" to false).forEach { (label, lowData) ->
+                    DropdownMenuItem(
+                        text = { Text(label) },
+                        onClick = {
+                            showQualityMenu = false
+                            qualityLabel = label
+                            scope.launch { playerViewModel.setInlineVideoMode(songId, true, lowData) }
+                        },
+                    )
+                }
+            }
         }
     }
 
@@ -394,13 +361,12 @@ fun FullPlayerContent(
     var showPlaybackSpeedBottomSheet by remember { mutableStateOf(false) }
     var showTimerBottomSheet by remember { mutableStateOf(false) }
     var showVideoPlayer by remember { mutableStateOf(false) }
-    var videoOwnsPlayback by remember { mutableStateOf(false) }
-    var resumeAudioAfterVideo by remember { mutableStateOf(false) }
+    var videoAvailable by remember(song.id) { mutableStateOf(false) }
 
     LaunchedEffect(song.id) {
         showVideoPlayer = false
-        videoOwnsPlayback = false
-        resumeAudioAfterVideo = false
+        videoAvailable = song.isMusicVideo &&
+            playerViewModel.resolveInlineVideoStream(song.id.removePrefix("yt_")) != null
     }
     
     val isTimerActive by playerViewModel.activeTimerValueDisplay.collectAsStateWithLifecycle()
@@ -436,6 +402,7 @@ fun FullPlayerContent(
 
     val context = LocalContext.current
     val fileImportScope = rememberCoroutineScope()
+    val videoToggleScope = rememberCoroutineScope()
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
         onResult = { uri: Uri? ->
@@ -673,26 +640,9 @@ fun FullPlayerContent(
     val albumCoverSection: @Composable (Modifier) -> Unit = { modifier ->
         if (showVideoPlayer) {
             NativeInlineVideoArtwork(
-                videoId = song.id.removePrefix("yt_"),
+                songId = song.id,
                 artworkUrl = song.albumArtUriString,
-                currentAudioPositionProvider = currentPositionProvider,
                 playerViewModel = playerViewModel,
-                onVideoReady = {
-                    if (!videoOwnsPlayback) {
-                        resumeAudioAfterVideo = isPlayingProvider() || playWhenReadyProvider()
-                        if (isPlayingProvider() || playWhenReadyProvider()) onPlayPause()
-                        videoOwnsPlayback = true
-                    }
-                },
-                onClose = { positionMs, _ ->
-                    if (videoOwnsPlayback) {
-                        onSeek(positionMs)
-                        if (resumeAudioAfterVideo && !isPlayingProvider()) onPlayPause()
-                    }
-                    videoOwnsPlayback = false
-                    resumeAudioAfterVideo = false
-                    showVideoPlayer = false
-                },
                 modifier = modifier,
             )
         } else FullPlayerAlbumCoverSection(
@@ -1188,17 +1138,26 @@ fun FullPlayerContent(
         }
     }
 
-        val hasYouTubeVideo = song.isMusicVideo ||
-            song.id.startsWith("yt_") ||
-            song.contentUriString.startsWith("yt://")
-        if (hasYouTubeVideo) {
+        if (videoAvailable) {
             FilledIconButton(
                 onClick = {
-                    showVideoPlayer = true
+                    videoToggleScope.launch {
+                        val target = !showVideoPlayer
+                        if (playerViewModel.setInlineVideoMode(song.id, target)) {
+                            showVideoPlayer = target
+                        }
+                    }
                 },
+                colors = if (showVideoPlayer) IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ) else IconButtonDefaults.filledIconButtonColors(),
                 modifier = Modifier.align(Alignment.TopEnd).padding(top = 108.dp, end = 20.dp),
             ) {
-                Icon(painterResource(R.drawable.rounded_play_circle_24), contentDescription = "Play video")
+                Icon(
+                    painterResource(R.drawable.rounded_play_circle_24),
+                    contentDescription = if (showVideoPlayer) "Show artwork" else "Play video",
+                )
             }
         }
     }

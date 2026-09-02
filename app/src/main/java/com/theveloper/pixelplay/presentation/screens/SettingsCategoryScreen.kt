@@ -1584,6 +1584,9 @@ fun SettingsCategoryScreen(
                                     }
                                 )
                             }
+                            // Advanced generation tuning remains on safe defaults and is hidden
+                            // from the standard UI (the stored values remain backup-compatible).
+                            if (false) {
                             // Generation Parameters Section
                             SettingsSubsection(title = "Generation Parameters") {
                                 SliderSettingsItem(
@@ -1671,9 +1674,11 @@ fun SettingsCategoryScreen(
                                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
                                 )
                             }
+                            }
 
                             // Song Data Configuration Section
                             SettingsSubsection(title = "Song Data Configuration") {
+                                if (false) {
                                 val aiSampleSize by settingsViewModel.aiSampleSize.collectAsStateWithLifecycle()
                                 SliderSettingsItem(
                                     label = "Sample Size",
@@ -1703,6 +1708,7 @@ fun SettingsCategoryScreen(
                                         )
                                     }
                                 )
+                                }
                                 SwitchSettingItem(
                                     title = "Extended Song Fields",
                                     subtitle = "Include album, year, and genre info in song data sent to AI",

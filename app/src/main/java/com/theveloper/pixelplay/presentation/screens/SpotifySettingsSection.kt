@@ -72,7 +72,7 @@ fun SpotifySettingsSection(settingsViewModel: SettingsViewModel, context: Contex
                                     )
                                     Column(Modifier.weight(1f)) {
                                         Text(playlist.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                        Text("${playlist.trackCount} songs • ${playlist.ownerName}", style = MaterialTheme.typography.bodySmall)
+                                        Text("${playlist.trackCount} songs - ${playlist.ownerName}", style = MaterialTheme.typography.bodySmall)
                                     }
                                 }
                                 if (playlist.id in library.selectedPlaylistIds) {
@@ -93,7 +93,7 @@ fun SpotifySettingsSection(settingsViewModel: SettingsViewModel, context: Contex
                     onClick = settingsViewModel::importSelectedSpotifyPlaylists,
                     enabled = library.selectedPlaylistIds.isNotEmpty() && !library.isImporting,
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text(if (library.isImporting) "Importing ${library.processedPlaylists}/${library.totalPlaylists}…" else "Import selected playlists") }
+                ) { Text(if (library.isImporting) "Importing ${library.processedPlaylists}/${library.totalPlaylists}..." else "Import selected playlists") }
                 if (library.isImporting) LinearProgressIndicator(Modifier.fillMaxWidth())
                 library.successMessage?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
             }
@@ -117,7 +117,7 @@ fun SpotifySettingsSection(settingsViewModel: SettingsViewModel, context: Contex
             ) {
                 Icon(Icons.Rounded.Download, null)
                 Spacer(Modifier.width(8.dp))
-                Text(if (publicImport.isImporting) "Importing…" else "Import public playlist")
+                Text(if (publicImport.isImporting) "Importing..." else "Import public playlist")
             }
             if (publicImport.isImporting) {
                 LinearProgressIndicator(progress = { publicImport.progress.coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())

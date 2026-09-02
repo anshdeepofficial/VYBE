@@ -116,6 +116,8 @@ fun ArtistDetailScreen(
     playlistViewModel: PlaylistViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val preferredArtists by viewModel.preferredArtists.collectAsStateWithLifecycle()
+    val blockedArtists by viewModel.blockedArtists.collectAsStateWithLifecycle()
     val stablePlayerState by playerViewModel.stablePlayerState.collectAsStateWithLifecycle()
     
     // Optimization: Defer heavy list rendering until navigation transition settles
@@ -440,6 +442,13 @@ fun ArtistDetailScreen(
                                             onToggleExpanded = {
                                                 expandedSections[sectionKey] = !isExpanded
                                             },
+                                            onOpenAlbum = {
+                                                val route = section.remoteBrowseId
+                                                    ?.takeIf(String::isNotBlank)
+                                                    ?.let(Screen.AlbumDetail::createRoute)
+                                                    ?: Screen.AlbumDetail.createRoute(section.albumId)
+                                                navController.navigateSafelyReplacing(route, Screen.AlbumDetail.route)
+                                            },
                                             onPlayAlbum = {
                                                 section.songs.firstOrNull()?.let { firstSong ->
                                                     playerViewModel.showAndPlaySong(firstSong, section.songs)
@@ -531,6 +540,8 @@ fun ArtistDetailScreen(
                             headerHeight = currentTopBarHeightDp,
                             headerImageRequestSize = headerImageRequestSize,
                             hasCustomImage = !artist.customImageUri.isNullOrBlank(),
+                            isFollowed = preferredArtists.any { it.equals(artist.name, true) },
+                            isBlocked = blockedArtists.any { it.equals(artist.name, true) },
                             onBackPressed = { navController.popBackStack() },
                             onPlayClick = {
                                 if (activeTabSongs.isNotEmpty()) {
@@ -542,7 +553,9 @@ fun ArtistDetailScreen(
                                 }
                             },
                             onChangeImage = { imagePickerLauncher.launch("image/*") },
-                            onClearCustomImage = { viewModel.clearCustomImage() }
+                            onClearCustomImage = { viewModel.clearCustomImage() },
+                            onToggleFollow = { viewModel.toggleFollowArtist(artist.name) },
+                            onToggleBlock = { viewModel.toggleBlockArtist(artist.name) },
                         )
                     } else {
                         CustomCollapsingTopBar(
@@ -686,6 +699,7 @@ private fun CollapsibleAlbumSectionHeader(
     section: ArtistAlbumSection,
     isExpanded: Boolean,
     onToggleExpanded: () -> Unit,
+    onOpenAlbum: () -> Unit,
     modifier: Modifier = Modifier,
     onPlayAlbum: () -> Unit
 ) {
@@ -725,7 +739,7 @@ private fun CollapsibleAlbumSectionHeader(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(shape)
-                .clickable(onClick = onToggleExpanded)
+                .clickable(onClick = onOpenAlbum)
                 .padding(horizontal = 14.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -773,9 +787,10 @@ private fun CollapsibleAlbumSectionHeader(
                     stringResource(R.string.artist_cd_expand_title, section.title)
                 },
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.graphicsLayer {
-                    rotationZ = expandIconRotation
-                }
+                modifier = Modifier
+                    .clickable(onClick = onToggleExpanded)
+                    .padding(6.dp)
+                    .graphicsLayer { rotationZ = expandIconRotation }
             )
         }
     }
@@ -861,10 +876,14 @@ private fun SharedArtistTopBarProbe(
     headerHeight: Dp,
     headerImageRequestSize: Size,
     hasCustomImage: Boolean,
+    isFollowed: Boolean,
+    isBlocked: Boolean,
     onBackPressed: () -> Unit,
     onPlayClick: () -> Unit,
     onChangeImage: () -> Unit,
-    onClearCustomImage: () -> Unit
+    onClearCustomImage: () -> Unit,
+    onToggleFollow: () -> Unit,
+    onToggleBlock: () -> Unit,
 ) {
     var showImageMenu by remember { mutableStateOf(false) }
     val surfaceColor = MaterialTheme.colorScheme.surface
@@ -985,6 +1004,14 @@ private fun SharedArtistTopBarProbe(
                         expanded = showImageMenu,
                         onDismissRequest = { showImageMenu = false }
                     ) {
+                        DropdownMenuItem(
+                            text = { Text(if (isFollowed) "Unfollow artist" else "Follow artist") },
+                            onClick = { showImageMenu = false; onToggleFollow() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(if (isBlocked) "Unblock artist" else "Block artist") },
+                            onClick = { showImageMenu = false; onToggleBlock() },
+                        )
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.artist_action_change_photo)) },
                             leadingIcon = {

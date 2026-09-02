@@ -242,11 +242,54 @@ class PlayerViewModel @Inject constructor(
     val dataSaverEnabled: StateFlow<Boolean> = userPreferencesRepository.dataSaverEnabledFlow
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
-    suspend fun resolveInlineVideoStream(songId: String): String? =
+    suspend fun resolveInlineVideoStream(songId: String, preferLowData: Boolean? = null): String? =
         newPipeStreamResolver.resolveVideo(
             videoId = songId.removePrefix("yt_"),
-            preferLowData = dataSaverEnabled.value,
+            preferLowData = preferLowData ?: dataSaverEnabled.value,
         )
+
+    private var inlineVideoOriginalItem: MediaItem? = null
+    private var inlineVideoMediaId: String? = null
+
+    fun inlineVideoPlayer(): Player? = mediaController
+
+    suspend fun setInlineVideoMode(
+        songId: String,
+        enabled: Boolean,
+        preferLowData: Boolean? = null,
+    ): Boolean {
+        val controller = mediaController ?: return false
+        val cleanId = songId.removePrefix("yt_")
+        val expectedMediaId = "yt_$cleanId"
+        if (controller.currentMediaItem?.mediaId != expectedMediaId) return false
+        val streamUrl = if (enabled) resolveInlineVideoStream(cleanId, preferLowData) ?: return false else null
+        return withContext(Dispatchers.Main.immediate) {
+            val index = controller.currentMediaItemIndex
+            if (index < 0) return@withContext false
+            val position = controller.currentPosition.coerceAtLeast(0L)
+            val wasPlaying = controller.playWhenReady
+            val current = controller.currentMediaItem ?: return@withContext false
+            val replacement = if (enabled) {
+                if (inlineVideoOriginalItem == null || inlineVideoMediaId != expectedMediaId) {
+                    inlineVideoOriginalItem = current
+                }
+                inlineVideoMediaId = expectedMediaId
+                current.buildUpon().setUri(streamUrl).build()
+            } else {
+                inlineVideoOriginalItem.takeIf { inlineVideoMediaId == expectedMediaId }
+                    ?: current.buildUpon().setUri("yt://$cleanId").build()
+            }
+            controller.replaceMediaItem(index, replacement)
+            controller.seekTo(index, position)
+            controller.prepare()
+            controller.playWhenReady = wasPlaying
+            if (!enabled) {
+                inlineVideoOriginalItem = null
+                inlineVideoMediaId = null
+            }
+            true
+        }
+    }
 
     fun selectEqualizerOutputProfile(deviceName: String) {
         viewModelScope.launch { equalizerPreferencesRepository.switchOutputProfile(deviceName) }
@@ -1600,6 +1643,7 @@ class PlayerViewModel @Inject constructor(
     val latestReleaseSongs: StateFlow<ImmutableList<Song>> = dailyMixStateHolder.latestReleaseSongs
     val quickPickSongs: StateFlow<ImmutableList<Song>> = dailyMixStateHolder.quickPickSongs
     val trendingSongs: StateFlow<ImmutableList<Song>> = dailyMixStateHolder.trendingSongs
+    val discoverySongs: StateFlow<ImmutableList<Song>> = dailyMixStateHolder.discoverySongs
     val isHomeRefreshing: StateFlow<Boolean> = dailyMixStateHolder.isRefreshing
     val topMoods: StateFlow<ImmutableList<String>> = dailyMixStateHolder.topMoods
     val moodColors: StateFlow<Map<String, Long>> = userPreferencesRepository.moodColorsFlow

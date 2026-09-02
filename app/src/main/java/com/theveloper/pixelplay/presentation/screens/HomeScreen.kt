@@ -171,6 +171,7 @@ fun HomeScreen(
     val quickPickSongs by playerViewModel.quickPickSongs.collectAsStateWithLifecycle()
     val trendingSongs by playerViewModel.trendingSongs.collectAsStateWithLifecycle()
     val latestReleaseSongs by playerViewModel.latestReleaseSongs.collectAsStateWithLifecycle()
+    val discoverySongs by playerViewModel.discoverySongs.collectAsStateWithLifecycle()
     val homeMixPreviewSongs by playerViewModel.homeMixPreviewSongs.collectAsStateWithLifecycle()
     val playbackHistory by playerViewModel.playbackHistory.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -329,12 +330,6 @@ fun HomeScreen(
             .filter { it.id != historySeed?.id && (artist.isBlank() || it.artist.contains(artist, true)) }
             .distinctBy { it.id }.take(10)
     }
-    val discoverySongs = remember(quickPickSongs, dailyMixSongs, latestReleaseSongs, recentlyPlayedQueue) {
-        val heard = recentlyPlayedQueue.map { it.id }.toSet()
-        (quickPickSongs + dailyMixSongs + latestReleaseSongs)
-            .distinctBy { it.id }.filterNot { it.id in heard }.take(10)
-    }
-
     ReportDrawnWhen {
         yourMixSongs.isNotEmpty() || hasHomeLoadingMinimumElapsed || isBenchmarkMode
     }

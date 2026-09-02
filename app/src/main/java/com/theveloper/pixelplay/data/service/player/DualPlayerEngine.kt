@@ -1129,19 +1129,6 @@ class DualPlayerEngine @Inject constructor(
                     .build()
             }
 
-            override fun buildVideoRenderers(
-                context: Context,
-                extensionRendererMode: Int,
-                mediaCodecSelector: MediaCodecSelector,
-                enableDecoderFallback: Boolean,
-                eventHandler: android.os.Handler,
-                eventListener: androidx.media3.exoplayer.video.VideoRendererEventListener,
-                allowedVideoJoiningTimeMs: Long,
-                out: ArrayList<Renderer>
-            ) {
-                // Audio-only player: skip video renderers to save memory and "renderers" count.
-            }
-
             override fun buildTextRenderers(
                 context: Context,
                 eventListener: androidx.media3.exoplayer.text.TextOutput,

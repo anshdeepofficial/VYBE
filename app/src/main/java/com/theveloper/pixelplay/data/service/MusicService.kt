@@ -72,6 +72,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import com.theveloper.pixelplay.data.equalizer.EqualizerManager
+import com.theveloper.pixelplay.data.equalizer.EqualizerPreset
 import com.theveloper.pixelplay.data.model.WidgetThemeColors
 import com.theveloper.pixelplay.data.preferences.AlbumArtColorAccuracy
 import com.theveloper.pixelplay.data.preferences.AlbumArtPaletteStyle
@@ -252,6 +253,7 @@ class MusicService : MediaLibraryService() {
     private var playbackNotificationProvider: LocalOnlyMediaNotificationProvider? = null
     private var dynamicIslandPromotedEnabled = true
     @Volatile private var dataSaverEnabled = false
+    @Volatile private var smartEqEnabled = false
 
     // Observes the device's media stream volume and pauses playback when it
     // reaches 0, if the user has enabled the "pause on volume zero" preference.
@@ -540,6 +542,10 @@ class MusicService : MediaLibraryService() {
                 dataSaverEnabled = enabled
                 youTubeMusicEngine.setDataSaverEnabled(enabled)
             }
+        }
+
+        serviceScope.launch {
+            userPreferencesRepository.smartEqEnabledFlow.collect { smartEqEnabled = it }
         }
 
         serviceScope.launch {
@@ -1477,6 +1483,21 @@ class MusicService : MediaLibraryService() {
         }
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            if (smartEqEnabled && !dataSaverEnabled) {
+                val genre = mediaItem?.mediaMetadata?.extras
+                    ?.getString(MediaItemBuilder.EXTERNAL_EXTRA_GENRE).orEmpty().lowercase()
+                val preset = when {
+                    genre.contains("rock") || genre.contains("metal") -> EqualizerPreset.ROCK
+                    genre.contains("hip hop") || genre.contains("rap") -> EqualizerPreset.HIP_HOP
+                    genre.contains("jazz") -> EqualizerPreset.JAZZ
+                    genre.contains("classical") || genre.contains("orchestra") -> EqualizerPreset.CLASSICAL
+                    genre.contains("electronic") || genre.contains("dance") || genre.contains("edm") -> EqualizerPreset.ELECTRONIC
+                    genre.contains("pop") -> EqualizerPreset.POP
+                    else -> EqualizerPreset.FLAT
+                }
+                equalizerManager.setEnabled(true)
+                equalizerManager.applyPreset(preset)
+            }
             syncLocalListeningStatsFromPlayer(mediaSession?.player ?: engine.masterPlayer, forceNewSession = true)
             if (isNavidromeMediaItem(mediaItem)) {
                 reportNavidromePlayback("starting")

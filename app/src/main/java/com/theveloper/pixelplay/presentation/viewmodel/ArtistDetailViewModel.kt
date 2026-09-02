@@ -27,6 +27,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -49,6 +52,7 @@ data class ArtistDetailUiState(
 @Immutable
 data class ArtistAlbumSection(
     val albumId: Long,
+    val remoteBrowseId: String? = null,
     val title: String,
     val year: Int?,
     val albumArtUriString: String?,
@@ -61,9 +65,41 @@ class ArtistDetailViewModel @Inject constructor(
     private val musicRepository: MusicRepository,
     private val onlineMusicRepository: com.theveloper.pixelplay.data.repository.OnlineMusicRepository,
     private val artistImageRepository: ArtistImageRepository,
+    private val userPreferencesRepository: com.theveloper.pixelplay.data.preferences.UserPreferencesRepository,
     val themeStateHolder: ThemeStateHolder,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    val preferredArtists = userPreferencesRepository.preferredArtists
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
+    val blockedArtists = userPreferencesRepository.blockedArtists
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
+
+    fun toggleFollowArtist(name: String) = viewModelScope.launch {
+        val key = name.trim()
+        val preferred = userPreferencesRepository.preferredArtists.first().toMutableSet()
+        val existing = preferred.firstOrNull { it.equals(key, true) }
+        if (existing != null) preferred.remove(existing) else preferred.add(key)
+        userPreferencesRepository.updatePreferredArtists(preferred)
+        if (existing == null) {
+            userPreferencesRepository.updateBlockedArtists(
+                userPreferencesRepository.blockedArtists.first().filterNot { it.equals(key, true) }.toSet()
+            )
+        }
+    }
+
+    fun toggleBlockArtist(name: String) = viewModelScope.launch {
+        val key = name.trim()
+        val blocked = userPreferencesRepository.blockedArtists.first().toMutableSet()
+        val existing = blocked.firstOrNull { it.equals(key, true) }
+        if (existing != null) blocked.remove(existing) else blocked.add(key)
+        userPreferencesRepository.updateBlockedArtists(blocked)
+        if (existing == null) {
+            userPreferencesRepository.updatePreferredArtists(
+                userPreferencesRepository.preferredArtists.first().filterNot { it.equals(key, true) }.toSet()
+            )
+        }
+    }
 
     private val _uiState = MutableStateFlow(ArtistDetailUiState())
     val uiState: StateFlow<ArtistDetailUiState> = _uiState.asStateFlow()
@@ -335,6 +371,7 @@ class ArtistDetailViewModel @Inject constructor(
                     }
                     ArtistAlbumSection(
                         albumId = album.browseId.hashCode().toLong(),
+                        remoteBrowseId = album.browseId,
                         title = album.title,
                         year = album.year,
                         albumArtUriString = album.coverUrl,
@@ -482,6 +519,7 @@ private fun buildAlbumSections(songs: List<Song>): List<ArtistAlbumSection> {
             val albumArtUri = albumSongs.firstNotNullOfOrNull { it.albumArtUriString }
             ArtistAlbumSection(
                 albumId = key.first,
+                remoteBrowseId = albumSongs.firstNotNullOfOrNull { it.remoteAlbumBrowseId },
                 title = (key.second.takeIf { it.isNotBlank() } ?: "Unknown Album"),
                 year = albumYear,
                 albumArtUriString = albumArtUri,

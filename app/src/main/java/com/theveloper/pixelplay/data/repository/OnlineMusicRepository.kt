@@ -155,8 +155,13 @@ suspend fun getFastPersonalizedDiscovery(interestLabels: List<String>): List<Son
 
     suspend fun getTrendingTracks(region: String = "IN"): List<Song> = withContext(Dispatchers.IO) {
         val tracks = youTubeEngine.getTrendingTracks(normalizedRegion(region))
-        val rawList = tracks.map { it.toSong() }
-        filterAndPrioritizeRecommendations(rawList)
+        val blocked = userPreferencesRepository.blockedArtists.first().map(String::lowercase)
+        // Official provider rank is authoritative. User preferences may remove blocked artists,
+        // but must never reorder a chart and turn it into a personalised shelf.
+        tracks.map { it.toSong() }.filter { song ->
+            val artist = song.artist.lowercase()
+            blocked.none(artist::contains)
+        }
     }
 
     suspend fun getLatestReleases(region: String = "IN"): List<Song> = withContext(Dispatchers.IO) {
