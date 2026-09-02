@@ -1,4 +1,4 @@
-## [0.10.6] - 2026-09-02
+## [0.10.7] - 2026-09-02
 ### Added
 - **Artwork-Container Video Player**: Embedded video playback fits strictly inside the square artwork viewport with blurred background padding; controls, title, progress bar, lyrics, and action buttons remain intact. Supports seamless fullscreen horizontal expansion and quality selection (Auto, Data Saver, 360p, 480p, 720p, 1080p).
 - **Artist Follow & Block System**: Added Follow and Block actions on Artist Detail screens with full state persistence, synchronization with Preferred Artists, and strict exclusion of blocked artists from home/moods/autoplay.

@@ -32,6 +32,20 @@ private data class ChangelogRelease(
 
 private val VybeChangelog = listOf(
     ChangelogRelease(
+        version = "0.10.7",
+        date = "2 September 2026",
+        changes = listOf(
+            "Onboarding: Update-hour selection is shown only on a true first install and never after an app update.",
+            "Spotify: Secure PKCE browser sign-in replaces the blank WebView and synchronizes accessible private, collaborative, followed, and owned playlists.",
+            "Video: Artwork-area video uses the same Media3 session as audio, preserves position, supports fullscreen and no longer double-plays.",
+            "Library: Exact artist and album browse IDs open the selected profile or release; Follow and Block stay synchronized with recommendations.",
+            "Discovery: Official YouTube Music chart order is preserved and cached; weekly discovery excludes heard and blocked tracks.",
+            "Audio: Added optional genre-aware Smart EQ and safer transient audio-focus resume while respecting Data Saver.",
+            "Privacy: Added optional deduplicated install and active-device counting with hashed App Set ID and consent revocation.",
+            "Release: Android builds and CI now produce only the modern ARM64 APK."
+        )
+    ),
+    ChangelogRelease(
         version = "0.10.6",
         date = "1 September 2026",
         changes = listOf(

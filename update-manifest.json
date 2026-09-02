@@ -1,18 +1,18 @@
 {
   "schemaVersion": 1,
   "packageName": "com.vybe.musicplayer",
-  "versionName": "0.10.6",
-  "versionCode": 10600,
-  "tag": "v0.10.6",
-  "title": "VYBE 0.10.6",
-  "notes": "Modern ARM64 release with exact Library album and artist navigation, provider-ID-bound playback to prevent wrong audio, and an always-white notification/status-bar VYBE mark.",
+  "versionName": "0.10.7",
+  "versionCode": 10700,
+  "tag": "v0.10.7",
+  "title": "VYBE 0.10.7",
+  "notes": "Modern ARM64 release with first-install-only update scheduling, secure Spotify PKCE sync, single-session artwork video, exact artist/album identity, official chart caching, Smart EQ and optional anonymous install statistics.",
   "assets": [
     {
       "abi": "arm64-v8a",
-      "name": "VYBE-v0.10.6-arm64-v8a-release.apk",
-      "url": "https://github.com/anshdeepofficial/VYBE/releases/download/v0.10.6/VYBE-v0.10.6-arm64-v8a-release.apk",
-      "size": 57604491,
-      "sha256": "d1b343d4f19ba2f2c6bdb7cb928ec6679ac683be85f9ed4ba88a12ae580ef7da"
+      "name": "VYBE-v0.10.7-arm64-v8a-release.apk",
+      "url": "https://github.com/anshdeepofficial/VYBE/releases/download/v0.10.7/VYBE-v0.10.7-arm64-v8a-release.apk",
+      "size": 57612263,
+      "sha256": "154c325e75af2a55d92b45b20d80ac254b48c5882464c67d310bb1fafb27be5e"
     }
   ]
 }
