@@ -1,18 +1,18 @@
 {
   "schemaVersion": 1,
   "packageName": "com.vybe.musicplayer",
-  "versionName": "0.11.1",
-  "versionCode": 11100,
-  "tag": "v0.11.1",
-  "title": "VYBE 0.11.1",
-  "notes": "Release 0.11.1: Fixed video fullscreen orientation jitter & button overlap, persistent video toggle loading spinner, one-tap bulk playlist download, library album 'Not Found' and wrong album resolution fix, Spotify curated playlists ('Best Songs of 2023/2024') & top tracks discovery, and direct token / sp_dc session authentication.",
+  "versionName": "0.11.2",
+  "versionCode": 11200,
+  "tag": "v0.11.2",
+  "title": "VYBE 0.11.2",
+  "notes": "Release 0.11.2: Multi-source dynamic recommendation engine (OuterTune automix seeds + EchoMusic anti-history deduplication + Meld Spotify hybridization), playlist queue disappearing & single-song infinite loop bug fix, artist profile cleanup (original songs/videos only, zero jukeboxes/junk), account backup card with size badge & manual trigger, artist Follow & Block buttons, and fullscreen landscape video lock.",
   "assets": [
     {
       "abi": "arm64-v8a",
-      "name": "VYBE-v0.11.1-arm64-v8a-release.apk",
-      "url": "https://github.com/anshdeepofficial/VYBE/releases/download/v0.11.1/VYBE-v0.11.1-arm64-v8a-release.apk",
+      "name": "VYBE-v0.11.2-arm64-v8a-release.apk",
+      "url": "https://github.com/anshdeepofficial/VYBE/releases/download/v0.11.2/VYBE-v0.11.2-arm64-v8a-release.apk",
       "size": 57628531,
-      "sha256": "436ae6409520751afcd0887f2e78fdfe09d5c7e797586136701881050e1c77ad"
+      "sha256": "f15ad1d2c11b09b843f5e44e3a835e5cce1cf640b1acf4e84a5e66a71e8c098e"
     }
   ]
 }

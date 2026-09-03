@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
@@ -104,6 +105,9 @@ fun AccountsScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val youTubeSyncState by viewModel.youTubeSyncState.collectAsStateWithLifecycle()
+    val backupStorageSize by viewModel.backupStorageSize.collectAsStateWithLifecycle()
+    val lastBackupTime by viewModel.lastBackupTime.collectAsStateWithLifecycle()
+    val isManualBackingUp by viewModel.isManualBackingUp.collectAsStateWithLifecycle()
 
     LaunchedEffect(youTubeSyncState) {
         when (youTubeSyncState) {
@@ -198,6 +202,115 @@ fun AccountsScreen(
                     connectedCount = uiState.connectedAccounts.size,
                     disconnectedCount = uiState.disconnectedServices.size
                 )
+            }
+
+            item {
+                Surface(
+                    shape = AbsoluteSmoothCornerShape(22.dp, 60),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    modifier = Modifier.size(40.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.CloudQueue,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
+                                }
+                                Column {
+                                    Text(
+                                        text = "Settings & Data Backup",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = if (isManualBackingUp) "Backing up..." else "Last backup: $lastBackupTime",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.secondaryContainer
+                            ) {
+                                Text(
+                                    text = backupStorageSize,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = "Cloud backup securely preserves your equalizer presets, playlists, and settings linked to your account.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            androidx.compose.material3.Button(
+                                onClick = {
+                                    viewModel.performManualBackup()
+                                    Toast.makeText(context, "Backup started...", Toast.LENGTH_SHORT).show()
+                                },
+                                enabled = !isManualBackingUp,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                if (isManualBackingUp) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Backing up...")
+                                } else {
+                                    Icon(Icons.Rounded.Sync, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Back up now")
+                                }
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    viewModel.restoreYouTubeMusicSettings()
+                                    Toast.makeText(context, "Checking cloud backup...", Toast.LENGTH_SHORT).show()
+                                },
+                                enabled = !isManualBackingUp,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Restore")
+                            }
+                        }
+                    }
+                }
             }
 
             if (uiState.connectedAccounts.isNotEmpty()) {

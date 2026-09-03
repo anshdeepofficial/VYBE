@@ -372,37 +372,27 @@ private fun NativeInlineVideoArtwork(
     }
 
     if (isFullscreen) {
-        val configuration = LocalConfiguration.current
-        val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+        val activity = context as? android.app.Activity
+        androidx.compose.runtime.DisposableEffect(isFullscreen) {
+            val originalOrientation = activity?.requestedOrientation ?: android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            onDispose {
+                activity?.requestedOrientation = originalOrientation
+            }
+        }
 
         Dialog(
             onDismissRequest = { isFullscreen = false },
             properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
         ) {
-            BoxWithConstraints(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black),
-                contentAlignment = Alignment.Center,
+                    .background(Color.Black)
+                    .clickable { showOverlayControls = !showOverlayControls },
             ) {
-                val containerModifier = if (isPortrait) {
-                    Modifier
-                        .size(maxHeight, maxWidth)
-                        .graphicsLayer {
-                            rotationZ = 90f
-                            transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 0.5f)
-                        }
-                } else {
-                    Modifier.fillMaxSize()
-                }
-
-                Box(
-                    modifier = containerModifier
-                        .background(Color.Black)
-                        .clickable { showOverlayControls = !showOverlayControls },
-                ) {
-                    // Horizontal Landscape Video
-                    videoSurface(Modifier.fillMaxSize(), true)
+                // True Horizontal Landscape Video
+                videoSurface(Modifier.fillMaxSize(), false)
 
                     // Landscape Fullscreen Top Header Controls
                     AnimatedVisibility(
@@ -563,7 +553,6 @@ private fun NativeInlineVideoArtwork(
             }
         }
     }
-}
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @SuppressLint("StateFlowValueCalledInComposition")

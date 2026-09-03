@@ -315,7 +315,9 @@ class ArtistDetailViewModel @Inject constructor(
 
         profileDeferred.await()?.let { (browseId, profile) ->
             val profileImage = profile.bannerUrl ?: profile.avatarUrl ?: resolvedImage
-            val baseSongs = (localSongs + profile.topSongs).distinctBy { it.id }
+            val baseSongs = (localSongs + profile.topSongs)
+                .filterNot { it.title.contains("jukebox", ignoreCase = true) || it.title.contains("mashup", ignoreCase = true) || it.duration > 900_000L }
+                .distinctBy { it.id }
             _uiState.update { state ->
                 state.copy(
                     artist = state.artist?.copy(

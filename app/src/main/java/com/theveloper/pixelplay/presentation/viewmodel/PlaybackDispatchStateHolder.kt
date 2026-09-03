@@ -925,6 +925,11 @@ class PlaybackDispatchStateHolder @Inject constructor(
             cb.showSheet()
 
             val startMediaItem = buildResolvedPlaybackMediaItem(effectiveStartSong)
+            val startIndex = songsToPlay.indexOfFirst { it.id == effectiveStartSong.id }.coerceAtLeast(0)
+            val allMediaItems = songsToPlay.mapIndexed { index, song ->
+                if (index == startIndex) startMediaItem
+                else buildPlaybackMediaItem(song, playlistId)
+            }
 
             val playSongsAction: () -> Unit = {
                 cb.scope.launch(Dispatchers.Main.immediate) {
@@ -933,30 +938,15 @@ class PlaybackDispatchStateHolder @Inject constructor(
                     val enginePlayer = dualPlayerEngine.masterPlayer
 
                     com.theveloper.pixelplay.utils.PerformanceTracker.markT4()
-                    enginePlayer.setMediaItem(startMediaItem, startPositionMs.coerceAtLeast(0L))
+                    enginePlayer.setMediaItems(allMediaItems, startIndex, startPositionMs.coerceAtLeast(0L))
                     playbackStateHolder.setCurrentPosition(startPositionMs.coerceAtLeast(0L))
+                    playbackStateHolder.updateStablePlayerState {
+                        it.copy(currentMediaItemIndex = startIndex)
+                    }
                     com.theveloper.pixelplay.utils.PerformanceTracker.markT5()
                     enginePlayer.prepare()
                     enginePlayer.play()
                     cb.updateUiState { it.copy(isLoadingInitialSongs = false) }
-
-                    if (songsToPlay.size > 1) {
-                        pendingQueueSegmentsJob?.cancel()
-                        pendingQueueSegmentsJob = cb.scope.launch {
-                            val preparedSegments = preparePlaybackQueueSegments(
-                                songsToPlay = songsToPlay,
-                                startSongId = effectiveStartSong.id,
-                                playlistId = playlistId
-                            )
-                            withContext(Dispatchers.Main.immediate) {
-                                attachPreparedQueueSegmentsIfCurrent(
-                                    player = dualPlayerEngine.masterPlayer,
-                                    startSongId = effectiveStartSong.id,
-                                    preparedSegments = preparedSegments
-                                )
-                            }
-                        }
-                    }
                 }
             }
 

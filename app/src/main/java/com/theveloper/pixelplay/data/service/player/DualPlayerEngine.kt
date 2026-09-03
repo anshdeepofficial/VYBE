@@ -1080,8 +1080,8 @@ class DualPlayerEngine @Inject constructor(
                 .setBufferDurationsMs(
                     /* minBufferMs                      */ 15_000,
                     /* maxBufferMs                      */ 30_000,
-                    /* bufferForPlaybackMs              */  2_500,
-                    /* bufferForPlaybackAfterRebufferMs */  5_000
+                    /* bufferForPlaybackMs              */    500,
+                    /* bufferForPlaybackAfterRebufferMs */  1_500
                 )
                 .setPrioritizeTimeOverSizeThresholds(true)
                 .build()
@@ -1090,8 +1090,8 @@ class DualPlayerEngine @Inject constructor(
                 .setBufferDurationsMs(
                     /* minBufferMs                      */ 30_000,
                     /* maxBufferMs                      */ 60_000,
-                    /* bufferForPlaybackMs              */  2_500,
-                    /* bufferForPlaybackAfterRebufferMs */  5_000
+                    /* bufferForPlaybackMs              */    500,
+                    /* bufferForPlaybackAfterRebufferMs */  1_500
                 )
                 .setPrioritizeTimeOverSizeThresholds(true)
                 .build()
@@ -1507,10 +1507,27 @@ class DualPlayerEngine @Inject constructor(
                 preparedPlayerUsesWindowedQueue = count > MAX_AUXILIARY_TIMELINE_ITEMS
                 auxiliaryPlayer.setMediaItems(windowItems, targetIndex - start, startPositionMs)
             } else {
-                // Fallback for single item if not found in current timeline
-                resetPreparedWindowState()
-                auxiliaryPlayer.setMediaItem(resolvedItem)
-                auxiliaryPlayer.seekTo(startPositionMs)
+                // Fallback: preserve existing timeline items instead of truncating to single item!
+                val fullTimeline = if (snapshot.isNotEmpty()) snapshot else playerA.run {
+                    (0 until mediaItemCount).map { getMediaItemAt(it) }
+                }
+                if (fullTimeline.isNotEmpty()) {
+                    val updatedItems = fullTimeline.toMutableList()
+                    val idx = updatedItems.indexOfFirst { it.mediaId == mediaItem.mediaId }
+                    val finalIndex = if (idx >= 0) {
+                        updatedItems[idx] = resolvedItem
+                        idx
+                    } else {
+                        updatedItems.add(resolvedItem)
+                        updatedItems.lastIndex
+                    }
+                    resetPreparedWindowState()
+                    auxiliaryPlayer.setMediaItems(updatedItems, finalIndex, startPositionMs)
+                } else {
+                    resetPreparedWindowState()
+                    auxiliaryPlayer.setMediaItem(resolvedItem)
+                    auxiliaryPlayer.seekTo(startPositionMs)
+                }
             }
 
             auxiliaryPlayer.prepare()

@@ -985,54 +985,98 @@ private fun SharedArtistTopBarProbe(
             fadeSubtitleOnCollapse = false,
             syncStatusBarWithContainer = false,
             actions = {
-                Box(
-                    modifier = Modifier.padding(end = 12.dp, top = 4.dp)
+                Row(
+                    modifier = Modifier.padding(end = 8.dp, top = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    FilledIconButton(
-                        onClick = { showImageMenu = true },
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                        )
+                    Button(
+                        onClick = onToggleFollow,
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        colors = if (isFollowed) {
+                            ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        } else {
+                            ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        },
+                        modifier = Modifier.height(36.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Edit,
-                            contentDescription = stringResource(R.string.artist_cd_edit_image)
+                        Text(
+                            text = if (isFollowed) "Following" else "Follow",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
                         )
                     }
 
-                    DropdownMenu(
-                        expanded = showImageMenu,
-                        onDismissRequest = { showImageMenu = false }
+                    FilledTonalButton(
+                        onClick = onToggleBlock,
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        colors = if (isBlocked) {
+                            ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        } else {
+                            ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            )
+                        },
+                        modifier = Modifier.height(36.dp)
                     ) {
-                        DropdownMenuItem(
-                            text = { Text(if (isFollowed) "Unfollow artist" else "Follow artist") },
-                            onClick = { showImageMenu = false; onToggleFollow() },
+                        Text(
+                            text = if (isBlocked) "Blocked" else "Block",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold
                         )
-                        DropdownMenuItem(
-                            text = { Text(if (isBlocked) "Unblock artist" else "Block artist") },
-                            onClick = { showImageMenu = false; onToggleBlock() },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.artist_action_change_photo)) },
-                            leadingIcon = {
-                                Icon(Icons.Rounded.AddAPhoto, contentDescription = null)
-                            },
-                            onClick = {
-                                showImageMenu = false
-                                onChangeImage()
-                            }
-                        )
-                        if (hasCustomImage) {
+                    }
+
+                    Box {
+                        FilledIconButton(
+                            onClick = { showImageMenu = true },
+                            colors = IconButtonDefaults.filledIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                            ),
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Edit,
+                                contentDescription = stringResource(R.string.artist_cd_edit_image),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = showImageMenu,
+                            onDismissRequest = { showImageMenu = false }
+                        ) {
                             DropdownMenuItem(
-                                text = { Text(stringResource(R.string.artist_action_reset_to_default)) },
+                                text = { Text(stringResource(R.string.artist_action_change_photo)) },
                                 leadingIcon = {
-                                    Icon(Icons.Rounded.Delete, contentDescription = null)
+                                    Icon(Icons.Rounded.AddAPhoto, contentDescription = null)
                                 },
                                 onClick = {
                                     showImageMenu = false
-                                    onClearCustomImage()
+                                    onChangeImage()
                                 }
                             )
+                            if (hasCustomImage) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.artist_action_reset_to_default)) },
+                                    leadingIcon = {
+                                        Icon(Icons.Rounded.Delete, contentDescription = null)
+                                    },
+                                    onClick = {
+                                        showImageMenu = false
+                                        onClearCustomImage()
+                                    }
+                                )
+                            }
                         }
                     }
                 }

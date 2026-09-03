@@ -48,50 +48,6 @@ fun SpotifySettingsSection(settingsViewModel: SettingsViewModel, context: Contex
                     Text("Sign in with Spotify")
                 }
 
-                var showManualAuth by remember { mutableStateOf(false) }
-                var manualInput by remember { mutableStateOf("") }
-                val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
-
-                OutlinedButton(
-                    onClick = { showManualAuth = !showManualAuth },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(if (showManualAuth) "Hide Manual Token / Session" else "Enter Token or sp_dc Cookie Directly")
-                }
-
-                if (showManualAuth) {
-                    OutlinedTextField(
-                        value = manualInput,
-                        onValueChange = { manualInput = it },
-                        label = { Text("Access Token or sp_dc Cookie") },
-                        placeholder = { Text("Paste Bearer token or sp_dc...") },
-                        trailingIcon = {
-                            TextButton(onClick = {
-                                clipboard.getText()?.text?.let { text ->
-                                    if (text.isNotBlank()) manualInput = text.trim()
-                                }
-                            }) { Text("Paste") }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        maxLines = 3,
-                    )
-                    Button(
-                        onClick = {
-                            val clean = manualInput.trim()
-                            if (clean.isNotBlank()) {
-                                if (clean.startsWith("AQ") || clean.length > 120 && !clean.startsWith("BQ")) {
-                                    settingsViewModel.loginSpotifyWithSpDc(clean)
-                                } else {
-                                    settingsViewModel.loginSpotifyWithToken(clean)
-                                }
-                            }
-                        },
-                        enabled = manualInput.isNotBlank() && !library.isLoading,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(if (library.isLoading) "Connecting..." else "Connect Token / Session")
-                    }
-                }
             } else {
                 Text("Connected as ${accountName.ifBlank { "Spotify user" }}", style = MaterialTheme.typography.titleMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

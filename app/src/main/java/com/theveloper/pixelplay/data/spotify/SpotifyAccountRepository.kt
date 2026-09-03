@@ -237,6 +237,19 @@ class SpotifyAccountRepository @Inject constructor(
                     canImportItems = true,
                 )
             }
+
+            val savedTracks = optionalAuthorizedGet("/me/tracks?limit=1")
+            val savedCount = savedTracks?.optInt("total", 0) ?: 0
+            if (savedCount > 0) {
+                result += SpotifyRemotePlaylist(
+                    id = "spotify_saved_liked_songs",
+                    name = "Liked Songs (Spotify)",
+                    coverUrl = "https://misc.scdn.co/liked-songs/liked-songs-300.png",
+                    trackCount = savedCount,
+                    ownerName = "Spotify",
+                    canImportItems = true,
+                )
+            }
         }
 
         var offset = 0
@@ -326,7 +339,47 @@ class SpotifyAccountRepository @Inject constructor(
                 tracks = tracks,
             )
         }
-        require(playlistId.matches(Regex("[A-Za-z0-9]+"))) { "Invalid Spotify playlist ID" }
+        if (playlistId == "spotify_saved_liked_songs") {
+            val tracks = mutableListOf<SpotifyAccountTrack>()
+            var offset = 0
+            var total = Int.MAX_VALUE
+            while (offset < total && offset < 500) {
+                val page = authorizedGet("/me/tracks?limit=50&offset=$offset")
+                val items = page.optJSONArray("items") ?: JSONArray()
+                total = page.optInt("total", 0)
+                for (index in 0 until items.length()) {
+                    val wrapper = items.optJSONObject(index) ?: continue
+                    val track = wrapper.optJSONObject("track") ?: continue
+                    val title = track.optString("name").trim()
+                    if (title.isEmpty()) continue
+                    val artistsJson = track.optJSONArray("artists") ?: JSONArray()
+                    val artists = buildList {
+                        for (i in 0 until artistsJson.length()) {
+                            artistsJson.optJSONObject(i)?.optString("name")?.takeIf(String::isNotBlank)?.let(::add)
+                        }
+                    }.joinToString(", ")
+                    val album = track.optJSONObject("album")
+                    val id = track.optString("id").ifBlank { track.optString("uri") }
+                    tracks += SpotifyAccountTrack(
+                        key = "$id:${offset + index}",
+                        title = title,
+                        artists = artists,
+                        album = album?.optString("name").orEmpty(),
+                        albumArtUrl = album?.optJSONArray("images")?.optJSONObject(0)?.optString("url"),
+                        durationMs = track.optLong("duration_ms", 0L),
+                    )
+                }
+                if (items.length() == 0) break
+                offset += items.length()
+            }
+            return@withContext SpotifyAccountPlaylist(
+                id = playlistId,
+                name = "Liked Songs (Spotify)",
+                coverUrl = "https://misc.scdn.co/liked-songs/liked-songs-300.png",
+                tracks = tracks,
+            )
+        }
+        require(playlistId.matches(Regex("[A-Za-z0-9_]+"))) { "Invalid Spotify playlist ID" }
         val metadata = authorizedGet("/playlists/$playlistId")
         val tracks = mutableListOf<SpotifyAccountTrack>()
         var offset = 0
@@ -372,6 +425,17 @@ class SpotifyAccountRepository @Inject constructor(
                 ?.optString("url")?.takeIf(String::isNotBlank),
             tracks = tracks,
         )
+    }
+
+    suspend fun getTopTracksForRecommendations(): List<SpotifyAccountTrack> = withContext(Dispatchers.IO) {
+        if (!hasUsableSession()) return@withContext emptyList()
+        runCatching {
+            getPlaylistForImport("spotify_top_tracks_short_term").tracks
+        }.getOrElse {
+            runCatching {
+                getPlaylistForImport("spotify_saved_liked_songs").tracks.take(25)
+            }.getOrDefault(emptyList())
+        }
     }
 
     fun logout() {

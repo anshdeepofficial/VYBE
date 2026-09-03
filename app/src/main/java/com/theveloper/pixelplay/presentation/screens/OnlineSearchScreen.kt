@@ -148,13 +148,7 @@ fun OnlineSearchScreen(
     val bottomPadding = paddingValuesParent.calculateBottomPadding() + MiniPlayerHeight + 16.dp
 
     val isSearching = query.isNotBlank()
-    val discoveryChips = remember(isYouTubeMusicConnected, accountInterestLabels) {
-        buildList {
-            add("Trending")
-            add("Latest Releases")
-            if (isYouTubeMusicConnected) addAll(accountInterestLabels)
-        }.distinctBy { it.lowercase() }
-    }
+    val discoveryChips = remember { listOf("Trending", "Latest Releases") }
 
     androidx.compose.material3.pulltorefresh.PullToRefreshBox(
         isRefreshing = isLoading && !isSearching,

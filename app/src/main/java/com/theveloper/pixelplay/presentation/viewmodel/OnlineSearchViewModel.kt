@@ -18,6 +18,7 @@ import com.theveloper.pixelplay.data.stats.PlaybackStatsRepository
 import com.theveloper.pixelplay.data.recommendation.RecommendationProfile
 import com.theveloper.pixelplay.data.recommendation.RecommendationSurface
 import com.theveloper.pixelplay.data.recommendation.UnifiedRecommendationEngine
+import com.theveloper.pixelplay.data.spotify.SpotifyAccountRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.CancellationException
@@ -55,6 +56,7 @@ class OnlineSearchViewModel @Inject constructor(
     private val youTubeAccountManager: YouTubeAccountManager,
     private val recommendationEngine: UnifiedRecommendationEngine,
     private val playbackStatsRepository: PlaybackStatsRepository,
+    private val spotifyAccountRepository: SpotifyAccountRepository,
 ) : ViewModel() {
 
     private val _searchFilter = MutableStateFlow(OnlineSearchFilter.ALL)
@@ -135,7 +137,7 @@ class OnlineSearchViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            if (!userPrefs.dataSaverEnabledFlow.first()) loadTrendingAndRecommendations()
+            loadTrendingAndRecommendations()
         }
         viewModelScope.launch {
             searchHistoryEnabled.collectLatest { enabled ->
@@ -191,53 +193,108 @@ class OnlineSearchViewModel @Inject constructor(
     private fun loadTrendingAndRecommendations() {
         discoveryJob?.cancel()
         discoveryJob = viewModelScope.launch {
-            if (userPrefs.dataSaverEnabledFlow.first()) {
-                _isLoading.value = false
-                return@launch
-            }
             _isLoading.value = true
             try {
-                val region = normalizedRegion(userPrefs.userRegionFlow.first())
+                // Fetch recent listening history
+                val historyEntries = runCatching { playbackStatsRepository.loadPlaybackHistory(50) }.getOrDefault(emptyList())
+                val historySongs = historyEntries.mapNotNull { it.track?.toSong(it.songId) }.distinctBy { it.id }
+                val listenedSongIds = historySongs.map { it.id }.toSet()
+                val listenedArtists = historySongs.map { it.artist }.filter(String::isNotBlank).distinct()
+
+                // Spotify recommendations / top tracks (Meld style)
+                val spotifyTopTracks = if (spotifyAccountRepository.isLoggedIn.value) {
+                    runCatching { spotifyAccountRepository.getTopTracksForRecommendations() }.getOrDefault(emptyList())
+                } else emptyList()
+                val spotifyArtists = spotifyTopTracks.map { it.artists }.filter(String::isNotBlank).distinct()
+
                 val preferredArtists = userPrefs.preferredArtists.first().toList()
-                val interests = (youTubeAccountManager.interestLabelsFlow.value + preferredArtists)
+                val interests = (listenedArtists + spotifyArtists + youTubeAccountManager.interestLabelsFlow.value + preferredArtists)
                     .filter(String::isNotBlank)
                     .distinctBy(String::lowercase)
+
+                val region = normalizedRegion(userPrefs.userRegionFlow.first())
+
+                // 1. OuterTune / InnerTune Dynamic Radio Seed Exploration (RDAMVM)
+                // Pick 1-2 random seeds from history to explore fresh musical branches on every launch/refresh!
+                val randomSeeds = historySongs.shuffled().take(2)
+                val seedRadioRequests = randomSeeds.map { seed ->
+                    async {
+                        runCatching { repository.getAutoplayQueue(seed, region) }.getOrDefault(emptyList())
+                    }
+                }
+
                 val fastRequest = async { repository.getFastPersonalizedDiscovery(interests) }
                 val trendingRequest = async { runCatching { repository.getTrendingTracks(region) } }
                 val releasesRequest = async { runCatching { repository.getLatestReleases(region) } }
 
+                val seedRadioTracks = seedRadioRequests.map { it.await() }.flatten()
                 val fastTracks = withTimeoutOrNull(3_500L) { fastRequest.await() }.orEmpty()
-                if (fastTracks.isNotEmpty()) {
-                    _aiRecommendations.value = rankForInterests(fastTracks, interests)
-                        .take(12)
-                    _searchError.value = null
-                    _isLoading.value = false
+
+                fun isCleanRecommendation(song: Song): Boolean {
+                    val title = song.title.lowercase()
+                    val isJukebox = title.contains("jukebox") ||
+                        title.contains("mashup") ||
+                        title.contains("non stop") ||
+                        title.contains("nonstop") ||
+                        title.contains("megamix") ||
+                        title.contains("all songs") ||
+                        title.contains("full album") ||
+                        title.contains("compilation")
+                    return !isJukebox && song.duration in 60_000L..900_000L
                 }
 
-                val trendingResult = withTimeoutOrNull(10_000L) { trendingRequest.await() }
+                // 2. EchoMusic Anti-History Deduplication Filter:
+                // Strictly exclude songs already listened to in recent history so recommendations are always 100% fresh!
+                val freshRadioTracks = seedRadioTracks
+                    .filter(::isCleanRecommendation)
+                    .filterNot { it.id in listenedSongIds }
+
+                val freshFastTracks = fastTracks
+                    .filter(::isCleanRecommendation)
+                    .filterNot { it.id in listenedSongIds }
+
+                val trendingResult = withTimeoutOrNull(8_000L) { trendingRequest.await() }
                     ?: Result.success(emptyList())
-                val releasesResult = withTimeoutOrNull(10_000L) { releasesRequest.await() }
+                val releasesResult = withTimeoutOrNull(8_000L) { releasesRequest.await() }
                     ?: Result.success(emptyList())
                 val chartTracks = trendingResult.getOrDefault(emptyList()).distinctBy { it.id }
-                val releases = releasesResult.getOrDefault(emptyList())
-                if (chartTracks.isEmpty() && releases.isEmpty()) {
-                    throw trendingResult.exceptionOrNull()
-                        ?: releasesResult.exceptionOrNull()
-                        ?: IllegalStateException("YouTube Music discovery returned no tracks")
+                val releases = releasesResult.getOrDefault(emptyList()).distinctBy { it.id }
+
+                if (chartTracks.isNotEmpty()) {
+                    baseTrendingTracks = chartTracks
+                    _trendingTracks.value = chartTracks
+                } else if (releases.isNotEmpty()) {
+                    _trendingTracks.value = releases
+                } else if (historySongs.isNotEmpty()) {
+                    _trendingTracks.value = historySongs
                 }
-                baseTrendingTracks = chartTracks
-                _trendingTracks.value = chartTracks.ifEmpty { releases }
+
                 _latestReleaseTracks.value = releases
                 _discoveryTitle.value = "Trending Now"
-                val recommendationPool = (fastTracks + chartTracks + releases).distinctBy { it.id }
-                if (recommendationPool.isNotEmpty()) {
-                    _aiRecommendations.value = rankForInterests(recommendationPool, interests)
-                        .take(12)
+
+                // Combined fresh discovery pool
+                val freshDiscoveries = (freshRadioTracks + freshFastTracks + chartTracks.filterNot { it.id in listenedSongIds })
+                    .distinctBy { it.id }
+
+                val finalRecommendationPool = if (freshDiscoveries.isNotEmpty()) {
+                    freshDiscoveries
+                } else {
+                    // Graceful fallback if completely offline or empty
+                    (historySongs + chartTracks + releases).distinctBy { it.id }
                 }
+
+                _aiRecommendations.value = rankForInterests(finalRecommendationPool, interests).take(15)
+                _searchError.value = null
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
-                _trendingTracks.value = emptyList()
+                if (_trendingTracks.value.isEmpty()) {
+                    val fallback = runCatching { playbackStatsRepository.loadPlaybackHistory(20) }
+                        .getOrDefault(emptyList())
+                        .mapNotNull { it.track?.toSong(it.songId) }
+                    _trendingTracks.value = fallback
+                    _aiRecommendations.value = fallback.take(12)
+                }
                 _searchError.value = error.message ?: "Could not load YouTube Music discovery"
             } finally {
                 _isLoading.value = false

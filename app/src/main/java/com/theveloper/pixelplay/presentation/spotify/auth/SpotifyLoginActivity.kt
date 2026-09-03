@@ -228,79 +228,10 @@ private fun SpotifyLoginScreen(
                 }
 
                 SpotifyLoginMode.WEBVIEW, SpotifyLoginMode.COOKIE_INPUT -> {
-                    TabRow(selectedTabIndex = selectedTab) {
-                        Tab(
-                            selected = selectedTab == 0,
-                            onClick = { selectedTab = 0 },
-                            text = { Text("Web Sign-In") },
-                            icon = { Icon(Icons.Rounded.Language, contentDescription = null) },
-                        )
-                        Tab(
-                            selected = selectedTab == 1,
-                            onClick = { selectedTab = 1 },
-                            text = { Text("Cookie (sp_dc)") },
-                            icon = { Icon(Icons.Rounded.Key, contentDescription = null) },
-                        )
-                    }
-
-                    if (selectedTab == 0) {
-                        SpotifyAuthWebView(
-                            onCookieCaptured = onCookieCaptured,
-                            modifier = Modifier.weight(1f),
-                        )
-                    } else {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            ) {
-                                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Text(
-                                        "How to get your sp_dc cookie:",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.SemiBold,
-                                    )
-                                    Text(
-                                        "1. Log in to open.spotify.com in your browser.\n" +
-                                        "2. Open Developer Tools (F12) -> Application -> Cookies -> spotify.com.\n" +
-                                        "3. Copy the 'sp_dc' cookie value and paste it below.",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            }
-
-                            OutlinedTextField(
-                                value = manualCookie,
-                                onValueChange = { manualCookie = it },
-                                label = { Text("Spotify sp_dc Cookie") },
-                                trailingIcon = {
-                                    TextButton(onClick = {
-                                        clipboardManager.getText()?.text?.let { text ->
-                                            if (text.isNotBlank()) manualCookie = text.trim()
-                                        }
-                                    }) {
-                                        Text("Paste")
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                            )
-
-                            Button(
-                                onClick = { onManualCookieSubmit(manualCookie) },
-                                enabled = manualCookie.isNotBlank(),
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text("Connect with sp_dc")
-                            }
-                        }
-                    }
+                    SpotifyAuthWebView(
+                        onCookieCaptured = onCookieCaptured,
+                        modifier = Modifier.fillMaxSize(),
+                    )
                 }
             }
         }
@@ -333,15 +264,23 @@ private fun SpotifyAuthWebView(
                     cookieManager.setAcceptThirdPartyCookies(this, true)
 
                     fun inspectCookies() {
-                        val cookieString = cookieManager.getCookie("https://open.spotify.com")
-                            ?: cookieManager.getCookie("https://accounts.spotify.com")
-                            ?: cookieManager.getCookie(".spotify.com")
-                            ?: return
-
-                        val match = Regex("""(?:^|;\s*)sp_dc=([^;]+)""").find(cookieString)
-                        val spDc = match?.groupValues?.getOrNull(1)
-                        if (!spDc.isNullOrBlank()) {
-                            onCookieCaptured(spDc)
+                        cookieManager.flush()
+                        val domains = listOf(
+                            "https://open.spotify.com",
+                            "https://accounts.spotify.com",
+                            "https://spotify.com",
+                            "https://www.spotify.com",
+                            ".spotify.com",
+                            "spotify.com",
+                        )
+                        for (domain in domains) {
+                            val cookieString = cookieManager.getCookie(domain) ?: continue
+                            val match = Regex("""(?:^|;\s*)sp_dc=([^;]+)""").find(cookieString)
+                            val spDc = match?.groupValues?.getOrNull(1)?.trim()
+                            if (!spDc.isNullOrBlank()) {
+                                onCookieCaptured(spDc)
+                                return
+                            }
                         }
                     }
 
@@ -356,15 +295,26 @@ private fun SpotifyAuthWebView(
                             super.onPageFinished(view, url)
                             isLoading = false
                             inspectCookies()
+                            // If redirected to home/dashboard, ensure cookie is captured
+                            if (url?.contains("spotify.com") == true && !url.contains("login")) {
+                                inspectCookies()
+                            }
                         }
 
                         override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
                             super.doUpdateVisitedHistory(view, url, isReload)
                             inspectCookies()
                         }
+
+                        override fun onLoadResource(view: WebView?, url: String?) {
+                            super.onLoadResource(view, url)
+                            if (url?.contains("spotify.com") == true) {
+                                inspectCookies()
+                            }
+                        }
                     }
 
-                    loadUrl("https://accounts.spotify.com/en/login")
+                    loadUrl("https://accounts.spotify.com/en/login?continue=https%3A%2F%2Fopen.spotify.com%2F")
                 }
             },
             modifier = Modifier.fillMaxSize(),

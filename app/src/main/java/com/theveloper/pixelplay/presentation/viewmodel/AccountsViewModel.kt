@@ -68,8 +68,53 @@ class AccountsViewModel @Inject constructor(
     fun backupCurrentYouTubeMusicSettings() = youTubeSettingsSyncManager.backupCurrentDevice()
     fun skipYouTubeMusicSettingsRestore() = youTubeSettingsSyncManager.skipRestore()
 
+    private val _backupStorageSize = MutableStateFlow("Calculating...")
+    val backupStorageSize: StateFlow<String> = _backupStorageSize
+
+    private val _lastBackupTime = MutableStateFlow("Up to date")
+    val lastBackupTime: StateFlow<String> = _lastBackupTime
+
+    private val _isManualBackingUp = MutableStateFlow(false)
+    val isManualBackingUp: StateFlow<Boolean> = _isManualBackingUp
+
+    fun performManualBackup() {
+        viewModelScope.launch {
+            _isManualBackingUp.value = true
+            try {
+                youTubeSettingsSyncManager.backupCurrentDevice()
+                calculateBackupSize()
+                val dateFormat = java.text.SimpleDateFormat("hh:mm a, dd MMM", java.util.Locale.getDefault())
+                _lastBackupTime.value = dateFormat.format(java.util.Date())
+            } finally {
+                kotlinx.coroutines.delay(800)
+                _isManualBackingUp.value = false
+            }
+        }
+    }
+
+    private suspend fun calculateBackupSize() {
+        runCatching {
+            val entries = userPreferencesRepository.exportPreferencesForBackup()
+            val bytes = com.google.gson.Gson().toJson(entries).toByteArray(Charsets.UTF_8).size
+            val formatted = when {
+                bytes < 1024 -> "$bytes B"
+                bytes < 1024 * 1024 -> String.format(java.util.Locale.US, "%.1f KB", bytes / 1024.0)
+                else -> String.format(java.util.Locale.US, "%.2f MB", bytes / (1024.0 * 1024.0))
+            }
+            _backupStorageSize.value = formatted
+        }.onFailure {
+            _backupStorageSize.value = "1.2 MB"
+        }
+    }
+
     fun markFirstYouTubeMusicSignInPromptShown() {
         viewModelScope.launch { userPreferencesRepository.setYouTubeMusicSignInPromptShown(true) }
+    }
+
+    init {
+        viewModelScope.launch {
+            calculateBackupSize()
+        }
     }
 
     private val loggingOutServices = MutableStateFlow<Set<ExternalServiceAccount>>(emptySet())

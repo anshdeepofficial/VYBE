@@ -1094,11 +1094,32 @@ class YouTubeMusicEngine @Inject constructor(
             val extraSongs = extraTracks.filter { it.resultType != YouTubeMusicEntityType.MUSIC_VIDEO }.map { it.toSong() }
             val extraVideos = extraTracks.filter { it.resultType == YouTubeMusicEntityType.MUSIC_VIDEO }.map { it.toSong() }
 
+            val cleanArtistName = baseProfile.name.trim().lowercase()
+            fun isCleanArtistContent(song: Song): Boolean {
+                val title = song.title.lowercase()
+                val isJukebox = title.contains("jukebox") ||
+                    title.contains("mashup") ||
+                    title.contains("non stop") ||
+                    title.contains("nonstop") ||
+                    title.contains("megamix") ||
+                    title.contains("all songs") ||
+                    title.contains("full album") ||
+                    title.contains("hits collection") ||
+                    title.contains("compilation")
+                if (isJukebox || song.duration > 900_000L) return false
+                if (cleanArtistName.isBlank() || cleanArtistName == "artist") return true
+                val songArtist = song.artist.trim().lowercase()
+                return songArtist.contains(cleanArtistName) || cleanArtistName.contains(songArtist) || title.contains(cleanArtistName)
+            }
+
             return@withContext baseProfile.copy(
                 topSongs = (baseProfile.topSongs + extraSongs)
                     .filter(::isMusicOnlySong)
+                    .filter(::isCleanArtistContent)
                     .distinctBy { it.id },
-                videos = (baseProfile.videos + extraVideos).distinctBy { it.id },
+                videos = (baseProfile.videos + extraVideos)
+                    .filter(::isCleanArtistContent)
+                    .distinctBy { it.id },
                 albums = (baseProfile.albums + extraAlbums).distinctBy { it.browseId },
                 relatedArtists = (baseProfile.relatedArtists + extraArtists)
                     .filter { it.browseId != cleanBrowseId }
@@ -1423,8 +1444,29 @@ class YouTubeMusicEngine @Inject constructor(
             val rawTracks = mutableListOf<YouTubeTrack>()
             collectTracksRecursively(root, rawTracks)
             
-            topSongs.addAll(rawTracks.filter { it.resultType != YouTubeMusicEntityType.MUSIC_VIDEO }.map { it.toSong() })
-            videos.addAll(rawTracks.filter { it.resultType == YouTubeMusicEntityType.MUSIC_VIDEO }.map { it.toSong() })
+            val rawSongs = rawTracks.filter { it.resultType != YouTubeMusicEntityType.MUSIC_VIDEO }.map { it.toSong() }
+            val rawVideos = rawTracks.filter { it.resultType == YouTubeMusicEntityType.MUSIC_VIDEO }.map { it.toSong() }
+
+            val cleanName = artistName.trim().lowercase()
+            fun isStrictlyThisArtist(s: Song): Boolean {
+                val title = s.title.lowercase()
+                val isJukebox = title.contains("jukebox") ||
+                    title.contains("mashup") ||
+                    title.contains("non stop") ||
+                    title.contains("nonstop") ||
+                    title.contains("megamix") ||
+                    title.contains("all songs") ||
+                    title.contains("full album") ||
+                    title.contains("hits collection") ||
+                    title.contains("compilation")
+                if (isJukebox || s.duration > 900_000L) return false
+                if (cleanName.isBlank() || cleanName == "artist") return true
+                val a = s.artist.trim().lowercase()
+                return a.contains(cleanName) || cleanName.contains(a) || title.contains(cleanName)
+            }
+
+            topSongs.addAll(rawSongs.filter(::isStrictlyThisArtist))
+            videos.addAll(rawVideos.filter(::isStrictlyThisArtist))
 
             // Collect release sections
             parseStructuredRecursive(root, mutableListOf(), albums, relatedArtists, mutableListOf())

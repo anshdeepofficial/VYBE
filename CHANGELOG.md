@@ -1,3 +1,21 @@
+## [0.11.2] - 2026-09-03
+### Added
+- **Multi-Source Dynamic Recommendation Engine (OuterTune + Meld + EchoMusic Combo)**:
+  - **OuterTune & InnerTune Automix Radio Seeds**: Automatically selects 1–2 random seeds from user playback history on each launch/refresh to explore fresh musical branches via YouTube Music's automix AI (`RDAMVM<seedId>`).
+  - **EchoMusic Anti-History Deduplication**: Strictly excludes songs already played in recent listening history so recommendations always deliver brand-new discoveries rather than repetitive past tracks.
+  - **Meld Spotify Hybridization**: Automatically blends top tracks and artist seeds from connected Spotify accounts into the discovery pool.
+  - **Dynamic On-Refresh Shuffle**: Pull-to-refresh continuously re-rolls seed tracks for an ever-fresh, non-repeating discovery feed.
+- **Account Backup Card with Live Size & Manual Trigger**: Displays total backup storage size badge (MB/KB) and a one-tap "Back Up Now" manual trigger in the User Accounts screen with live progress.
+- **Artist Follow / Following & Block Controls**: Dedicated Follow and Block action buttons on artist profile headers with real-time state updates.
+- **Automatic Spotify In-App Login & Token Capture**: Direct in-app Spotify WebView authentication that automatically captures tokens without manual copy-pasting.
+
+### Fixed
+- **Playlist Queue Disappearing & Infinite Single-Song Loop Bug**: Resolved issue where playing a playlist would suddenly drop all upcoming tracks and endlessly loop a single song in "listen again" mode. Ensured all playlist media items load synchronously into the playback engine and preserved timeline snapshots during dual-player transitions.
+- **Artist Profile Clutter & Jukebox Elimination**: Cleaned artist profile content to strictly show original songs, official music videos, and verified albums by the target artist. Filtered out 1–2 hour jukebox compilations, non-stop mashups, full albums, and unrelated third-party uploads.
+- **Online Search Screen Empty State**: Fixed blank search discovery by displaying pre-warmed "Trending" and "Latest Releases" filter chips.
+- **Fullscreen Video Landscape Lock**: Ensured tapping the fullscreen button in video player locks the container in true horizontal landscape orientation without vertical letterboxing or orientation jitter.
+- **Ultra-Low Playback Latency**: Optimized initial playback start buffer down to 500ms for instant audio playback start.
+
 ## [0.11.1] - 2026-09-03
 ### Added
 - **One-Tap Bulk Playlist Download**: Added a dedicated Download button to the top action bar of playlist screens, allowing users to queue and download all songs in a playlist in a single tap with live toast confirmation.
