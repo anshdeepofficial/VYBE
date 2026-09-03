@@ -1,3 +1,15 @@
+## [0.11.1] - 2026-09-03
+### Added
+- **One-Tap Bulk Playlist Download**: Added a dedicated Download button to the top action bar of playlist screens, allowing users to queue and download all songs in a playlist in a single tap with live toast confirmation.
+- **Curated Spotify Playlists & Top Songs ("Best Songs")**: Unlocked Spotify-curated playlists (e.g., "Best Songs of 2023/2024", "Discover Weekly", "Daily Mix") and automatically fetched user top tracks ("Your Top Songs (All-Time)" and "Your Top Songs (Recent / 2024-2025)") directly into the importable playlist list.
+- **Direct Spotify Access Token & `sp_dc` Session Input**: Added a direct token/cookie input option in Spotify Settings allowing manual login using OAuth Access Tokens or Web Player `sp_dc` cookies.
+
+### Fixed
+- **Video Player Fullscreen Button Overlap**: Moved the in-artwork Fullscreen button to the bottom-right corner (`BottomEnd`), completely separating it from the top-bar video toggle button and eliminating misclicks.
+- **Video Toggle Loading Spinner**: Live visual loading spinner on the full player video toggle button remains clearly visible throughout stream resolution and buffering.
+- **Zero-Glitch Horizontal Video Fullscreen**: Replaced Activity-level orientation flipping with a stable full-screen landscape container, completely eliminating app twist, screen jitter, and portrait flip-back loops. Includes dedicated playback controls (play/pause, previous, next, quality picker, exit fullscreen).
+- **Library Album "Not Found" & Wrong Album Resolution**: Resolved Navigation Compose path argument URL encoding issue for album IDs. Added composite metadata fallback (`album_meta|id|title|artist`) ensuring albums open their exact tracks reliably without failing or fetching unrelated albums.
+
 ## [0.11.0] - 2026-09-02
 ### Added
 - **Constrained Square Artwork Video Player**: Inline video playback is strictly constrained within the square album cover boundaries without expanding vertically or obscuring bottom playback controls.

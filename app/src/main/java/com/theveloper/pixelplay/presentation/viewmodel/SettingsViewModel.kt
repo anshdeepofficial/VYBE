@@ -526,6 +526,21 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun loginSpotifyWithToken(token: String) {
+        viewModelScope.launch {
+            _spotifyLibraryState.update { it.copy(isLoading = true, errorMessage = null) }
+            runCatching {
+                spotifyAccountRepository.saveDirectAccessToken(token)
+            }.onSuccess {
+                loadSpotifyAccountPlaylists()
+            }.onFailure { error ->
+                _spotifyLibraryState.update {
+                    it.copy(isLoading = false, errorMessage = error.message ?: "Spotify token login failed")
+                }
+            }
+        }
+    }
+
     fun logoutSpotify() {
         spotifyAccountRepository.logout()
     }

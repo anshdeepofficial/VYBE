@@ -312,6 +312,27 @@ fun PlaylistDetailScreen(
                     }
                 },
                 actions = {
+                    val songsToDownload = localReorderableSongs.ifEmpty { songsInPlaylist }
+                    if (songsToDownload.isNotEmpty()) {
+                        IconButton(
+                            onClick = {
+                                val downloadManager = YouTubeDownloadManager.fromContext(context)
+                                songsToDownload.forEach { song ->
+                                    downloadManager.enqueueDownload(song, true)
+                                }
+                                android.widget.Toast.makeText(
+                                    context,
+                                    "Downloading ${songsToDownload.size} songs...",
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Download,
+                                contentDescription = "Download all songs"
+                            )
+                        }
+                    }
                     IconButton(
                         onClick = {
                             playerViewModel.showSortingSheet() 

@@ -301,13 +301,13 @@ private fun NativeInlineVideoArtwork(
             modifier = Modifier.fillMaxSize(),
         ) {
             Box(Modifier.fillMaxSize()) {
-                // Top End: Fullscreen Button
+                // Bottom End: Fullscreen Button (Positioned at bottom-end to avoid top-bar video button)
                 FilledIconButton(
                     onClick = {
                         isFullscreen = true
                         showOverlayControls = true
                     },
-                    modifier = Modifier.align(Alignment.TopEnd).padding(10.dp),
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(10.dp),
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = Color.Black.copy(alpha = 0.65f),
                         contentColor = Color.White,
@@ -372,92 +372,191 @@ private fun NativeInlineVideoArtwork(
     }
 
     if (isFullscreen) {
-        val activity = context as? android.app.Activity
-        DisposableEffect(isFullscreen) {
-            val originalOrientation = activity?.requestedOrientation ?: android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-            activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-            onDispose {
-                activity?.requestedOrientation = originalOrientation
-            }
-        }
+        val configuration = LocalConfiguration.current
+        val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
 
         Dialog(
             onDismissRequest = { isFullscreen = false },
             properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
         ) {
-            Box(
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black)
-                    .clickable { showOverlayControls = !showOverlayControls },
+                    .background(Color.Black),
+                contentAlignment = Alignment.Center,
             ) {
-                // Horizontal Landscape Video
-                videoSurface(Modifier.fillMaxSize(), true)
+                val containerModifier = if (isPortrait) {
+                    Modifier
+                        .size(maxHeight, maxWidth)
+                        .graphicsLayer {
+                            rotationZ = 90f
+                            transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 0.5f)
+                        }
+                } else {
+                    Modifier.fillMaxSize()
+                }
 
-                // Landscape Fullscreen Top Header Controls
-                AnimatedVisibility(
-                    visible = showOverlayControls,
-                    enter = fadeIn(tween(180)),
-                    exit = fadeOut(tween(180)),
-                    modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
+                Box(
+                    modifier = containerModifier
+                        .background(Color.Black)
+                        .clickable { showOverlayControls = !showOverlayControls },
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(Color.Black.copy(alpha = 0.78f), Color.Transparent)
-                                )
-                            )
-                            .padding(horizontal = 24.dp, vertical = 16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
+                    // Horizontal Landscape Video
+                    videoSurface(Modifier.fillMaxSize(), true)
+
+                    // Landscape Fullscreen Top Header Controls
+                    AnimatedVisibility(
+                        visible = showOverlayControls,
+                        enter = fadeIn(tween(180)),
+                        exit = fadeOut(tween(180)),
+                        modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
                     ) {
-                        Box {
-                            Surface(
-                                shape = RoundedCornerShape(16.dp),
-                                color = Color.White.copy(alpha = 0.2f),
-                                modifier = Modifier.clickable { showQualityPicker = true },
-                            ) {
-                                Text(
-                                    selectedQualityLabel,
-                                    color = Color.White,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = showQualityPicker,
-                                onDismissRequest = { showQualityPicker = false },
-                            ) {
-                                qualityOptions.forEach { (label, height) ->
-                                    DropdownMenuItem(
-                                        text = { Text(label) },
-                                        onClick = {
-                                            showQualityPicker = false
-                                            selectedQualityLabel = label
-                                            selectedTargetHeight = height
-                                            scope.launch {
-                                                playerViewModel.setInlineVideoMode(
-                                                    songId = songId,
-                                                    enabled = true,
-                                                    targetHeight = height,
-                                                )
-                                            }
-                                        },
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(Color.Black.copy(alpha = 0.82f), Color.Transparent)
                                     )
+                                )
+                                .padding(horizontal = 24.dp, vertical = 16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box {
+                                Surface(
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = Color.White.copy(alpha = 0.2f),
+                                    modifier = Modifier.clickable { showQualityPicker = true },
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    ) {
+                                        Icon(
+                                            painterResource(com.theveloper.pixelplay.R.drawable.outline_high_quality_24),
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(16.dp),
+                                        )
+                                        Spacer(Modifier.width(6.dp))
+                                        Text(
+                                            selectedQualityLabel,
+                                            color = Color.White,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                        )
+                                    }
+                                }
+                                DropdownMenu(
+                                    expanded = showQualityPicker,
+                                    onDismissRequest = { showQualityPicker = false },
+                                ) {
+                                    qualityOptions.forEach { (label, height) ->
+                                        DropdownMenuItem(
+                                            text = { Text(label) },
+                                            onClick = {
+                                                showQualityPicker = false
+                                                selectedQualityLabel = label
+                                                selectedTargetHeight = height
+                                                scope.launch {
+                                                    playerViewModel.setInlineVideoMode(
+                                                        songId = songId,
+                                                        enabled = true,
+                                                        targetHeight = height,
+                                                    )
+                                                }
+                                            },
+                                        )
+                                    }
                                 }
                             }
-                        }
 
-                        FilledIconButton(
-                            onClick = { isFullscreen = false },
-                            colors = IconButtonDefaults.filledIconButtonColors(
-                                containerColor = Color.White.copy(alpha = 0.25f),
-                                contentColor = Color.White,
-                            ),
+                            FilledIconButton(
+                                onClick = { isFullscreen = false },
+                                colors = IconButtonDefaults.filledIconButtonColors(
+                                    containerColor = Color.White.copy(alpha = 0.25f),
+                                    contentColor = Color.White,
+                                ),
+                            ) {
+                                Icon(Icons.Rounded.FullscreenExit, contentDescription = "Exit fullscreen")
+                            }
+                        }
+                    }
+
+                    // Landscape Fullscreen Bottom Playback Controls
+                    AnimatedVisibility(
+                        visible = showOverlayControls,
+                        enter = fadeIn(tween(180)),
+                        exit = fadeOut(tween(180)),
+                        modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter),
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.82f))
+                                    )
+                                )
+                                .padding(horizontal = 24.dp, vertical = 18.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Icon(Icons.Rounded.FullscreenExit, contentDescription = "Exit fullscreen")
+                            FilledIconButton(
+                                onClick = { sessionPlayer?.seekToPreviousMediaItem() },
+                                colors = IconButtonDefaults.filledIconButtonColors(
+                                    containerColor = Color.White.copy(alpha = 0.25f),
+                                    contentColor = Color.White,
+                                ),
+                                modifier = Modifier.size(46.dp),
+                            ) {
+                                Icon(
+                                    painter = painterResource(com.theveloper.pixelplay.R.drawable.rounded_skip_previous_24),
+                                    contentDescription = "Previous",
+                                    modifier = Modifier.size(24.dp),
+                                )
+                            }
+                            Spacer(Modifier.width(28.dp))
+                            FilledIconButton(
+                                onClick = {
+                                    if (sessionPlayer?.isPlaying == true) {
+                                        sessionPlayer.pause()
+                                    } else {
+                                        sessionPlayer?.play()
+                                    }
+                                },
+                                colors = IconButtonDefaults.filledIconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                                ),
+                                modifier = Modifier.size(56.dp),
+                            ) {
+                                val isPlaying = sessionPlayer?.isPlaying ?: false
+                                Icon(
+                                    painter = painterResource(
+                                        if (isPlaying) com.theveloper.pixelplay.R.drawable.rounded_pause_24
+                                        else com.theveloper.pixelplay.R.drawable.rounded_play_arrow_24
+                                    ),
+                                    contentDescription = if (isPlaying) "Pause" else "Play",
+                                    modifier = Modifier.size(30.dp),
+                                )
+                            }
+                            Spacer(Modifier.width(28.dp))
+                            FilledIconButton(
+                                onClick = { sessionPlayer?.seekToNextMediaItem() },
+                                colors = IconButtonDefaults.filledIconButtonColors(
+                                    containerColor = Color.White.copy(alpha = 0.25f),
+                                    contentColor = Color.White,
+                                ),
+                                modifier = Modifier.size(46.dp),
+                            ) {
+                                Icon(
+                                    painter = painterResource(com.theveloper.pixelplay.R.drawable.rounded_skip_next_24),
+                                    contentDescription = "Next",
+                                    modifier = Modifier.size(24.dp),
+                                )
+                            }
                         }
                     }
                 }
@@ -529,6 +628,7 @@ fun FullPlayerContent(
     val isYouTubeSource = song.id.startsWith("yt_") || song.contentUriString.startsWith("yt://") || song.isMusicVideo
     var showVideoPlayer by remember { mutableStateOf(false) }
     var isVideoToggling by remember { mutableStateOf(false) }
+    val isResolvingVideoStream by playerViewModel.isResolvingVideoStream.collectAsStateWithLifecycle()
     var videoAvailable by remember(song.id, song.isMusicVideo) { mutableStateOf(isYouTubeSource) }
 
     LaunchedEffect(song.id, song.isMusicVideo) {
@@ -1309,9 +1409,10 @@ fun FullPlayerContent(
     }
 
         if (videoAvailable) {
+            val isVideoLoading = isVideoToggling || (showVideoPlayer && isResolvingVideoStream)
             FilledIconButton(
                 onClick = {
-                    if (isVideoToggling) return@FilledIconButton
+                    if (isVideoLoading) return@FilledIconButton
                     videoToggleScope.launch {
                         isVideoToggling = true
                         val target = !showVideoPlayer
@@ -1327,10 +1428,10 @@ fun FullPlayerContent(
                 ) else IconButtonDefaults.filledIconButtonColors(),
                 modifier = Modifier.align(Alignment.TopEnd).padding(top = 108.dp, end = 20.dp),
             ) {
-                if (isVideoToggling) {
+                if (isVideoLoading) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.5.dp,
                         color = if (showVideoPlayer) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
                     )
                 } else {

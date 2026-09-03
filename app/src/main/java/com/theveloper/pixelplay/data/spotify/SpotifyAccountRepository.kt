@@ -195,10 +195,51 @@ class SpotifyAccountRepository @Inject constructor(
         taste
     }
 
+    suspend fun saveDirectAccessToken(token: String): SpotifyTasteProfile = withContext(Dispatchers.IO) {
+        val cleanToken = token.trim()
+        preferences.edit()
+            .putString(KEY_ACCESS_TOKEN, cleanToken)
+            .remove(KEY_REFRESH_TOKEN)
+            .putLong(KEY_EXPIRES_AT, System.currentTimeMillis() + (3600 * 1000L))
+            .apply()
+        refreshProfileAndTaste()
+    }
+
     suspend fun getCurrentUserPlaylists(): List<SpotifyRemotePlaylist> = withContext(Dispatchers.IO) {
         val result = mutableListOf<SpotifyRemotePlaylist>()
+
+        // Also fetch user's Top Songs / Best Songs curated by Spotify
+        runCatching {
+            val topTracksLong = optionalAuthorizedGet("/me/top/tracks?time_range=long_term&limit=50")
+            val topItemsLong = topTracksLong?.optJSONArray("items")
+            if (topItemsLong != null && topItemsLong.length() > 0) {
+                result += SpotifyRemotePlaylist(
+                    id = "spotify_top_tracks_long_term",
+                    name = "Your Top Songs (All-Time / Best Songs)",
+                    coverUrl = topItemsLong.optJSONObject(0)?.optJSONObject("album")
+                        ?.optJSONArray("images")?.optJSONObject(0)?.optString("url"),
+                    trackCount = topItemsLong.length(),
+                    ownerName = "Spotify",
+                    canImportItems = true,
+                )
+            }
+
+            val topTracksMedium = optionalAuthorizedGet("/me/top/tracks?time_range=medium_term&limit=50")
+            val topItemsMedium = topTracksMedium?.optJSONArray("items")
+            if (topItemsMedium != null && topItemsMedium.length() > 0) {
+                result += SpotifyRemotePlaylist(
+                    id = "spotify_top_tracks_medium_term",
+                    name = "Your Top Songs (Recent / 2024-2025)",
+                    coverUrl = topItemsMedium.optJSONObject(0)?.optJSONObject("album")
+                        ?.optJSONArray("images")?.optJSONObject(0)?.optString("url"),
+                    trackCount = topItemsMedium.length(),
+                    ownerName = "Spotify",
+                    canImportItems = true,
+                )
+            }
+        }
+
         var offset = 0
-        val ownAccountId = preferences.getString(KEY_ACCOUNT_ID, null).orEmpty()
         val webApiResult = runCatching {
             do {
                 val page = authorizedGet("/me/playlists?limit=$PLAYLIST_PAGE_SIZE&offset=$offset")
@@ -208,8 +249,6 @@ class SpotifyAccountRepository @Inject constructor(
                     val id = item.optString("id").trim()
                     if (id.isEmpty()) continue
                     val owner = item.optJSONObject("owner")
-                    val ownerId = owner?.optString("account_id")?.ifBlank { owner.optString("id") }.orEmpty()
-                    val collaborative = item.optBoolean("collaborative", false)
                     result += SpotifyRemotePlaylist(
                         id = id,
                         name = item.optString("name").ifBlank { "Spotify Playlist" },
@@ -221,7 +260,7 @@ class SpotifyAccountRepository @Inject constructor(
                         ownerName = owner?.optString("display_name")
                             ?.ifBlank { owner.optString("id") }
                             .orEmpty(),
-                        canImportItems = collaborative || ownAccountId.isBlank() || ownerId == ownAccountId,
+                        canImportItems = true,
                     )
                 }
                 offset += items.length()
@@ -229,18 +268,20 @@ class SpotifyAccountRepository @Inject constructor(
             result.distinctBy { it.id }
         }
 
-        if (webApiResult.isSuccess && result.isNotEmpty()) {
-            return@withContext result.also { _playlists.value = it }
-        }
-
         if (webApiResult.isFailure) {
             val exception = webApiResult.exceptionOrNull()
             val msg = exception?.message.orEmpty()
             if (msg.contains("403") || msg.contains("denied", ignoreCase = true) || msg.contains("Development Mode", ignoreCase = true)) {
                 // In Development Mode without user dashboard registration, Spotify restricts direct /me/playlists access.
-                // Return empty list safely so the UI gracefully shows the direct playlist URL import method.
-                _playlists.value = emptyList()
-                return@withContext emptyList()
+                // Return whatever curated top songs were fetched safely.
+                val fallback = result.distinctBy { it.id }
+                _playlists.value = fallback
+                return@withContext fallback
+            }
+            if (result.isNotEmpty()) {
+                val fallback = result.distinctBy { it.id }
+                _playlists.value = fallback
+                return@withContext fallback
             }
             throw exception ?: Exception("Could not load Spotify playlists")
         }
@@ -249,6 +290,42 @@ class SpotifyAccountRepository @Inject constructor(
     }
 
     suspend fun getPlaylistForImport(playlistId: String): SpotifyAccountPlaylist = withContext(Dispatchers.IO) {
+        if (playlistId.startsWith("spotify_top_tracks_")) {
+            val term = playlistId.removePrefix("spotify_top_tracks_")
+            val topTracksJson = authorizedGet("/me/top/tracks?time_range=$term&limit=50")
+            val items = topTracksJson.optJSONArray("items") ?: JSONArray()
+            val tracks = mutableListOf<SpotifyAccountTrack>()
+            for (index in 0 until items.length()) {
+                val track = items.optJSONObject(index) ?: continue
+                val title = track.optString("name").trim()
+                if (title.isEmpty()) continue
+                val artistsJson = track.optJSONArray("artists") ?: JSONArray()
+                val artists = buildList {
+                    for (artistIndex in 0 until artistsJson.length()) {
+                        artistsJson.optJSONObject(artistIndex)?.optString("name")
+                            ?.takeIf(String::isNotBlank)?.let(::add)
+                    }
+                }.joinToString(", ")
+                val album = track.optJSONObject("album")
+                val id = track.optString("id").ifBlank { track.optString("uri") }
+                tracks += SpotifyAccountTrack(
+                    key = "$id:$index",
+                    title = title,
+                    artists = artists,
+                    album = album?.optString("name").orEmpty(),
+                    albumArtUrl = album?.optJSONArray("images")?.optJSONObject(0)
+                        ?.optString("url")?.takeIf(String::isNotBlank),
+                    durationMs = track.optLong("duration_ms", 0L),
+                )
+            }
+            if (tracks.isEmpty()) error("No top tracks found for import.")
+            return@withContext SpotifyAccountPlaylist(
+                id = playlistId,
+                name = if (term == "long_term") "Your Top Songs (All-Time / Best Songs)" else "Your Top Songs (Recent)",
+                coverUrl = tracks.firstOrNull()?.albumArtUrl,
+                tracks = tracks,
+            )
+        }
         require(playlistId.matches(Regex("[A-Za-z0-9]+"))) { "Invalid Spotify playlist ID" }
         val metadata = authorizedGet("/playlists/$playlistId")
         val tracks = mutableListOf<SpotifyAccountTrack>()
@@ -263,7 +340,6 @@ class SpotifyAccountRepository @Inject constructor(
             for (index in 0 until items.length()) {
                 val wrapper = items.optJSONObject(index) ?: continue
                 val track = wrapper.optJSONObject("item") ?: wrapper.optJSONObject("track") ?: continue
-                if (track.optString("type", "track") != "track") continue
                 val title = track.optString("name").trim()
                 if (title.isEmpty()) continue
                 val artistsJson = track.optJSONArray("artists") ?: JSONArray()

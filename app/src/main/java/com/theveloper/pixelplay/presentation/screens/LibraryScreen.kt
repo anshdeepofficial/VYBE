@@ -1616,8 +1616,10 @@ fun LibraryScreen(
                                                 val destination = when {
                                                     !album.remoteBrowseId.isNullOrBlank() ->
                                                         "remote_album|${album.remoteBrowseId}"
-                                                    album.id > 0L -> album.id.toString()
-                                                    else -> "lookup_album|${album.title}|${album.artist}"
+                                                    album.id > 0L ->
+                                                        "album_meta|${album.id}|${album.title}|${album.artist}"
+                                                    else ->
+                                                        "lookup_album|${album.title}|${album.artist}"
                                                 }
                                                 navController.navigateSafelyReplacing(
                                                     route = Screen.AlbumDetail.createRoute(destination),

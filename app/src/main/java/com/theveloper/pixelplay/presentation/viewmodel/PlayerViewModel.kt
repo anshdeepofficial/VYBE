@@ -254,6 +254,9 @@ class PlayerViewModel @Inject constructor(
             targetHeight = targetHeight,
         )
 
+    private val _isResolvingVideoStream = MutableStateFlow(false)
+    val isResolvingVideoStream: StateFlow<Boolean> = _isResolvingVideoStream.asStateFlow()
+
     private var inlineVideoOriginalItem: MediaItem? = null
     private var inlineVideoMediaId: String? = null
 
@@ -269,7 +272,12 @@ class PlayerViewModel @Inject constructor(
         val cleanId = songId.removePrefix("yt_")
         val expectedMediaId = "yt_$cleanId"
         if (controller.currentMediaItem?.mediaId != expectedMediaId) return false
-        val streamUrl = if (enabled) resolveInlineVideoStream(cleanId, preferLowData, targetHeight) ?: return false else null
+        _isResolvingVideoStream.value = true
+        val streamUrl = try {
+            if (enabled) resolveInlineVideoStream(cleanId, preferLowData, targetHeight) ?: return false else null
+        } finally {
+            _isResolvingVideoStream.value = false
+        }
         return withContext(Dispatchers.Main.immediate) {
             val index = controller.currentMediaItemIndex
             if (index < 0) return@withContext false

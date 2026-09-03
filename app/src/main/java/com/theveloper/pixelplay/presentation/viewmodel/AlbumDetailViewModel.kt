@@ -39,14 +39,26 @@ class AlbumDetailViewModel @Inject constructor(
     val uiState: StateFlow<AlbumDetailUiState> = _uiState.asStateFlow()
 
     init {
-        val albumIdString: String? = savedStateHandle.get("albumId")
-        if (albumIdString != null) {
+        val rawAlbumId: String? = savedStateHandle.get("albumId")
+        val albumIdString: String? = rawAlbumId?.let { android.net.Uri.decode(it) }?.trim()
+        if (!albumIdString.isNullOrBlank()) {
             when {
                 albumIdString.startsWith(REMOTE_ALBUM_PREFIX) ->
                     loadOnlineAlbumData(albumIdString.removePrefix(REMOTE_ALBUM_PREFIX))
                 albumIdString.startsWith(LOOKUP_ALBUM_PREFIX) -> {
                     val parts = albumIdString.removePrefix(LOOKUP_ALBUM_PREFIX).split('|', limit = 2)
                     loadOnlineAlbumByMetadata(parts.firstOrNull().orEmpty(), parts.getOrNull(1).orEmpty())
+                }
+                albumIdString.startsWith(COMPOSITE_ALBUM_PREFIX) -> {
+                    val parts = albumIdString.removePrefix(COMPOSITE_ALBUM_PREFIX).split('|')
+                    val id = parts.getOrNull(0)?.toLongOrNull()
+                    val title = parts.getOrNull(1).orEmpty()
+                    val artist = parts.getOrNull(2).orEmpty()
+                    if (id != null) {
+                        loadAlbumData(id, fallbackTitle = title, fallbackArtist = artist)
+                    } else {
+                        loadOnlineAlbumByMetadata(title, artist)
+                    }
                 }
                 albumIdString.toLongOrNull() != null -> loadAlbumData(albumIdString.toLong())
                 else -> loadOnlineAlbumData(albumIdString)
@@ -82,7 +94,8 @@ class AlbumDetailViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
                 val directDetails = runCatching { onlineMusicRepository.getAlbumDetails(browseId) }.getOrNull()
-                val matchedAlbum = if (directDetails == null) {
+                val isRawId = browseId.startsWith("MPREb_") || browseId.startsWith("OLAK5uy_")
+                val matchedAlbum = if (directDetails == null && !isRawId) {
                     onlineMusicRepository.searchMusicStructured(browseId).albums
                         .firstOrNull { it.title.equals(browseId, ignoreCase = true) }
                 } else null
@@ -123,7 +136,7 @@ class AlbumDetailViewModel @Inject constructor(
                         isLoading = false
                     )
                 } else {
-                    _uiState.update { it.copy(error = "Album not found", isLoading = false) }
+                    _uiState.update { it.copy(error = context.getString(R.string.album_detail_not_found), isLoading = false) }
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = e.localizedMessage ?: "Failed to load album", isLoading = false) }
@@ -131,7 +144,7 @@ class AlbumDetailViewModel @Inject constructor(
         }
     }
 
-    private fun loadAlbumData(id: Long) {
+    private fun loadAlbumData(id: Long, fallbackTitle: String = "", fallbackArtist: String = "") {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
@@ -157,7 +170,7 @@ class AlbumDetailViewModel @Inject constructor(
                             remoteBrowseId = firstSong.remoteAlbumBrowseId,
                         )
                     }
-                    if (resolvedAlbum != null) {
+                    if (resolvedAlbum != null && songs.isNotEmpty()) {
                         AlbumDetailUiState(
                             album = resolvedAlbum,
                             songs = songs.sortedWith(
@@ -165,6 +178,15 @@ class AlbumDetailViewModel @Inject constructor(
                                     .thenBy { if (it.trackNumber > 0) it.trackNumber else Int.MAX_VALUE }
                                     .thenBy { it.title.lowercase() }
                             ),
+                            isLoading = false
+                        )
+                    } else if (fallbackTitle.isNotBlank()) {
+                        // Fall back to online lookup
+                        null
+                    } else if (resolvedAlbum != null) {
+                        AlbumDetailUiState(
+                            album = resolvedAlbum,
+                            songs = emptyList(),
                             isLoading = false
                         )
                     } else {
@@ -183,15 +205,23 @@ class AlbumDetailViewModel @Inject constructor(
                         )
                     }
                     .collect { newState ->
-                        _uiState.value = newState
+                        if (newState == null && fallbackTitle.isNotBlank()) {
+                            loadOnlineAlbumByMetadata(fallbackTitle, fallbackArtist)
+                        } else if (newState != null) {
+                            _uiState.value = newState
+                        }
                     }
 
             } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(
-                        error = context.getString(R.string.album_detail_error_loading_album, e.localizedMessage ?: ""),
-                        isLoading = false
-                    )
+                if (fallbackTitle.isNotBlank()) {
+                    loadOnlineAlbumByMetadata(fallbackTitle, fallbackArtist)
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            error = context.getString(R.string.album_detail_error_loading_album, e.localizedMessage ?: ""),
+                            isLoading = false
+                        )
+                    }
                 }
             }
         }
@@ -209,5 +239,6 @@ class AlbumDetailViewModel @Inject constructor(
     private companion object {
         const val REMOTE_ALBUM_PREFIX = "remote_album|"
         const val LOOKUP_ALBUM_PREFIX = "lookup_album|"
+        const val COMPOSITE_ALBUM_PREFIX = "album_meta|"
     }
 }
