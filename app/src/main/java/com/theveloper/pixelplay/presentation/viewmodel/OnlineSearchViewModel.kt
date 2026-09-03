@@ -19,6 +19,7 @@ import com.theveloper.pixelplay.data.recommendation.RecommendationProfile
 import com.theveloper.pixelplay.data.recommendation.RecommendationSurface
 import com.theveloper.pixelplay.data.recommendation.UnifiedRecommendationEngine
 import com.theveloper.pixelplay.data.spotify.SpotifyAccountRepository
+import com.theveloper.pixelplay.data.cache.SearchDiscoveryCache
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.CancellationException
@@ -57,6 +58,7 @@ class OnlineSearchViewModel @Inject constructor(
     private val recommendationEngine: UnifiedRecommendationEngine,
     private val playbackStatsRepository: PlaybackStatsRepository,
     private val spotifyAccountRepository: SpotifyAccountRepository,
+    private val searchDiscoveryCache: com.theveloper.pixelplay.data.cache.SearchDiscoveryCache,
 ) : ViewModel() {
 
     private val _searchFilter = MutableStateFlow(OnlineSearchFilter.ALL)
@@ -93,7 +95,7 @@ class OnlineSearchViewModel @Inject constructor(
     private val _discoveryArtists = MutableStateFlow<List<YouTubeArtist>>(emptyList())
     val discoveryArtists: StateFlow<List<YouTubeArtist>> = _discoveryArtists.asStateFlow()
 
-    private val _discoveryTitle = MutableStateFlow("Trending Now")
+    private val _discoveryTitle = MutableStateFlow("Best for You")
     val discoveryTitle: StateFlow<String> = _discoveryTitle.asStateFlow()
 
     private val _aiRecommendations = MutableStateFlow<List<Song>>(emptyList())
@@ -136,6 +138,16 @@ class OnlineSearchViewModel @Inject constructor(
     }
 
     init {
+        // Instant Search Area: Pre-populate from disk/memory snapshot in 0ms so user never waits 5-10s!
+        val cached = searchDiscoveryCache.get()
+        if (cached != null && (cached.bestForYouTracks.isNotEmpty() || cached.aiRecommendations.isNotEmpty())) {
+            _trendingTracks.value = cached.bestForYouTracks.filter(::isCleanOriginalAudio)
+            baseTrendingTracks = _trendingTracks.value
+            _aiRecommendations.value = cached.aiRecommendations.filter(::isCleanOriginalAudio)
+            _latestReleaseTracks.value = cached.latestReleases.filter(::isCleanOriginalAudio)
+            _discoveryTitle.value = "Best for You"
+            _isLoading.value = false
+        }
         viewModelScope.launch {
             loadTrendingAndRecommendations()
         }
@@ -190,14 +202,50 @@ class OnlineSearchViewModel @Inject constructor(
         loadTrendingAndRecommendations()
     }
 
+    private fun isCleanOriginalAudio(song: Song): Boolean {
+        // 1. Strictly exclude videos (only pure audio tracks)
+        if (song.isMusicVideo || song.contentUriString.startsWith("yt_video:") || song.id.startsWith("yt_video_")) {
+            return false
+        }
+
+        val title = song.title.lowercase()
+        val artist = song.artist.lowercase()
+        val album = song.album.lowercase()
+        val combined = "$title $artist $album"
+
+        // 2. Strictly filter out remixes, dhol, and fan-made modifications
+        val bannedTerms = listOf(
+            "remix", "dhol", "slowed", "reverb", "bass boosted", "boosted",
+            "dj ", " dj", "mashup", "club mix", "flip", "sped up", "speed up",
+            "trap mix", "lo-fi", "lofi", "cover", "acoustic", "karaoke",
+            "ringtone", "status", "whatsapp", "tik tok", "tiktok", "reels", "shorts",
+            "bgm", "instrumental", "jukebox", "non stop", "nonstop", "megamix",
+            "compilation", "full album", "all songs", "audios", "edit", "vibes mix"
+        )
+        if (bannedTerms.any { combined.contains(it) }) {
+            return false
+        }
+
+        // 3. Must have normal song duration (1 to 10 minutes)
+        if (song.duration !in 60_000L..600_000L) {
+            return false
+        }
+
+        return true
+    }
+
     private fun loadTrendingAndRecommendations() {
         discoveryJob?.cancel()
         discoveryJob = viewModelScope.launch {
-            _isLoading.value = true
+            if (_trendingTracks.value.isEmpty() && _aiRecommendations.value.isEmpty()) {
+                _isLoading.value = true
+            }
             try {
                 // Fetch recent listening history
                 val historyEntries = runCatching { playbackStatsRepository.loadPlaybackHistory(50) }.getOrDefault(emptyList())
-                val historySongs = historyEntries.mapNotNull { it.track?.toSong(it.songId) }.distinctBy { it.id }
+                val historySongs = historyEntries.mapNotNull { it.track?.toSong(it.songId) }
+                    .filter(::isCleanOriginalAudio)
+                    .distinctBy { it.id }
                 val listenedSongIds = historySongs.map { it.id }.toSet()
                 val listenedArtists = historySongs.map { it.artist }.filter(String::isNotBlank).distinct()
 
@@ -230,27 +278,14 @@ class OnlineSearchViewModel @Inject constructor(
                 val seedRadioTracks = seedRadioRequests.map { it.await() }.flatten()
                 val fastTracks = withTimeoutOrNull(3_500L) { fastRequest.await() }.orEmpty()
 
-                fun isCleanRecommendation(song: Song): Boolean {
-                    val title = song.title.lowercase()
-                    val isJukebox = title.contains("jukebox") ||
-                        title.contains("mashup") ||
-                        title.contains("non stop") ||
-                        title.contains("nonstop") ||
-                        title.contains("megamix") ||
-                        title.contains("all songs") ||
-                        title.contains("full album") ||
-                        title.contains("compilation")
-                    return !isJukebox && song.duration in 60_000L..900_000L
-                }
-
-                // 2. EchoMusic Anti-History Deduplication Filter:
-                // Strictly exclude songs already listened to in recent history so recommendations are always 100% fresh!
+                // 2. EchoMusic Anti-History Deduplication + Strict Original Audio Filter:
+                // Strictly exclude songs already listened to in recent history, remixes, and videos!
                 val freshRadioTracks = seedRadioTracks
-                    .filter(::isCleanRecommendation)
+                    .filter(::isCleanOriginalAudio)
                     .filterNot { it.id in listenedSongIds }
 
                 val freshFastTracks = fastTracks
-                    .filter(::isCleanRecommendation)
+                    .filter(::isCleanOriginalAudio)
                     .filterNot { it.id in listenedSongIds }
 
                 val trendingResult = withTimeoutOrNull(8_000L) { trendingRequest.await() }
@@ -258,7 +293,9 @@ class OnlineSearchViewModel @Inject constructor(
                 val releasesResult = withTimeoutOrNull(8_000L) { releasesRequest.await() }
                     ?: Result.success(emptyList())
                 val chartTracks = trendingResult.getOrDefault(emptyList()).distinctBy { it.id }
+                    .filter(::isCleanOriginalAudio)
                 val releases = releasesResult.getOrDefault(emptyList()).distinctBy { it.id }
+                    .filter(::isCleanOriginalAudio)
 
                 if (chartTracks.isNotEmpty()) {
                     baseTrendingTracks = chartTracks
@@ -270,7 +307,7 @@ class OnlineSearchViewModel @Inject constructor(
                 }
 
                 _latestReleaseTracks.value = releases
-                _discoveryTitle.value = "Trending Now"
+                _discoveryTitle.value = "Best for You"
 
                 // Combined fresh discovery pool
                 val freshDiscoveries = (freshRadioTracks + freshFastTracks + chartTracks.filterNot { it.id in listenedSongIds })
@@ -281,10 +318,23 @@ class OnlineSearchViewModel @Inject constructor(
                 } else {
                     // Graceful fallback if completely offline or empty
                     (historySongs + chartTracks + releases).distinctBy { it.id }
-                }
+                }.filter(::isCleanOriginalAudio)
 
-                _aiRecommendations.value = rankForInterests(finalRecommendationPool, interests).take(15)
+                val rankedRecommendations = rankForInterests(finalRecommendationPool, interests)
+                    .filter(::isCleanOriginalAudio)
+                    .take(15)
+
+                _aiRecommendations.value = rankedRecommendations
                 _searchError.value = null
+
+                // Save snapshot for next instant startup
+                searchDiscoveryCache.put(
+                    SearchDiscoveryCache.DiscoverySnapshot(
+                        bestForYouTracks = _trendingTracks.value,
+                        aiRecommendations = rankedRecommendations,
+                        latestReleases = releases,
+                    )
+                )
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
@@ -292,6 +342,7 @@ class OnlineSearchViewModel @Inject constructor(
                     val fallback = runCatching { playbackStatsRepository.loadPlaybackHistory(20) }
                         .getOrDefault(emptyList())
                         .mapNotNull { it.track?.toSong(it.songId) }
+                        .filter(::isCleanOriginalAudio)
                     _trendingTracks.value = fallback
                     _aiRecommendations.value = fallback.take(12)
                 }
@@ -342,10 +393,10 @@ class OnlineSearchViewModel @Inject constructor(
     fun selectDiscovery(label: String) {
         searchJob?.cancel()
         when (label) {
-            "Trending" -> {
+            "Best for You", "Trending" -> {
                 _discoveryArtists.value = emptyList()
                 _trendingTracks.value = baseTrendingTracks
-                _discoveryTitle.value = "Trending Now"
+                _discoveryTitle.value = "Best for You"
                 if (baseTrendingTracks.isEmpty()) loadTrendingAndRecommendations()
             }
             "Latest Releases" -> {

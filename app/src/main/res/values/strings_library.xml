@@ -14,6 +14,9 @@
     <string name="library_tab_folders">Folders</string>
     <string name="library_tab_liked">Liked</string>
     <string name="library_tab_downloads">Downloads</string>
+    <string name="library_tab_cached">Cached (10)</string>
+    <string name="library_cached_empty">No cached songs yet. The last 10 songs you listen to will automatically be stored here for instant offline playback.</string>
+    <string name="library_cached_header_subtitle">Instant offline playback • Auto-cached last 10 songs</string>
 
     <!-- Library Toasts -->
     <string name="library_toast_playlist_created">Playlist created successfully</string>

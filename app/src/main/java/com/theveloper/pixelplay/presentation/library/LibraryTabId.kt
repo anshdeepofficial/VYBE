@@ -22,6 +22,12 @@ enum class LibraryTabId(
         labelRes = R.string.library_tab_downloads,
         sortOptions = emptyList()
     ),
+    Cached(
+        stableKey = "CACHED",
+        label = "CACHED",
+        labelRes = R.string.library_tab_cached,
+        sortOptions = emptyList()
+    ),
     Songs(
         stableKey = "SONGS",
         label = "SONGS",
@@ -118,8 +124,9 @@ internal fun decodeLibraryTabOrder(orderJson: String?): List<LibraryTabId> {
 
     val ordered = LinkedHashSet<LibraryTabId>()
     ordered.add(LibraryTabId.Downloads)
+    ordered.add(LibraryTabId.Cached)
     storedKeys.mapNotNull { LibraryTabId.fromStableKey(it) }
-        .filterNot { it == LibraryTabId.Downloads }
+        .filterNot { it == LibraryTabId.Downloads || it == LibraryTabId.Cached }
         .forEach { ordered.add(it) }
     LibraryTabId.defaultOrder.forEach { ordered.add(it) }
     return ordered.toList()

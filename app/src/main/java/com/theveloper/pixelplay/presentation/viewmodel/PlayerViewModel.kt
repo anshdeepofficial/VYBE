@@ -238,7 +238,10 @@ class PlayerViewModel @Inject constructor(
     private val sessionToken: SessionToken,
     private val mediaControllerFactory: com.theveloper.pixelplay.data.media.MediaControllerFactory,
     private val socialReelAudioRecognizer: com.theveloper.pixelplay.data.recognition.SocialReelAudioRecognizer,
+    private val playbackRecentCacheManager: com.theveloper.pixelplay.data.cache.PlaybackRecentCacheManager,
 ) : ViewModel() {
+
+    val cachedSongs: StateFlow<List<Song>> = playbackRecentCacheManager.cachedSongs
 
     val dataSaverEnabled: StateFlow<Boolean> = userPreferencesRepository.dataSaverEnabledFlow
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
@@ -1333,7 +1336,8 @@ class PlayerViewModel @Inject constructor(
                     LibraryTabId.PLAYLISTS -> SortOption.PLAYLISTS
                     LibraryTabId.FOLDERS -> SortOption.FOLDERS
                     LibraryTabId.LIKED -> SortOption.LIKED
-                    LibraryTabId.DOWNLOADS -> SortOption.SONGS
+                    LibraryTabId.DOWNLOADS,
+                    LibraryTabId.CACHED -> SortOption.SONGS
                 }
             } finally {
                 Trace.endSection()

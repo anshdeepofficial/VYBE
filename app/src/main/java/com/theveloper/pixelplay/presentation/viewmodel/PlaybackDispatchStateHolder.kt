@@ -95,6 +95,7 @@ class PlaybackDispatchStateHolder @Inject constructor(
     private val connectivityStateHolder: ConnectivityStateHolder,
     private val themeStateHolder: ThemeStateHolder,
     @param:ApplicationContext private val context: Context,
+    private val playbackRecentCacheManager: com.theveloper.pixelplay.data.cache.PlaybackRecentCacheManager
 ) {
 
     private lateinit var cb: PlaybackDispatchCallbacks
@@ -923,6 +924,7 @@ class PlaybackDispatchStateHolder @Inject constructor(
                 )
             }
             cb.showSheet()
+            playbackRecentCacheManager.onSongPlayed(effectiveStartSong)
 
             val startMediaItem = buildResolvedPlaybackMediaItem(effectiveStartSong)
             val startIndex = songsToPlay.indexOfFirst { it.id == effectiveStartSong.id }.coerceAtLeast(0)

@@ -224,7 +224,8 @@ class DualPlayerEngine @Inject constructor(
     private val gdriveStreamProxy: com.theveloper.pixelplay.data.gdrive.GDriveStreamProxy,
     private val telegramCacheManager: com.theveloper.pixelplay.data.telegram.TelegramCacheManager,
     private val onlineMusicRepository: com.theveloper.pixelplay.data.repository.OnlineMusicRepository,
-    private val connectivityStateHolder: com.theveloper.pixelplay.presentation.viewmodel.ConnectivityStateHolder
+    private val connectivityStateHolder: com.theveloper.pixelplay.presentation.viewmodel.ConnectivityStateHolder,
+    private val playbackRecentCacheManager: com.theveloper.pixelplay.data.cache.PlaybackRecentCacheManager
 ) {
     private companion object {
         private const val AUDIO_OFFLOAD_STALL_FALLBACK_MS = 4_000L
@@ -1173,6 +1174,15 @@ class DualPlayerEngine @Inject constructor(
                             uriString.startsWith("saavn://") -> uriString.removePrefix("saavn://")
                             uriString.startsWith("saavn_") -> uriString.removePrefix("saavn_")
                             else -> uri.lastPathSegment ?: uriString
+                        }
+
+                        // Check instant offline playback cache first
+                        val localAudioCache = playbackRecentCacheManager.getCachedAudioFile(cleanId)
+                        if (localAudioCache != null && localAudioCache.exists() && localAudioCache.length() > 10_000L) {
+                            Timber.tag("DualPlayerEngine").d("resolveDataSpec: Serving from local recent cache for %s", cleanId)
+                            val localUri = Uri.fromFile(localAudioCache)
+                            resolvedUriCache.put(uriString, localUri)
+                            return dataSpec.buildUpon().setUri(localUri).build()
                         }
                         val snapshot = queueSnapshot
                         val isSaavn = uriString.startsWith("saavn")

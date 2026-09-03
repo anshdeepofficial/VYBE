@@ -148,7 +148,7 @@ fun OnlineSearchScreen(
     val bottomPadding = paddingValuesParent.calculateBottomPadding() + MiniPlayerHeight + 16.dp
 
     val isSearching = query.isNotBlank()
-    val discoveryChips = remember { listOf("Trending", "Latest Releases") }
+    val discoveryChips = remember { listOf("Best for You", "Latest Releases") }
 
     androidx.compose.material3.pulltorefresh.PullToRefreshBox(
         isRefreshing = isLoading && !isSearching,
@@ -582,7 +582,7 @@ fun OnlineSearchScreen(
             ) {
 
                 // AI Recommendations row
-                if ((selectedGenre == null || selectedGenre == "Trending") && aiRecommendations.isNotEmpty()) {
+                if ((selectedGenre == null || selectedGenre == "Best for You" || selectedGenre == "Trending") && aiRecommendations.isNotEmpty()) {
                     item(key = "ai_recommendations_header") {
                         Text(
                             text = "Recommended for You ✨",

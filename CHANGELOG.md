@@ -1,3 +1,19 @@
+## [0.11.3] - 2026-09-03
+### Added
+- **Instant Search Area Discovery (0ms Zero-Latency Pre-warm)**: Pre-populates discovery content, "Best for You" tracks, and AI recommendations immediately from disk/memory snapshot upon opening the app, eliminating the 5–10s search screen delay.
+- **Library Recent 10 Songs Offline Cache**: Dedicated "Cached (10)" tab in Library that stores the last 10 played songs on disk for instant offline replay with zero network overhead and no buffering spinner.
+- **iPhone Companion App (`iosApp`) Updates**:
+  - Added "Cached" tab in Library mirroring the 10-song offline cache.
+  - Added "Best for You" discovery section in Search view.
+- **Dual-Target GitHub Release Automation (Android APK + iPhone IPA)**:
+  - Updated CI/CD workflow to compile both Android release APKs and iPhone IPAs directly on GitHub Actions.
+  - Generates signed Android release APKs and universal sideloadable iPhone IPAs (ready for AltStore, SideStore, TrollStore, Scarlet, Sideloadly).
+  - Automatically uploads all mobile assets to the GitHub Release.
+
+### Fixed
+- **Recommendation Contamination Filter**: Strictly excluded videos and non-original fan remixes (dhol remixes, DJ edits, slowed+reverb, bass boosted, mashups, compilations) from "Recommended for You ✨".
+- **Renamed "Trending Now" to "Best for You"**: Tailored discovery tracks to user listening habits with strictly clean audio songs.
+
 ## [0.11.2] - 2026-09-03
 ### Added
 - **Multi-Source Dynamic Recommendation Engine (OuterTune + Meld + EchoMusic Combo)**:

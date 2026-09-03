@@ -128,6 +128,12 @@ private fun libraryEmptySpec(
             titleRes = R.string.library_empty_downloads_title,
             subtitleRes = R.string.library_empty_downloads_subtitle
         )
+
+        LibraryTabId.CACHED -> LibraryEmptySpec(
+            iconRes = R.drawable.rounded_cached_24,
+            titleRes = R.string.library_tab_cached,
+            subtitleRes = R.string.library_cached_empty
+        )
     }
 }
 

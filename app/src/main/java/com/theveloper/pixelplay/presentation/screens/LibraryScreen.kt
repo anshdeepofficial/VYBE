@@ -756,7 +756,8 @@ fun LibraryScreen(
                 LibraryTabId.SONGS,
                 LibraryTabId.LIKED,
                 LibraryTabId.FOLDERS,
-                LibraryTabId.DOWNLOADS -> isSelectionMode
+                LibraryTabId.DOWNLOADS,
+                LibraryTabId.CACHED -> isSelectionMode
                 LibraryTabId.ARTISTS -> false
             }
         }
@@ -788,7 +789,8 @@ fun LibraryScreen(
                     LibraryTabId.SONGS,
                     LibraryTabId.LIKED,
                     LibraryTabId.FOLDERS,
-                    LibraryTabId.DOWNLOADS -> {
+                    LibraryTabId.DOWNLOADS,
+                    LibraryTabId.CACHED -> {
                         multiSelectionState.clearSelection()
                         showMultiSelectionSheet = false
                     }
@@ -1190,7 +1192,8 @@ fun LibraryScreen(
                             LibraryTabId.PLAYLISTS -> playlistUiState.currentPlaylistSortOption
                             LibraryTabId.LIKED -> playerUiState.currentFavoriteSortOption
                             LibraryTabId.FOLDERS -> playerUiState.currentFolderSortOption
-                            LibraryTabId.DOWNLOADS -> null
+                            LibraryTabId.DOWNLOADS,
+                            LibraryTabId.CACHED -> null
                         }
 
                         val showLocateButton = when (currentTabId) {
@@ -1215,7 +1218,8 @@ fun LibraryScreen(
                                     LibraryTabId.PLAYLISTS -> playlistViewModel.sortPlaylists(option)
                                     LibraryTabId.LIKED -> playerViewModel.sortFavoriteSongs(option)
                                     LibraryTabId.FOLDERS -> playerViewModel.sortFolders(option)
-                                    LibraryTabId.DOWNLOADS -> Unit
+                                    LibraryTabId.DOWNLOADS,
+                                    LibraryTabId.CACHED -> Unit
                                 }
                             }
                         }
@@ -1801,6 +1805,21 @@ fun LibraryScreen(
                                             onMoreOptionsClick = stableOnMoreOptionsClick,
                                             hasCurrentSong = hasCurrentSong,
                                             isGridView = LibraryTabId.DOWNLOADS.name in gridViewTabsCsv.split(','),
+                                            isSelectionMode = isSelectionMode,
+                                            selectedSongIds = selectedSongIds,
+                                            onSongLongPress = onSongLongPress,
+                                            onSongSelectionToggle = onSongSelectionToggle,
+                                            getSelectionIndex = playerViewModel.multiSelectionStateHolder::getSelectionIndex,
+                                        )
+                                    }
+
+                                    LibraryTabId.CACHED -> {
+                                        LibraryCachedTab(
+                                            playerViewModel = playerViewModel,
+                                            bottomBarHeight = bottomBarHeightDp,
+                                            onMoreOptionsClick = stableOnMoreOptionsClick,
+                                            hasCurrentSong = hasCurrentSong,
+                                            isGridView = LibraryTabId.CACHED.name in gridViewTabsCsv.split(','),
                                             isSelectionMode = isSelectionMode,
                                             selectedSongIds = selectedSongIds,
                                             onSongLongPress = onSongLongPress,
@@ -2973,6 +2992,7 @@ private fun LibraryTabId.iconRes(): Int = when (this) {
     LibraryTabId.FOLDERS -> R.drawable.rounded_folder_24
     LibraryTabId.LIKED -> R.drawable.round_favorite_24
     LibraryTabId.DOWNLOADS -> R.drawable.rounded_download_24
+    LibraryTabId.CACHED -> R.drawable.rounded_cached_24
 }
 
 @Composable

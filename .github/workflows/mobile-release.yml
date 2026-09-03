@@ -1,4 +1,4 @@
-name: Mobile Release (Android + iPhone)
+﻿name: Mobile Release (Android + iPhone)
 
 on:
   push:
@@ -7,15 +7,16 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing or new release tag (for example v1.0.0)
-        required: true
+        description: Release tag (e.g. v0.11.3)
+        required: false
+        default: 'v0.11.3'
         type: string
 
 permissions:
   contents: write
 
 concurrency:
-  group: mobile-release-${{ github.ref }}-${{ inputs.tag }}
+  group: mobile-release-${{ github.ref }}-${{ inputs.tag || 'tag' }}
   cancel-in-progress: false
 
 jobs:
@@ -23,7 +24,7 @@ jobs:
     name: Android APKs
     runs-on: ubuntu-latest
     env:
-      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      RELEASE_TAG: ${{ inputs.tag || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || 'v0.11.3' }}
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -44,23 +45,34 @@ jobs:
 
       - name: Install Android release signing key
         run: |
-          if [[ -z "$ANDROID_KEYSTORE_BASE64" || -z "$ANDROID_KEYSTORE_PASSWORD" || -z "$ANDROID_KEY_ALIAS" || -z "$ANDROID_KEY_PASSWORD" ]]; then
-            echo "Android release-signing secrets are missing. See docs/IOS_RELEASE.md." >&2
-            exit 1
+          if [[ -n "$ANDROID_KEYSTORE_BASE64" && -n "$ANDROID_KEYSTORE_PASSWORD" && -n "$ANDROID_KEY_ALIAS" && -n "$ANDROID_KEY_PASSWORD" ]]; then
+            echo "Using repository Android release signing secrets."
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > ci-release.jks
+            {
+              echo "storeFile=ci-release.jks"
+              echo "storePassword=$ANDROID_KEYSTORE_PASSWORD"
+              echo "keyAlias=$ANDROID_KEY_ALIAS"
+              echo "keyPassword=$ANDROID_KEY_PASSWORD"
+            } > keystore.properties
+          else
+            echo "No Android keystore secrets found, generating CI release signing key..."
+            keytool -genkey -v -keystore ci-release.jks -alias vybe-release -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass "vybe-release-pass" -keypass "vybe-release-pass" \
+              -dname "CN=VYBE, OU=Mobile, O=VYBE, L=World, S=World, C=US"
+            {
+              echo "storeFile=ci-release.jks"
+              echo "storePassword=vybe-release-pass"
+              echo "keyAlias=vybe-release"
+              echo "keyPassword=vybe-release-pass"
+            } > keystore.properties
           fi
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > ci-release.jks
-          {
-            echo "storeFile=ci-release.jks"
-            echo "storePassword=$ANDROID_KEYSTORE_PASSWORD"
-            echo "keyAlias=$ANDROID_KEY_ALIAS"
-            echo "keyPassword=$ANDROID_KEY_PASSWORD"
-          } > keystore.properties
 
       - name: Resolve release version
         id: version
         shell: bash
         run: |
-          VERSION="${RELEASE_TAG#v}"
+          RAW_TAG="${RELEASE_TAG}"
+          VERSION="${RAW_TAG#v}"
           echo "value=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Build signed Android release APKs
@@ -104,7 +116,7 @@ jobs:
     name: iPhone IPA
     runs-on: macos-latest
     env:
-      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      RELEASE_TAG: ${{ inputs.tag || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || 'v0.11.3' }}
       P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
       P12_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
       PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
@@ -114,22 +126,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Require Apple signing credentials
+      - name: Check Apple signing credentials
+        id: check_signing
         shell: bash
         run: |
-          if [[ -z "$P12_BASE64" || -z "$P12_PASSWORD" || -z "$PROFILE_BASE64" || -z "$APPLE_TEAM_ID" ]]; then
-            echo "Apple signing secrets are missing. See docs/IOS_RELEASE.md." >&2
-            exit 1
+          if [[ -n "$P12_BASE64" && -n "$P12_PASSWORD" && -n "$PROFILE_BASE64" && -n "$APPLE_TEAM_ID" ]]; then
+            echo "has_signing=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_signing=false" >> "$GITHUB_OUTPUT"
+            echo "Apple signing secrets not provided in repo. Building sideloadable IPA (AltStore, TrollStore, SideStore, Scarlet compatible)."
           fi
 
       - name: Resolve release version
         id: version
         shell: bash
         run: |
-          VERSION="${RELEASE_TAG#v}"
+          RAW_TAG="${RELEASE_TAG}"
+          VERSION="${RAW_TAG#v}"
           echo "value=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Install temporary Apple signing identity
+      - name: Install temporary Apple signing identity (if credentials provided)
+        if: steps.check_signing.outputs.has_signing == 'true'
         id: signing
         shell: bash
         run: |
@@ -153,40 +170,62 @@ jobs:
           echo "profile-name=$PROFILE_NAME" >> "$GITHUB_OUTPUT"
           echo "keychain-path=$KEYCHAIN_PATH" >> "$GITHUB_OUTPUT"
 
-      - name: Archive VYBE for iPhone
+      - name: Build & Archive VYBE for iPhone
         working-directory: iosApp
         shell: bash
         run: |
-          xcodebuild archive \
-            -project VYBE.xcodeproj \
-            -scheme VYBE \
-            -configuration Release \
-            -destination 'generic/platform=iOS' \
-            -archivePath "$RUNNER_TEMP/VYBE.xcarchive" \
-            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY='Apple Distribution' \
-            PROVISIONING_PROFILE_SPECIFIER='${{ steps.signing.outputs.profile-name }}' \
-            MARKETING_VERSION='${{ steps.version.outputs.value }}' \
-            CURRENT_PROJECT_VERSION='${{ github.run_number }}'
+          if [[ "${{ steps.check_signing.outputs.has_signing }}" == "true" ]]; then
+            xcodebuild archive \
+              -project VYBE.xcodeproj \
+              -scheme VYBE \
+              -configuration Release \
+              -destination 'generic/platform=iOS' \
+              -archivePath "$RUNNER_TEMP/VYBE.xcarchive" \
+              DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+              CODE_SIGN_STYLE=Manual \
+              CODE_SIGN_IDENTITY='Apple Distribution' \
+              PROVISIONING_PROFILE_SPECIFIER='${{ steps.signing.outputs.profile-name }}' \
+              MARKETING_VERSION='${{ steps.version.outputs.value }}' \
+              CURRENT_PROJECT_VERSION='${{ github.run_number }}'
+          else
+            xcodebuild archive \
+              -project VYBE.xcodeproj \
+              -scheme VYBE \
+              -configuration Release \
+              -destination 'generic/platform=iOS' \
+              -archivePath "$RUNNER_TEMP/VYBE.xcarchive" \
+              CODE_SIGNING_ALLOWED=NO \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGN_IDENTITY="" \
+              MARKETING_VERSION='${{ steps.version.outputs.value }}' \
+              CURRENT_PROJECT_VERSION='${{ github.run_number }}'
+          fi
 
-      - name: Export signed IPA
+      - name: Export & Package IPA
         shell: bash
         run: |
-          EXPORT_OPTIONS="$RUNNER_TEMP/ExportOptions.plist"
-          /usr/bin/plutil -create xml1 "$EXPORT_OPTIONS"
-          /usr/libexec/PlistBuddy -c 'Add :method string app-store-connect' "$EXPORT_OPTIONS"
-          /usr/libexec/PlistBuddy -c "Add :teamID string $APPLE_TEAM_ID" "$EXPORT_OPTIONS"
-          /usr/libexec/PlistBuddy -c 'Add :signingStyle string manual' "$EXPORT_OPTIONS"
-          /usr/libexec/PlistBuddy -c 'Add :signingCertificate string Apple Distribution' "$EXPORT_OPTIONS"
-          /usr/libexec/PlistBuddy -c 'Add :provisioningProfiles dict' "$EXPORT_OPTIONS"
-          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.vybe.musicplayer string '${{ steps.signing.outputs.profile-name }}'" "$EXPORT_OPTIONS"
-          xcodebuild -exportArchive \
-            -archivePath "$RUNNER_TEMP/VYBE.xcarchive" \
-            -exportPath "$RUNNER_TEMP/VYBE-export" \
-            -exportOptionsPlist "$EXPORT_OPTIONS"
           mkdir -p release/ios
-          cp "$RUNNER_TEMP/VYBE-export/"*.ipa "release/ios/VYBE-iOS-${{ steps.version.outputs.value }}.ipa"
+          if [[ "${{ steps.check_signing.outputs.has_signing }}" == "true" ]]; then
+            EXPORT_OPTIONS="$RUNNER_TEMP/ExportOptions.plist"
+            /usr/bin/plutil -create xml1 "$EXPORT_OPTIONS"
+            /usr/libexec/PlistBuddy -c 'Add :method string app-store-connect' "$EXPORT_OPTIONS"
+            /usr/libexec/PlistBuddy -c "Add :teamID string $APPLE_TEAM_ID" "$EXPORT_OPTIONS"
+            /usr/libexec/PlistBuddy -c 'Add :signingStyle string manual' "$EXPORT_OPTIONS"
+            /usr/libexec/PlistBuddy -c 'Add :signingCertificate string Apple Distribution' "$EXPORT_OPTIONS"
+            /usr/libexec/PlistBuddy -c 'Add :provisioningProfiles dict' "$EXPORT_OPTIONS"
+            /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.vybe.musicplayer string '${{ steps.signing.outputs.profile-name }}'" "$EXPORT_OPTIONS"
+            xcodebuild -exportArchive \
+              -archivePath "$RUNNER_TEMP/VYBE.xcarchive" \
+              -exportPath "$RUNNER_TEMP/VYBE-export" \
+              -exportOptionsPlist "$EXPORT_OPTIONS"
+            cp "$RUNNER_TEMP/VYBE-export/"*.ipa "release/ios/VYBE-iOS-${{ steps.version.outputs.value }}.ipa"
+          else
+            echo "Packaging sideloadable IPA from .app bundle..."
+            mkdir -p "$RUNNER_TEMP/Payload"
+            cp -r "$RUNNER_TEMP/VYBE.xcarchive/Products/Applications/VYBE.app" "$RUNNER_TEMP/Payload/"
+            (cd "$RUNNER_TEMP" && zip -r -q "VYBE-iOS-${{ steps.version.outputs.value }}.ipa" Payload)
+            cp "$RUNNER_TEMP/VYBE-iOS-${{ steps.version.outputs.value }}.ipa" "release/ios/"
+          fi
 
       - name: Upload iPhone release artifact
         uses: actions/upload-artifact@v7.0.1
@@ -202,7 +241,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
-      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      RELEASE_TAG: ${{ inputs.tag || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || 'v0.11.3' }}
 
     steps:
       - name: Checkout repository

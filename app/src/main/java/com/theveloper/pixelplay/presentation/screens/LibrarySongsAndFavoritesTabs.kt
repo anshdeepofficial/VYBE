@@ -8,12 +8,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -22,12 +24,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -723,3 +727,143 @@ fun LibraryDownloadsTab(
         }
     }
 }
+
+@androidx.annotation.OptIn(UnstableApi::class)
+@Composable
+fun LibraryCachedTab(
+    playerViewModel: PlayerViewModel,
+    bottomBarHeight: Dp,
+    onMoreOptionsClick: (Song) -> Unit,
+    hasCurrentSong: Boolean,
+    isGridView: Boolean = false,
+    isSelectionMode: Boolean = false,
+    selectedSongIds: Set<String> = emptySet(),
+    onSongLongPress: (Song) -> Unit = {},
+    onSongSelectionToggle: (Song) -> Unit = {},
+    getSelectionIndex: (String) -> Int? = { null },
+) {
+    val cachedSongs by playerViewModel.cachedSongs.collectAsStateWithLifecycle(emptyList())
+    val listState = rememberLazyListState()
+
+    if (cachedSongs.isEmpty()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp, vertical = 32.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    painter = androidx.compose.ui.res.painterResource(R.drawable.rounded_cached_24),
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "No Cached Tracks Yet",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.library_cached_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
+        }
+    } else {
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 12.dp),
+                state = listState,
+                contentPadding = PaddingValues(
+                    top = 8.dp,
+                    bottom = if (hasCurrentSong) bottomBarHeight + MiniPlayerHeight + 16.dp else bottomBarHeight + 16.dp
+                ),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                item(key = "cached_header_banner") {
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = androidx.compose.material3.CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                painter = androidx.compose.ui.res.painterResource(R.drawable.rounded_cached_24),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Auto-Cached Tracks (${cachedSongs.size}/10)",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = stringResource(R.string.library_cached_header_subtitle),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+                items(
+                    items = cachedSongs,
+                    key = { "cached_${it.id}" }
+                ) { song ->
+                    LibraryPlaybackAwareSongItem(
+                        song = song,
+                        playerViewModel = playerViewModel,
+                        onMoreOptionsClick = { onMoreOptionsClick(song) },
+                        isSelected = selectedSongIds.contains(song.id),
+                        selectionIndex = if (isSelectionMode) getSelectionIndex(song.id) else null,
+                        isSelectionMode = isSelectionMode,
+                        onLongPress = { onSongLongPress(song) },
+                        onClick = {
+                            if (isSelectionMode) onSongSelectionToggle(song)
+                            else playerViewModel.showAndPlaySong(
+                                song = song,
+                                contextSongs = cachedSongs,
+                                queueName = "Cached Songs"
+                            )
+                        }
+                    )
+                }
+            }
+
+            val bottomPadding = if (hasCurrentSong)
+                bottomBarHeight + MiniPlayerHeight + 16.dp
+            else
+                bottomBarHeight + 16.dp
+
+            ExpressiveScrollBar(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 4.dp, top = 16.dp, bottom = bottomPadding),
+                listState = listState
+            )
+        }
+    }
+}
+

@@ -65,6 +65,7 @@ struct LibrarySnapshot: Codable, Sendable {
 
 enum LibraryTab: String, CaseIterable, Identifiable {
     case songs = "Songs"
+    case cached = "Cached"
     case albums = "Albums"
     case artists = "Artists"
     case playlists = "Playlists"

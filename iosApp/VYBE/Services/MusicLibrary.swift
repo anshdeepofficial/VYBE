@@ -28,6 +28,9 @@ final class MusicLibrary: ObservableObject {
     var recentlyPlayed: [Song] {
         songs.filter { $0.lastPlayed != nil }.sorted { ($0.lastPlayed ?? .distantPast) > ($1.lastPlayed ?? .distantPast) }
     }
+    var cachedSongs: [Song] {
+        Array((recentlyPlayed.isEmpty ? songs : recentlyPlayed).prefix(10))
+    }
     var favoriteSongs: [Song] { songs.filter { favorites.contains($0.id) } }
     var totalListeningTime: Double { songs.reduce(0) { $0 + ($1.duration * Double($1.playCount)) } }
 

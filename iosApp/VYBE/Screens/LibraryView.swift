@@ -62,12 +62,42 @@ struct LibraryView: View {
     @ViewBuilder private var content: some View {
         switch tab {
         case .songs: songList(library.songs)
+        case .cached: cachedSongList(library.cachedSongs)
         case .favorites: songList(library.favoriteSongs)
         case .albums:
             collectionGrid(items: library.albums.keys.sorted(), type: "Album") { path.append(.album($0)) }
         case .artists:
             collectionGrid(items: library.artists.keys.sorted(), type: "Artist") { path.append(.artist($0)) }
         case .playlists: playlistGrid
+        }
+    }
+
+    private func cachedSongList(_ songs: [Song]) -> some View {
+        LazyVStack(spacing: 11) {
+            HStack(spacing: 12) {
+                Image(systemName: "arrow.clockwise.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(theme.palette.primary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Auto-Cached Tracks (\(songs.count)/10)")
+                        .font(.system(.subheadline, design: .rounded, weight: .bold))
+                    Text("Instant offline playback • Last 10 played songs")
+                        .font(.system(.caption2, design: .rounded))
+                        .foregroundStyle(theme.palette.textMuted)
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .vybeCard(theme.palette.surface, radius: 20)
+            .padding(.bottom, 4)
+
+            if songs.isEmpty {
+                ContentUnavailableView("No cached songs", systemImage: "arrow.clockwise.circle", description: Text("The last 10 songs you play will be cached here for instant offline playback."))
+                    .padding(.top, 60)
+            } else {
+                ForEach(songs) { SongRow(song: $0) }
+            }
         }
     }
 

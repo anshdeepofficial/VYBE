@@ -41,12 +41,57 @@ struct SearchView: View {
                 .vybeCard(theme.palette.surfaceHigh, radius: 28)
                 .padding(.horizontal, 18)
 
-                if query.isEmpty { genreGrid } else { results }
+                if query.isEmpty {
+                    bestForYouSection
+                    genreGrid
+                } else {
+                    results
+                }
             }
         }
         .foregroundStyle(theme.palette.text)
         .background(theme.palette.background)
         .scrollDismissesKeyboard(.interactively)
+    }
+
+    private var bestForYouSection: some View {
+        let bestSongs = Array((library.recentlyPlayed.isEmpty ? library.songs : library.recentlyPlayed).prefix(8))
+        return Group {
+            if !bestSongs.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("Best for You")
+                            .font(.system(.title2, design: .rounded, weight: .bold))
+                        Spacer()
+                    }.padding(.horizontal, 20)
+
+                    ScrollView(.horizontal) {
+                        LazyHStack(spacing: 12) {
+                            ForEach(bestSongs) { song in
+                                Button {
+                                    player.play(song, in: bestSongs)
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        ArtworkView(song: song, size: 120, radius: 22)
+                                        Text(song.title)
+                                            .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                                            .lineLimit(1)
+                                        Text(song.artist)
+                                            .font(.system(.caption, design: .rounded))
+                                            .foregroundStyle(theme.palette.textMuted)
+                                            .lineLimit(1)
+                                    }
+                                    .frame(width: 120, alignment: .leading)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.horizontal, 18)
+                    }
+                    .scrollIndicators(.hidden)
+                }
+            }
+        }
     }
 
     private var results: some View {

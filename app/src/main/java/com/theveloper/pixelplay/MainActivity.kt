@@ -164,6 +164,7 @@ import com.theveloper.pixelplay.presentation.utils.LocalAppHapticsConfig
 import com.theveloper.pixelplay.presentation.utils.NoOpHapticFeedback
 import com.theveloper.pixelplay.utils.CrashLogData
 import javax.annotation.concurrent.Immutable
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import java.io.File
@@ -197,6 +198,8 @@ class MainActivity : ComponentActivity() {
     lateinit var themePreferencesRepository: ThemePreferencesRepository
     @Inject
     lateinit var syncManager: SyncManager
+    @Inject
+    lateinit var searchDiscoveryCache: com.theveloper.pixelplay.data.cache.SearchDiscoveryCache
     // For handling shortcut navigation - using StateFlow so composables can observe changes
     private val _pendingPlaylistNavigation = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
     private val _pendingShuffleAll = kotlinx.coroutines.flow.MutableStateFlow(false)
@@ -242,6 +245,9 @@ class MainActivity : ComponentActivity() {
             userPreferencesRepository.highRefreshRateEnabledFlow
                 .distinctUntilChanged()
                 .collect { enabled -> applyPreferredRefreshRate(enabled) }
+        }
+        lifecycleScope.launch(Dispatchers.IO) {
+            searchDiscoveryCache.get()
         }
 
         // MD3 Optimization: Release Splash Screen immediately to render UI skeleton.
