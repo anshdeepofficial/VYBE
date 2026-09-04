@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.theveloper.pixelplay.R
+import com.theveloper.pixelplay.presentation.components.formatBytes
 
 import android.content.Context
 import android.content.Intent
@@ -114,7 +115,7 @@ class GitHubUpdateService {
                     versionCode = releaseVersionCode,
                     apkName = selected.first,
                     apkUrl = selected.second,
-                    apkSizeBytes = selected.third,
+                    apkSizeBytes = selected.third.takeIf { it > 0L } ?: resolveRemoteFileSize(selected.second),
                     apkSha256 = null,
                 )
             }
@@ -123,7 +124,7 @@ class GitHubUpdateService {
     suspend fun download(
         context: Context,
         update: GitHubReleaseUpdate,
-        onProgress: (Float) -> Unit,
+        onProgress: (progress: Float, downloadedBytes: Long, totalBytes: Long) -> Unit,
     ): Result<File> = withContext(Dispatchers.IO) {
         if (update.versionCode != null && update.versionCode <= installedVersionCode(context)) {
             dismiss(context, update)
@@ -144,10 +145,16 @@ class GitHubUpdateService {
         }
         val notificationId = 10001
         val notificationManager = NotificationManagerCompat.from(context)
+        val initialTotal = update.apkSizeBytes
+        val initialText = if (initialTotal > 0L) {
+            "${formatBytes(0L)} / ${formatBytes(initialTotal)} (0%)"
+        } else {
+            update.apkName
+        }
         val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.monochrome_player)
             .setContentTitle("Downloading VYBE Update")
-            .setContentText(update.apkName)
+            .setContentText(initialText)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setOngoing(true)
             .setProgress(100, 0, false)
@@ -158,10 +165,11 @@ class GitHubUpdateService {
         runCatching {
             if (partial.exists()) partial.delete()
 
-            val connection = openConnection(update.apkUrl, accept = "application/octet-stream")
+            val connection = openDownloadConnection(update.apkUrl)
             val code = connection.responseCode
             check(code in 200..299) { "Update download failed ($code)" }
             val total = connection.contentLengthLong.takeIf { it > 0L } ?: update.apkSizeBytes
+            var lastNotificationTime = 0L
             connection.inputStream.buffered().use { input ->
                 partial.outputStream().buffered().use { output ->
                     val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
@@ -171,7 +179,22 @@ class GitHubUpdateService {
                         if (count < 0) break
                         output.write(buffer, 0, count)
                         downloaded += count
-                        if (total > 0L) onProgress((downloaded.toFloat() / total).coerceIn(0f, 1f))
+                        val progress = if (total > 0L) (downloaded.toFloat() / total).coerceIn(0f, 1f) else 0f
+                        onProgress(progress, downloaded, total)
+
+                        val now = System.currentTimeMillis()
+                        if (now - lastNotificationTime >= 400L || downloaded == total) {
+                            lastNotificationTime = now
+                            if (total > 0L) {
+                                val percent = (progress * 100).toInt().coerceIn(0, 100)
+                                builder.setContentText("${formatBytes(downloaded)} / ${formatBytes(total)} ($percent%)")
+                                builder.setProgress(100, percent, false)
+                            } else {
+                                builder.setContentText("Downloaded ${formatBytes(downloaded)}")
+                                builder.setProgress(0, 0, true)
+                            }
+                            notificationManager.notify(notificationId, builder.build())
+                        }
                     }
                 }
             }
@@ -194,7 +217,7 @@ class GitHubUpdateService {
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
                 .putLong(KEY_DOWNLOADED_BASE_VERSION, installedVersionCode(context))
                 .apply()
-            onProgress(1f)
+            onProgress(1f, total, total)
             target
         }.onSuccess {
             runCatching { notificationManager.cancel(notificationId) }
@@ -205,6 +228,12 @@ class GitHubUpdateService {
             target.delete()
         }
     }
+
+    suspend fun download(
+        context: Context,
+        update: GitHubReleaseUpdate,
+        onProgress: (Float) -> Unit,
+    ): Result<File> = download(context, update) { progress, _, _ -> onProgress(progress) }
 
     fun validateDownloadedApk(context: Context, apk: File): Result<Unit> = runCatching {
         check(apk.isFile && apk.length() > 4L && apk.extension.equals("apk", ignoreCase = true)) {
@@ -387,6 +416,12 @@ class GitHubUpdateService {
         }
         val selected = candidates.maxByOrNull { apkScore(it.optString("name")) }
             ?: error("Update manifest has no compatible APK")
+        val declaredSize = selected.optLong("size", 0L).takeIf { it > 0L }
+            ?: selected.optLong("sizeBytes", 0L).takeIf { it > 0L }
+            ?: selected.optLong("apkSizeBytes", 0L).takeIf { it > 0L }
+            ?: 0L
+        val apkUrl = selected.optString("url")
+        val apkSizeBytes = if (declaredSize > 0L) declaredSize else resolveRemoteFileSize(apkUrl)
         return ManifestLookup(
             available = true,
             update = GitHubReleaseUpdate(
@@ -395,11 +430,70 @@ class GitHubUpdateService {
                 notes = manifest.optString("notes").trim().take(MAX_NOTES_LENGTH),
                 versionCode = remoteCode,
                 apkName = selected.optString("name"),
-                apkUrl = selected.optString("url"),
-                apkSizeBytes = selected.optLong("size", 0L),
+                apkUrl = apkUrl,
+                apkSizeBytes = apkSizeBytes,
                 apkSha256 = selected.optString("sha256").trim().ifBlank { null },
             ),
         )
+    }
+
+    private fun resolveRemoteFileSize(url: String): Long {
+        if (url.isBlank()) return 0L
+        return runCatching {
+            var currentUrl = url
+            var redirects = 0
+            while (redirects < 6) {
+                val conn = (URL(currentUrl).openConnection() as HttpURLConnection).apply {
+                    instanceFollowRedirects = true
+                    connectTimeout = 8_000
+                    readTimeout = 8_000
+                    requestMethod = "HEAD"
+                    setRequestProperty("User-Agent", "VYBE/${BuildConfig.VERSION_NAME}")
+                }
+                val code = conn.responseCode
+                if (code in 300..399) {
+                    val location = conn.getHeaderField("Location")
+                    conn.disconnect()
+                    if (!location.isNullOrBlank()) {
+                        currentUrl = location
+                        redirects++
+                        continue
+                    }
+                }
+                val length = conn.contentLengthLong
+                conn.disconnect()
+                if (length > 0L) return length
+                break
+            }
+            0L
+        }.getOrDefault(0L)
+    }
+
+    private fun openDownloadConnection(initialUrl: String): HttpURLConnection {
+        var currentUrl = initialUrl
+        var redirects = 0
+        while (redirects < 6) {
+            val conn = (URL(currentUrl).openConnection() as HttpURLConnection).apply {
+                instanceFollowRedirects = true
+                connectTimeout = 15_000
+                readTimeout = 30_000
+                requestMethod = "GET"
+                setRequestProperty("Accept", "application/octet-stream")
+                setRequestProperty("User-Agent", "VYBE/${BuildConfig.VERSION_NAME}")
+            }
+            val status = conn.responseCode
+            if (status in 300..399) {
+                val location = conn.getHeaderField("Location")
+                conn.disconnect()
+                if (!location.isNullOrBlank()) {
+                    currentUrl = location
+                    redirects++
+                    continue
+                }
+            }
+            return conn
+        }
+        return (URL(currentUrl).openConnection() as HttpURLConnection)
     }
 
     private fun openConnection(url: String, accept: String): HttpURLConnection =

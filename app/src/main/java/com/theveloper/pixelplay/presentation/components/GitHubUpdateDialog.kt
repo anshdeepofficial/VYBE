@@ -28,6 +28,8 @@ fun GitHubUpdateDialog(
     update: GitHubReleaseUpdate,
     isDownloading: Boolean,
     downloadProgress: Float,
+    downloadedBytes: Long = 0L,
+    totalBytes: Long = 0L,
     downloadedFile: File?,
     message: String?,
     onDownloadOrInstall: () -> Unit,
@@ -38,8 +40,14 @@ fun GitHubUpdateDialog(
     var showReminderMenu by remember { mutableStateOf(false) }
     var showCustomReminder by remember { mutableStateOf(false) }
     var customHours by remember { mutableStateOf("1") }
-    val totalSize = formatBytes(update.apkSizeBytes)
-    val downloadedSize = formatBytes((update.apkSizeBytes * downloadProgress.coerceIn(0f, 1f)).toLong())
+    val effectiveTotalBytes = if (totalBytes > 0L) totalBytes else update.apkSizeBytes
+    val effectiveDownloadedBytes = when {
+        downloadedBytes > 0L -> downloadedBytes
+        effectiveTotalBytes > 0L && downloadProgress > 0f -> (effectiveTotalBytes * downloadProgress.coerceIn(0f, 1f)).toLong()
+        else -> 0L
+    }
+    val totalSize = if (effectiveTotalBytes > 0L) formatBytes(effectiveTotalBytes) else null
+    val downloadedSize = if (effectiveDownloadedBytes > 0L) formatBytes(effectiveDownloadedBytes) else if (isDownloading && totalSize != null) "0.0 MB" else null
     AlertDialog(
         onDismissRequest = { if (!isDownloading) onDismiss() },
         title = { Text("VYBE update available", fontWeight = FontWeight.Bold) },
@@ -59,13 +67,24 @@ fun GitHubUpdateDialog(
                     )
                 }
                 if (isDownloading) {
-                    Text("Downloading $downloadedSize of $totalSize (${(downloadProgress * 100).toInt()}%)")
+                    val percent = (downloadProgress * 100).toInt().coerceIn(0, 100)
+                    val progressText = when {
+                        downloadedSize != null && totalSize != null ->
+                            "Downloading $downloadedSize of $totalSize ($percent%)"
+                        downloadedSize != null ->
+                            "Downloading $downloadedSize ($percent%)"
+                        totalSize != null ->
+                            "Downloading $totalSize ($percent%)"
+                        else ->
+                            "Downloading update ($percent%)"
+                    }
+                    Text(progressText)
                     LinearProgressIndicator(
                         progress = { downloadProgress.coerceIn(0f, 1f) },
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
-                if (!isDownloading && update.apkSizeBytes > 0L) Text("APK size: $totalSize")
+                if (!isDownloading && effectiveTotalBytes > 0L) Text("APK size: ${formatBytes(effectiveTotalBytes)}")
                 message?.let {
                     Text(
                         text = it,
@@ -131,9 +150,9 @@ fun GitHubUpdateDialog(
     }
 }
 
-private fun formatBytes(bytes: Long): String = when {
-    bytes <= 0L -> "Unknown"
-    bytes >= 1_073_741_824L -> "%.2f GB".format(bytes / 1_073_741_824.0)
-    bytes >= 1_048_576L -> "%.1f MB".format(bytes / 1_048_576.0)
-    else -> "%.1f KB".format(bytes / 1024.0)
+internal fun formatBytes(bytes: Long): String = when {
+    bytes <= 0L -> "0.0 MB"
+    bytes >= 1_073_741_824L -> String.format(java.util.Locale.US, "%.2f GB", bytes / 1_073_741_824.0)
+    bytes >= 1_048_576L -> String.format(java.util.Locale.US, "%.1f MB", bytes / 1_048_576.0)
+    else -> String.format(java.util.Locale.US, "%.1f KB", bytes / 1024.0)
 }

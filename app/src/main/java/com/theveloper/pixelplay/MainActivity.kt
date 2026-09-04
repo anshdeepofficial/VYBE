@@ -849,6 +849,8 @@ class MainActivity : ComponentActivity() {
         var showPlayStoreAnnouncement by remember { mutableStateOf(false) }
         var availableUpdate by remember { mutableStateOf<GitHubReleaseUpdate?>(null) }
         var updateDownloadProgress by remember { mutableStateOf(0f) }
+        var updateDownloadedBytes by remember { mutableStateOf(0L) }
+        var updateTotalBytes by remember { mutableStateOf(0L) }
         var isUpdateDownloading by remember { mutableStateOf(false) }
         var downloadedUpdateFile by remember { mutableStateOf<File?>(null) }
         var updateMessage by remember { mutableStateOf<String?>(null) }
@@ -1189,6 +1191,8 @@ class MainActivity : ComponentActivity() {
                                 update = update,
                                 isDownloading = isUpdateDownloading,
                                 downloadProgress = updateDownloadProgress,
+                                downloadedBytes = updateDownloadedBytes,
+                                totalBytes = updateTotalBytes,
                                 downloadedFile = downloadedUpdateFile,
                                 message = updateMessage,
                                 onDownloadOrInstall = {
@@ -1203,10 +1207,14 @@ class MainActivity : ComponentActivity() {
                                         scope.launch {
                                             isUpdateDownloading = true
                                             updateDownloadProgress = 0f
+                                            updateDownloadedBytes = 0L
+                                            updateTotalBytes = update.apkSizeBytes
                                             updateMessage = null
-                                            updateService.download(this@MainActivity, update) { progress ->
+                                            updateService.download(this@MainActivity, update) { progress, downloadedBytes, totalBytes ->
                                                 this@MainActivity.runOnUiThread {
                                                     updateDownloadProgress = progress
+                                                    updateDownloadedBytes = downloadedBytes
+                                                    updateTotalBytes = totalBytes
                                                 }
                                             }.onSuccess { file ->
                                                 downloadedUpdateFile = file

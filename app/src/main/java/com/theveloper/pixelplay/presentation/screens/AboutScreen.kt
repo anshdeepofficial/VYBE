@@ -197,6 +197,8 @@ fun AboutScreen(
     var availableUpdate by remember { mutableStateOf<GitHubReleaseUpdate?>(null) }
     var isUpdateDownloading by remember { mutableStateOf(false) }
     var updateDownloadProgress by remember { mutableStateOf(0f) }
+    var updateDownloadedBytes by remember { mutableStateOf(0L) }
+    var updateTotalBytes by remember { mutableStateOf(0L) }
     var downloadedUpdateFile by remember { mutableStateOf<File?>(null) }
     var updateMessage by remember { mutableStateOf<String?>(null) }
     var feedbackType by remember { mutableStateOf<FeedbackType?>(null) }
@@ -446,6 +448,8 @@ fun AboutScreen(
             update = update,
             isDownloading = isUpdateDownloading,
             downloadProgress = updateDownloadProgress,
+            downloadedBytes = updateDownloadedBytes,
+            totalBytes = updateTotalBytes,
             downloadedFile = downloadedUpdateFile,
             message = updateMessage,
             onDownloadOrInstall = {
@@ -459,8 +463,14 @@ fun AboutScreen(
                         isUpdateDownloading = true
                         updateMessage = null
                         updateDownloadProgress = 0f
-                        updateService.download(context, update) { progress ->
-                            coroutineScope.launch { updateDownloadProgress = progress }
+                        updateDownloadedBytes = 0L
+                        updateTotalBytes = update.apkSizeBytes
+                        updateService.download(context, update) { progress, downloadedBytes, totalBytes ->
+                            coroutineScope.launch {
+                                updateDownloadProgress = progress
+                                updateDownloadedBytes = downloadedBytes
+                                updateTotalBytes = totalBytes
+                            }
                         }
                             .onSuccess { file ->
                                 downloadedUpdateFile = file

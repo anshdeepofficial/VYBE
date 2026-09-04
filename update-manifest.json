@@ -10,6 +10,8 @@
     {
       "abi": "arm64-v8a",
       "name": "VYBE-Android-0.11.5-arm64-v8a.apk",
+      "size": 57657963,
+      "sizeBytes": 57657963,
       "url": "https://github.com/anshdeepofficial/VYBE/releases/download/v0.11.5/VYBE-Android-0.11.5-arm64-v8a.apk"
     }
   ]
