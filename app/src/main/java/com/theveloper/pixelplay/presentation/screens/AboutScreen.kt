@@ -552,13 +552,13 @@ private fun AboutHeroCard(
                 ) {
                     Surface(
                         shape = CircleShape,
-                        color = if (com.theveloper.pixelplay.ui.theme.LocalPixelPlayDarkTheme.current) Color.Black else Color.White,
+                        color = com.theveloper.pixelplay.ui.theme.vybeLogoBackgroundColor(),
                     ) {
                         androidx.compose.foundation.Image(
                             painter = painterResource(R.drawable.vybe_logo_foreground),
                             contentDescription = null,
                             colorFilter = ColorFilter.tint(
-                                if (com.theveloper.pixelplay.ui.theme.LocalPixelPlayDarkTheme.current) Color.White else Color.Black
+                                com.theveloper.pixelplay.ui.theme.vybeLogoForegroundColor()
                             ),
                             contentScale = ContentScale.Fit,
                             modifier = Modifier.padding(6.dp).size(40.dp),

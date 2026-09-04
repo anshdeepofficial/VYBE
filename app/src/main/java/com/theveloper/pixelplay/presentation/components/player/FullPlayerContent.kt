@@ -313,7 +313,7 @@ private fun NativeInlineVideoArtwork(
                         contentColor = Color.White,
                     ),
                 ) {
-                    Icon(Icons.Rounded.Fullscreen, contentDescription = "Horizontal fullscreen video")
+                    Icon(Icons.Rounded.Fullscreen, contentDescription = "Fullscreen video")
                 }
 
                 // Bottom Start: Quality Selector Chip
@@ -372,13 +372,8 @@ private fun NativeInlineVideoArtwork(
     }
 
     if (isFullscreen) {
-        val activity = context as? android.app.Activity
-        androidx.compose.runtime.DisposableEffect(isFullscreen) {
-            val originalOrientation = activity?.requestedOrientation ?: android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-            activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-            onDispose {
-                activity?.requestedOrientation = originalOrientation
-            }
+        androidx.activity.compose.BackHandler {
+            isFullscreen = false
         }
 
         Dialog(
