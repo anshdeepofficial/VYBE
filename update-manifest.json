@@ -1,18 +1,18 @@
 {
   "schemaVersion": 1,
   "packageName": "com.vybe.musicplayer",
-  "versionName": "0.11.6",
-  "versionCode": 11600,
-  "tag": "v0.11.6",
-  "title": "VYBE 0.11.6",
-  "notes": "Release 0.11.6: Video button restricted strictly to music videos with buffering/loading spinner, fixed fullscreen video orientation glitch, dynamic app logo light-mode tinting fix, accurate downloaded/total MB progress tracking in in-app updater, and dual-target mobile release (Android APK + iPhone IPA).",
+  "versionName": "0.11.7",
+  "versionCode": 11700,
+  "tag": "v0.11.7",
+  "title": "VYBE 0.11.7",
+  "notes": "Release 0.11.7: pure YouTube Music audio playback, songs-only search and artist views, faster bounded Home refresh, persistent synced-library counts, cleaner Accounts layout, and safer Search list identities.",
   "assets": [
     {
       "abi": "arm64-v8a",
-      "name": "VYBE-Android-0.11.6-arm64-v8a.apk",
-      "size": 57657963,
-      "sizeBytes": 57657963,
-      "url": "https://github.com/anshdeepofficial/VYBE/releases/download/v0.11.6/VYBE-Android-0.11.6-arm64-v8a.apk"
+      "name": "VYBE-Android-0.11.7-arm64-v8a.apk",
+      "size": 57219314,
+      "sizeBytes": 57219314,
+      "url": "https://github.com/anshdeepofficial/VYBE/releases/download/v0.11.7/VYBE-Android-0.11.7-arm64-v8a.apk"
     }
   ]
 }

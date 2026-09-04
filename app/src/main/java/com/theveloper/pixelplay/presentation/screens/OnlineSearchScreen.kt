@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -74,7 +75,6 @@ fun OnlineSearchScreen(
     val trendingTracks by viewModel.trendingTracks.collectAsStateWithLifecycle()
     val aiRecommendations by viewModel.aiRecommendations.collectAsStateWithLifecycle()
     val searchResultsSongs by viewModel.searchResultsSongs.collectAsStateWithLifecycle()
-    val searchResultsVideos by viewModel.searchResultsVideos.collectAsStateWithLifecycle()
     val searchResultsAlbums by viewModel.searchResultsAlbums.collectAsStateWithLifecycle()
     val searchResultsArtists by viewModel.searchResultsArtists.collectAsStateWithLifecycle()
     val searchFilter by viewModel.searchFilter.collectAsStateWithLifecycle()
@@ -100,31 +100,39 @@ fun OnlineSearchScreen(
     var isVoiceListening by remember { mutableStateOf(false) }
     var showAmbientRecognition by rememberSaveable { mutableStateOf(false) }
     val speechRecognizer = remember(context) {
-        if (SpeechRecognizer.isRecognitionAvailable(context)) SpeechRecognizer.createSpeechRecognizer(context) else null
+        runCatching {
+            if (SpeechRecognizer.isRecognitionAvailable(context)) {
+                SpeechRecognizer.createSpeechRecognizer(context)
+            } else null
+        }.getOrNull()
     }
     DisposableEffect(speechRecognizer) {
-        speechRecognizer?.setRecognitionListener(object : RecognitionListener {
-            override fun onReadyForSpeech(params: Bundle?) { isVoiceListening = true }
-            override fun onBeginningOfSpeech() = Unit
-            override fun onRmsChanged(rmsdB: Float) = Unit
-            override fun onBufferReceived(buffer: ByteArray?) = Unit
-            override fun onEndOfSpeech() { isVoiceListening = false }
-            override fun onError(error: Int) {
-                isVoiceListening = false
-                Toast.makeText(context, "Voice search could not hear a clear title or artist.", Toast.LENGTH_SHORT).show()
-            }
-            override fun onResults(results: Bundle?) {
-                isVoiceListening = false
-                results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.let { spoken ->
-                    query = spoken
-                    selectedGenre = null
-                    viewModel.submitSearch(spoken)
+        runCatching {
+            speechRecognizer?.setRecognitionListener(object : RecognitionListener {
+                override fun onReadyForSpeech(params: Bundle?) { isVoiceListening = true }
+                override fun onBeginningOfSpeech() = Unit
+                override fun onRmsChanged(rmsdB: Float) = Unit
+                override fun onBufferReceived(buffer: ByteArray?) = Unit
+                override fun onEndOfSpeech() { isVoiceListening = false }
+                override fun onError(error: Int) {
+                    isVoiceListening = false
+                    Toast.makeText(context, "Voice search could not hear a clear title or artist.", Toast.LENGTH_SHORT).show()
                 }
-            }
-            override fun onPartialResults(partialResults: Bundle?) = Unit
-            override fun onEvent(eventType: Int, params: Bundle?) = Unit
-        })
-        onDispose { speechRecognizer?.destroy() }
+                override fun onResults(results: Bundle?) {
+                    isVoiceListening = false
+                    results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.let { spoken ->
+                        query = spoken
+                        selectedGenre = null
+                        viewModel.submitSearch(spoken)
+                    }
+                }
+                override fun onPartialResults(partialResults: Bundle?) = Unit
+                override fun onEvent(eventType: Int, params: Bundle?) = Unit
+            })
+        }
+        onDispose {
+            runCatching { speechRecognizer?.destroy() }
+        }
     }
     val beginVoiceListening: () -> Unit = {
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -189,7 +197,7 @@ fun OnlineSearchScreen(
                             onSearch = { if (query.isNotBlank()) viewModel.submitSearch(query) },
                             expanded = false,
                             onExpandedChange = {},
-                            placeholder = { Text("Search songs, videos, albums, artists") },
+                            placeholder = { Text("Search songs, albums, artists") },
                             trailingIcon = {
                                 Row {
                                 IconButton(onClick = { showAmbientRecognition = true }) {
@@ -348,7 +356,7 @@ fun OnlineSearchScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // ── Content ─────────────────────────────────────────────────────
-        val hasVisibleSearchResults = searchResultsSongs.isNotEmpty() || searchResultsVideos.isNotEmpty() ||
+        val hasVisibleSearchResults = searchResultsSongs.isNotEmpty() ||
             searchResultsAlbums.isNotEmpty() || searchResultsArtists.isNotEmpty()
         val hasVisibleDiscovery = trendingTracks.isNotEmpty() || aiRecommendations.isNotEmpty() || discoveryArtists.isNotEmpty()
         if (isLoading && ((isSearching && !hasVisibleSearchResults) || (!isSearching && !hasVisibleDiscovery))) {
@@ -458,39 +466,7 @@ fun OnlineSearchScreen(
                     }
                 }
 
-                // Official YouTube videos stay separate from audio-only songs.
-                if (searchFilter == OnlineSearchFilter.ALL || searchFilter == OnlineSearchFilter.VIDEOS) {
-                    if (searchResultsVideos.isNotEmpty()) {
-                        item(key = "videos_header") {
-                            Text(
-                                text = "Videos",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                            )
-                        }
-                        items(
-                            count = if (searchFilter == OnlineSearchFilter.ALL) searchResultsVideos.take(8).size else searchResultsVideos.size,
-                            key = { "video_${searchResultsVideos[it].id}" },
-                        ) { index ->
-                            val video = searchResultsVideos[index]
-                            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                                EnhancedSongListItem(
-                                    song = video,
-                                    isPlaying = false,
-                                    isCurrentSong = false,
-                                    showMoreOptionsButton = true,
-                                    onLongPress = { contextMenuSong = video },
-                                    onMoreOptionsClick = { contextMenuSong = video },
-                                    onClick = {
-                                        viewModel.rememberSearch(query)
-                                        playerViewModel.playOnlineSeed(video, "VYBE Videos")
-                                    },
-                                )
-                            }
-                        }
-                    }
-                }
+
 
                 // 2. Albums Section
                 if (searchFilter == OnlineSearchFilter.ALL || searchFilter == OnlineSearchFilter.ALBUMS) {
@@ -503,7 +479,10 @@ fun OnlineSearchScreen(
                                 modifier = Modifier.padding(horizontal = 16.dp)
                             )
                         }
-                        items(searchResultsAlbums, key = { "album_${it.browseId}" }) { album ->
+                        itemsIndexed(
+                            items = searchResultsAlbums,
+                            key = { index, album -> "album_${album.browseId}_$index" },
+                        ) { _, album ->
                             AlbumSearchCard(
                                 album = album,
                                 onClick = { navController.navigate("album_detail/${album.browseId}") }
@@ -547,7 +526,7 @@ fun OnlineSearchScreen(
                     }
                 }
 
-                if (searchResultsSongs.isEmpty() && searchResultsVideos.isEmpty() && searchResultsAlbums.isEmpty() && searchResultsArtists.isEmpty()) {
+                if (searchResultsSongs.isEmpty() && searchResultsAlbums.isEmpty() && searchResultsArtists.isEmpty()) {
                     item(key = "search_empty") {
                         Box(
                             modifier = Modifier

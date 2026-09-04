@@ -24,7 +24,7 @@ at the screen/component level, while platform services use native adapters.
 - Home, Search, Library, Settings, Now Playing, Queue and Lyrics screens
 - AVFoundation queue playback, shuffle/repeat, seeking and background audio
 - Lock-screen/Control Center metadata and remote transport controls
-- One tagged GitHub release workflow for Android APKs and signed IPA
+- One tagged GitHub release workflow for Android APK and signed or sideloadable IPA
 
 ### Phase 2 — metadata and advanced playback
 

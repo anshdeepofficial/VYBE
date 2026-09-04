@@ -30,6 +30,9 @@ interface OnlineSongCacheDao {
 
     @Query("SELECT * FROM online_song_cache")
     fun observeAll(): Flow<List<OnlineSongCacheEntity>>
+
+    @Query("SELECT COUNT(*) FROM online_song_cache")
+    suspend fun getCount(): Int
 }
 
 fun OnlineSongCacheEntity.toSong(): Song = Song(

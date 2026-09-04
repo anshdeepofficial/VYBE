@@ -147,12 +147,6 @@ class SearchStateHolder @Inject constructor(
                                                     SearchResultItem.ArtistItem(artist.toArtist())
                                                 })
                                             }
-                                            if (
-                                                currentFilter == SearchFilterType.ALL ||
-                                                currentFilter == SearchFilterType.VIDEOS
-                                            ) {
-                                                addAll(result.videos.map(SearchResultItem::VideoItem))
-                                            }
                                         }
                                     }.getOrElse { error ->
                                         Timber.w(error, "Online search failed for query: %s", normalizedQuery)

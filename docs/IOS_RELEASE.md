@@ -27,15 +27,16 @@ base64 -i VYBE.mobileprovision | pbcopy
 
 Push a semantic version tag such as `v1.0.0`. The `Mobile Release` workflow:
 
-1. Builds and verifies the signed ARM64 and ARMv7 Android APKs.
+1. Builds and verifies the signed ARM64 Android APK.
 2. Imports the temporary Apple signing key and provisioning profile.
 3. Archives the iOS app with the version taken from the tag.
 4. Exports `VYBE-iOS-<version>.ipa`.
 5. Creates or updates the matching GitHub Release and attaches all artifacts.
 
-The workflow also supports manual dispatch. A signed IPA cannot be produced
-without Apple-issued credentials; this is an Apple platform requirement, not a
-source-code limitation.
+The workflow also supports manual dispatch. With the four Apple secrets it
+exports a distribution-signed IPA. Without them it still packages an unsigned
+IPA for testing through a signing/sideloading tool such as AltStore or
+SideStore; iOS will not install that unsigned file directly.
 
 ## App Store preparation
 

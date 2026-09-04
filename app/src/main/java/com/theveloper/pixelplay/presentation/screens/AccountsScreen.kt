@@ -197,10 +197,130 @@ fun AccountsScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            if (uiState.connectedAccounts.isNotEmpty()) {
+                item {
+                    Text(
+                        text = stringResource(R.string.accounts_linked_services),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                    )
+                }
+
+                items(
+                    items = uiState.connectedAccounts,
+                    key = { it.service.name }
+                ) { account ->
+                    ConnectedAccountCard(
+                        account = account,
+                        onManage = {
+                            when (account.service) {
+                                ExternalServiceAccount.YOUTUBE_MUSIC -> {
+                                    viewModel.syncYouTubeMusic()
+                                    Toast.makeText(context, "Syncing YouTube Music library...", Toast.LENGTH_SHORT).show()
+                                }
+                                ExternalServiceAccount.SPOTIFY -> {
+                                }
+                                else -> {
+                                openService(
+                                    context = context,
+                                    service = account.service,
+                                    onOpenNeteaseDashboard = onOpenNeteaseDashboard,
+                                    onOpenQqMusicDashboard = onOpenQqMusicDashboard,
+                                    onOpenNavidromeDashboard = onOpenNavidromeDashboard,
+                                    onOpenJellyfinDashboard = onOpenJellyfinDashboard,
+                                    preferNeteaseDashboard = true,
+                                    onConnectYouTube = { viewModel.connectYouTubeMusic("connected") }
+                                )
+                                }
+                            }
+                        },
+                        onLogout = { viewModel.logout(account.service) },
+                        painter = if (account.service == ExternalServiceAccount.NETEASE) {
+                            painterResource(R.drawable.netease_cloud_music_logo_icon_206716__1_)
+                        } else if (account.service == ExternalServiceAccount.QQ_MUSIC) {
+                            painterResource(R.drawable.qq_music)
+                        } else if (account.service == ExternalServiceAccount.TELEGRAM) {
+                            painterResource(R.drawable.telegram)
+                        } else if (account.service == ExternalServiceAccount.JELLYFIN) {
+                            painterResource(R.drawable.ic_jellyfin)
+                        } else if (account.service == ExternalServiceAccount.NAVIDROME) {
+                            painterResource(R.drawable.ic_navidrome_md3)
+                        } else null
+                    )
+                }
+
+                if (uiState.disconnectedServices.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "YouTube Music",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(start = 4.dp, top = 8.dp)
+                        )
+                    }
+                    item {
+                        EmptyAccountsCard(
+                            disconnectedServices = uiState.disconnectedServices,
+                            onConnect = { service ->
+                                openService(
+                                    context = context,
+                                    service = service,
+                                    onOpenNeteaseDashboard = onOpenNeteaseDashboard,
+                                    onOpenQqMusicDashboard = onOpenQqMusicDashboard,
+                                    onOpenNavidromeDashboard = onOpenNavidromeDashboard,
+                                    onOpenJellyfinDashboard = onOpenJellyfinDashboard,
+                                    preferNeteaseDashboard = false,
+                                    onConnectYouTube = {
+                                        viewModel.connectYouTubeMusic("connected")
+                                        Toast.makeText(context, "YouTube Music Connected & Synchronizing...", Toast.LENGTH_SHORT).show()
+                                    }
+                                )
+                            }
+                        )
+                    }
+                }
+            } else {
+                item {
+                    Text(
+                        text = stringResource(R.string.accounts_linked_services),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                    )
+                }
+                item {
+                    EmptyAccountsCard(
+                        disconnectedServices = uiState.disconnectedServices,
+                        onConnect = { service ->
+                            openService(
+                                context = context,
+                                service = service,
+                                onOpenNeteaseDashboard = onOpenNeteaseDashboard,
+                                onOpenQqMusicDashboard = onOpenQqMusicDashboard,
+                                onOpenNavidromeDashboard = onOpenNavidromeDashboard,
+                                onOpenJellyfinDashboard = onOpenJellyfinDashboard,
+                                preferNeteaseDashboard = false,
+                                onConnectYouTube = {
+                                    viewModel.connectYouTubeMusic("connected")
+                                    Toast.makeText(context, "YouTube Music Connected & Synchronizing...", Toast.LENGTH_SHORT).show()
+                                }
+                            )
+                        }
+                    )
+                }
+            }
+
             item {
-                AccountsHeroSection(
-                    connectedCount = uiState.connectedAccounts.size,
-                    disconnectedCount = uiState.disconnectedServices.size
+                Text(
+                    text = "Backup",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(start = 4.dp, top = 8.dp)
                 )
             }
 
@@ -312,114 +432,6 @@ fun AccountsScreen(
                     }
                 }
             }
-
-            if (uiState.connectedAccounts.isNotEmpty()) {
-                item {
-                    Text(
-                        text = stringResource(R.string.accounts_linked_services),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(start = 4.dp, top = 4.dp)
-                    )
-                }
-
-                items(
-                    items = uiState.connectedAccounts,
-                    key = { it.service.name }
-                ) { account ->
-                    ConnectedAccountCard(
-                        account = account,
-                        onManage = {
-                            when (account.service) {
-                                ExternalServiceAccount.YOUTUBE_MUSIC -> {
-                                    viewModel.syncYouTubeMusic()
-                                    Toast.makeText(context, "Syncing YouTube Music library...", Toast.LENGTH_SHORT).show()
-                                }
-                                ExternalServiceAccount.SPOTIFY -> {
-                                }
-                                else -> {
-                                openService(
-                                    context = context,
-                                    service = account.service,
-                                    onOpenNeteaseDashboard = onOpenNeteaseDashboard,
-                                    onOpenQqMusicDashboard = onOpenQqMusicDashboard,
-                                    onOpenNavidromeDashboard = onOpenNavidromeDashboard,
-                                    onOpenJellyfinDashboard = onOpenJellyfinDashboard,
-                                    preferNeteaseDashboard = true,
-                                    onConnectYouTube = { viewModel.connectYouTubeMusic("connected") }
-                                )
-                                }
-                            }
-                        },
-                        onLogout = { viewModel.logout(account.service) },
-                        painter = if (account.service == ExternalServiceAccount.NETEASE) {
-                            painterResource(R.drawable.netease_cloud_music_logo_icon_206716__1_)
-                        } else if (account.service == ExternalServiceAccount.QQ_MUSIC) {
-                            painterResource(R.drawable.qq_music)
-                        } else if (account.service == ExternalServiceAccount.TELEGRAM) {
-                            painterResource(R.drawable.telegram)
-                        } else if (account.service == ExternalServiceAccount.JELLYFIN) {
-                            painterResource(R.drawable.ic_jellyfin)
-                        } else if (account.service == ExternalServiceAccount.NAVIDROME) {
-                            painterResource(R.drawable.ic_navidrome_md3)
-                        } else null
-                    )
-                }
-
-                if (uiState.disconnectedServices.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = "YouTube Music",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(start = 4.dp, top = 8.dp)
-                        )
-                    }
-                    item {
-                        EmptyAccountsCard(
-                            disconnectedServices = uiState.disconnectedServices,
-                            onConnect = { service ->
-                                openService(
-                                    context = context,
-                                    service = service,
-                                    onOpenNeteaseDashboard = onOpenNeteaseDashboard,
-                                    onOpenQqMusicDashboard = onOpenQqMusicDashboard,
-                                    onOpenNavidromeDashboard = onOpenNavidromeDashboard,
-                                    onOpenJellyfinDashboard = onOpenJellyfinDashboard,
-                                    preferNeteaseDashboard = false,
-                                    onConnectYouTube = {
-                                        viewModel.connectYouTubeMusic("connected")
-                                        Toast.makeText(context, "YouTube Music Connected & Synchronizing...", Toast.LENGTH_SHORT).show()
-                                    }
-                                )
-                            }
-                        )
-                    }
-                }
-            } else {
-                item {
-                    EmptyAccountsCard(
-                        disconnectedServices = uiState.disconnectedServices,
-                        onConnect = { service ->
-                            openService(
-                                context = context,
-                                service = service,
-                                onOpenNeteaseDashboard = onOpenNeteaseDashboard,
-                                onOpenQqMusicDashboard = onOpenQqMusicDashboard,
-                                onOpenNavidromeDashboard = onOpenNavidromeDashboard,
-                                onOpenJellyfinDashboard = onOpenJellyfinDashboard,
-                                preferNeteaseDashboard = false,
-                                onConnectYouTube = {
-                                    viewModel.connectYouTubeMusic("connected")
-                                    Toast.makeText(context, "YouTube Music Connected & Synchronizing...", Toast.LENGTH_SHORT).show()
-                                }
-                            )
-                        }
-                    )
-                }
-            }
         }
 
         CollapsibleCommonTopBar(
@@ -433,85 +445,7 @@ fun AccountsScreen(
     }
 }
 
-@Composable
-private fun AccountsHeroSection(
-    connectedCount: Int,
-    disconnectedCount: Int
-) {
-    val connectedHeroTitle = stringResource(R.string.accounts_connected_title)
-    val connectedHeroBody = stringResource(R.string.accounts_connected_subtitle)
-    val statActive = stringResource(R.string.accounts_stat_active)
-    val statAvailable = stringResource(R.string.accounts_stat_available)
-    val sectionShape = AbsoluteSmoothCornerShape(30.dp, 60)
-    Card(
-        shape = sectionShape,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Text(
-                text = connectedHeroTitle,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = connectedHeroBody,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                HeroStatTile(
-                    title = statActive,
-                    value = connectedCount.toString(),
-                    modifier = Modifier.weight(1f)
-                )
-                HeroStatTile(
-                    title = statAvailable,
-                    value = (connectedCount + disconnectedCount).toString(),
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-    }
-}
 
-@Composable
-private fun HeroStatTile(
-    title: String,
-    value: String,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        shape = AbsoluteSmoothCornerShape(18.dp, 60),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = modifier
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
-}
 
 @Composable
 private fun ConnectedAccountCard(

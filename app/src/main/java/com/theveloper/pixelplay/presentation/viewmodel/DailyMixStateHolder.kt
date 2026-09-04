@@ -18,6 +18,10 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -122,13 +126,32 @@ class DailyMixStateHolder @Inject constructor(
             }.getOrDefault(emptyList())
             val cachedFavorites = syncedAccountSongs.filter { it.id in favoriteIds }
 
-            // The New Releases feed is a real YouTube Music catalog browse, not a chart alias.
-            val latestReleases = runCatching {
-                onlineMusicRepository.getLatestReleases(region)
-            }.getOrDefault(emptyList())
-            val trending = runCatching {
-                onlineMusicRepository.getTrendingTracks(region)
-            }.getOrDefault(emptyList())
+            // Fetch latest releases, trending, and autoplay queue candidates in parallel with bounded timeout
+            // to ensure home refresh finishes in 1-2 seconds.
+            val (latestReleases, trending, relatedDiscovery) = coroutineScope {
+                val latestDeferred = async(Dispatchers.IO) {
+                    withTimeoutOrNull(1800L) {
+                        runCatching { onlineMusicRepository.getLatestReleases(region) }.getOrNull()
+                    }.orEmpty()
+                }
+                val trendingDeferred = async(Dispatchers.IO) {
+                    withTimeoutOrNull(1800L) {
+                        runCatching { onlineMusicRepository.getTrendingTracks(region) }.getOrNull()
+                    }.orEmpty()
+                }
+                val relatedDeferred = recentHistorySongs.take(3).map { seed ->
+                    async(Dispatchers.IO) {
+                        withTimeoutOrNull(1800L) {
+                            runCatching { onlineMusicRepository.getAutoplayQueue(seed, region).drop(1).take(20) }.getOrNull()
+                        }.orEmpty()
+                    }
+                }
+                Triple(
+                    latestDeferred.await(),
+                    trendingDeferred.await(),
+                    relatedDeferred.awaitAll().flatten()
+                )
+            }
             _trendingSongs.value = trending.distinctBy { it.id }.take(30).toImmutableList()
             val loggedOutDiscovery = (latestReleases + trending).distinctBy { it.id }
 
@@ -158,10 +181,6 @@ class DailyMixStateHolder @Inject constructor(
             ).sortedByDescending { it.releaseDateEpochMillis }.take(30).toImmutableList()
 
             val heardIds = recentHistorySongs.mapTo(mutableSetOf(), Song::id)
-            val relatedDiscovery = recentHistorySongs.take(3).flatMap { seed ->
-                runCatching { onlineMusicRepository.getAutoplayQueue(seed, region).drop(1).take(20) }
-                    .getOrDefault(emptyList())
-            }
             val discoveryProfile = RecommendationProfile.fromTaste(
                 songs = tasteCandidates,
                 preferredArtists = preferredArtists,

@@ -81,7 +81,6 @@ class YouTubeMusicEngine @Inject constructor(
         private const val SEARCH_FILTER_ALBUMS = "EgWKAQIYAWoSEAMQBBAKEAUQCRAOEBAQFRAR"
         private const val SEARCH_FILTER_ARTISTS = "EgWKAQIgAWoSEAMQBBAKEAUQCRAOEBAQFRAR"
         private const val SEARCH_FILTER_SONGS = "EgWKAQIIAWoKEAkQBRAKEAMQBA%3D%3D"
-        private const val SEARCH_FILTER_VIDEOS = "EgWKAQIQAWoKEAkQChAFEAMQBA%3D%3D"
     }
 
     private val streamUrlCache = ConcurrentHashMap<String, Pair<String, Long>>()
@@ -146,8 +145,6 @@ class YouTubeMusicEngine @Inject constructor(
         val songs = mutableListOf<Song>()
         val albums = mutableListOf<YouTubeAlbum>()
         val artists = mutableListOf<YouTubeArtist>()
-        val videos = mutableListOf<Song>()
-
         // Fetch exact song results and the mixed summary concurrently. The filtered
         // endpoint prevents similarly named uploads from outranking the real song,
         // while parallel execution keeps the search latency bounded.
@@ -165,29 +162,18 @@ class YouTubeMusicEngine @Inject constructor(
                     )
                 }
             }
-            val exactVideos = async(Dispatchers.IO) {
-                mutableListOf<Song>().also { filtered ->
-                    searchStructuredEndpoint(
-                        cleanQuery, region, mutableListOf(), mutableListOf(),
-                        mutableListOf(), filtered, SEARCH_FILTER_VIDEOS,
-                    )
-                }
-            }
             val mixedResults = async(Dispatchers.IO) {
                 val mixedSongs = mutableListOf<Song>()
                 val mixedAlbums = mutableListOf<YouTubeAlbum>()
                 val mixedArtists = mutableListOf<YouTubeArtist>()
-                val mixedVideos = mutableListOf<Song>()
-                searchStructuredEndpoint(cleanQuery, region, mixedSongs, mixedAlbums, mixedArtists, mixedVideos)
-                StructuredSearchBuckets(mixedSongs, mixedAlbums, mixedArtists, mixedVideos)
+                searchStructuredEndpoint(cleanQuery, region, mixedSongs, mixedAlbums, mixedArtists, mutableListOf())
+                StructuredSearchBuckets(mixedSongs, mixedAlbums, mixedArtists, emptyList())
             }
             songs += exactSongs.await()
-            videos += exactVideos.await().map { it.copy(isMusicVideo = true) }
             val mixed = mixedResults.await()
             songs += mixed.songs
             albums += mixed.albums
             artists += mixed.artists
-            videos += mixed.videos
         }
 
         // Filter out non-music items from songs
@@ -195,8 +181,6 @@ class YouTubeMusicEngine @Inject constructor(
             .filter(::isMusicOnlySong)
             .distinctBy { it.id }
             .sortedByDescending { searchRelevanceScore(cleanQuery, it) }
-            
-        val distinctVideos = videos.distinctBy { it.id }
 
         val distinctAlbums = albums.distinctBy { it.browseId }
         val distinctArtists = artists
@@ -213,7 +197,7 @@ class YouTubeMusicEngine @Inject constructor(
             songs = filteredSongs,
             albums = distinctAlbums,
             artists = distinctArtists,
-            videos = distinctVideos
+            videos = emptyList()
         )
     }
 
@@ -262,6 +246,7 @@ class YouTubeMusicEngine @Inject constructor(
                 JSONObject().apply {
                     put("context", createWebRemixContext(region, config))
                     put("query", cleanQuery)
+                    put("params", SEARCH_FILTER_SONGS)
                 }
             }?.let { bodyString -> tracks.addAll(parseSearchResponse(bodyString)) }
         } catch (e: Exception) {
@@ -560,7 +545,7 @@ class YouTubeMusicEngine @Inject constructor(
                 put("racyCheckOk", true)
             }
             val request = Request.Builder()
-                .url("$INNERTUBE_MAIN_BASE/player?prettyPrint=false&key=$FALLBACK_WEB_REMIX_API_KEY")
+                .url("$INNERTUBE_MUSIC_BASE/player?prettyPrint=false&key=$FALLBACK_WEB_REMIX_API_KEY")
                 .post(payload.toString().toRequestBody(JSON_MEDIA_TYPE))
                 .header("User-Agent", WEB_REMIX_USER_AGENT)
                 .header("Origin", "https://music.youtube.com")
@@ -1280,9 +1265,7 @@ class YouTubeMusicEngine @Inject constructor(
         videos: MutableList<Song>
     ) {
         parseListItem(item)?.let { track ->
-            if (track.resultType == YouTubeMusicEntityType.MUSIC_VIDEO) {
-                videos.add(track.toSong())
-            } else {
+            if (track.resultType != YouTubeMusicEntityType.MUSIC_VIDEO) {
                 songs.add(track.toSong())
             }
             collectSongArtists(item, artists)
@@ -1930,8 +1913,9 @@ class YouTubeMusicEngine @Inject constructor(
         val musicVideoType = findFirstString(item, "musicVideoType")
         val isAlbumTrack = musicVideoType == "MUSIC_VIDEO_TYPE_ATV"
         val isOfficialMusicVideo = musicVideoType == "MUSIC_VIDEO_TYPE_OMV"
+        if (isOfficialMusicVideo) return null
         val isExplicitMusicTrack = item.has("playlistItemData") && item.has("flexColumns")
-        if (!isAlbumTrack && !isOfficialMusicVideo && !isExplicitMusicTrack) return null
+        if (!isAlbumTrack && !isExplicitMusicTrack) return null
 
         val thumbnail = extractThumbnail(item.optJSONObject("thumbnail"))
             ?: extractBestThumbnail(item)

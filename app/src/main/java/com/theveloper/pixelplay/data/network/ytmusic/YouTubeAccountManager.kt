@@ -73,9 +73,16 @@ class YouTubeAccountManager @Inject constructor(
     private val _syncStateFlow = MutableStateFlow(YouTubeSyncState.IDLE)
     val syncStateFlow: StateFlow<YouTubeSyncState> = _syncStateFlow.asStateFlow()
 
-    private val _syncedCountFlow = MutableStateFlow(0)
+    private val _syncedCountFlow = MutableStateFlow(prefs.getInt(KEY_SYNCED_COUNT, 0))
     val syncedCountFlow: StateFlow<Int> = _syncedCountFlow.asStateFlow()
-    private val _libraryStatsFlow = MutableStateFlow(YouTubeLibraryStats())
+    private val _libraryStatsFlow = MutableStateFlow(
+        YouTubeLibraryStats(
+            library = prefs.getInt(KEY_STAT_LIBRARY, 0),
+            liked = prefs.getInt(KEY_STAT_LIKED, 0),
+            playlists = prefs.getInt(KEY_STAT_PLAYLISTS, 0),
+            history = prefs.getInt(KEY_STAT_HISTORY, 0),
+        )
+    )
     val libraryStatsFlow: StateFlow<YouTubeLibraryStats> = _libraryStatsFlow.asStateFlow()
 
     private val _syncEnabledPlaylistIds = MutableStateFlow<Set<String>>(emptySet())
@@ -87,8 +94,44 @@ class YouTubeAccountManager @Inject constructor(
 
     init {
         scope.launch {
-            playlistRepository.userPlaylistsFlow.collect(::refreshEnabledPlaylistIds)
+            playlistRepository.userPlaylistsFlow.collect { playlists ->
+                refreshEnabledPlaylistIds(playlists)
+                if (_isLoggedInFlow.value) {
+                    recalculateStoredStats(playlists)
+                }
+            }
         }
+    }
+
+    private suspend fun recalculateStoredStats(playlists: List<Playlist>) {
+        val cacheCount = runCatching { onlineSongCacheDao.getCount() }.getOrDefault(0)
+        val ytPlaylists = playlists.filter {
+            it.source.startsWith(YOUTUBE_PLAYLIST_SOURCE_PREFIX) &&
+                !it.source.endsWith(":LM") &&
+                !it.source.endsWith(":HISTORY")
+        }
+        val likedPlaylist = playlists.firstOrNull { it.id == "yt_sync_liked_songs" || it.source == "YOUTUBE_MUSIC:LM" }
+        val historyPlaylist = playlists.firstOrNull { it.id == "yt_sync_recent_history" || it.source == "YOUTUBE_MUSIC:HISTORY" }
+        val likedCount = likedPlaylist?.songIds?.size ?: prefs.getInt(KEY_STAT_LIKED, 0)
+        val historyCount = historyPlaylist?.songIds?.size ?: prefs.getInt(KEY_STAT_HISTORY, 0)
+        val playlistsCount = if (ytPlaylists.isNotEmpty()) ytPlaylists.size else prefs.getInt(KEY_STAT_PLAYLISTS, 0)
+        val libraryCount = if (cacheCount > 0) cacheCount else prefs.getInt(KEY_STAT_LIBRARY, 0)
+        val totalSynced = if (cacheCount > 0) cacheCount else prefs.getInt(KEY_SYNCED_COUNT, libraryCount)
+
+        _syncedCountFlow.value = totalSynced
+        _libraryStatsFlow.value = YouTubeLibraryStats(
+            library = libraryCount,
+            liked = likedCount,
+            playlists = playlistsCount,
+            history = historyCount,
+        )
+        prefs.edit()
+            .putInt(KEY_SYNCED_COUNT, totalSynced)
+            .putInt(KEY_STAT_LIBRARY, libraryCount)
+            .putInt(KEY_STAT_LIKED, likedCount)
+            .putInt(KEY_STAT_PLAYLISTS, playlistsCount)
+            .putInt(KEY_STAT_HISTORY, historyCount)
+            .apply()
     }
 
     fun loginWithAuth(cookie: String) {
@@ -104,6 +147,11 @@ class YouTubeAccountManager @Inject constructor(
             .remove(KEY_ACCOUNT_AVATAR_URL)
             .remove(KEY_ACCOUNT_IDENTITY)
             .remove(KEY_INTEREST_LABELS)
+            .remove(KEY_SYNCED_COUNT)
+            .remove(KEY_STAT_LIBRARY)
+            .remove(KEY_STAT_LIKED)
+            .remove(KEY_STAT_PLAYLISTS)
+            .remove(KEY_STAT_HISTORY)
             .apply()
         _isLoggedInFlow.value = false
         _accountNameFlow.value = "Disconnected"
@@ -376,13 +424,21 @@ class YouTubeAccountManager @Inject constructor(
                 source = "YOUTUBE_MUSIC:HISTORY",
             )
         }
-        _syncedCountFlow.value = allTracks.size
-        _libraryStatsFlow.value = YouTubeLibraryStats(
+        val stats = YouTubeLibraryStats(
             library = allTracks.size,
             liked = snapshot.likedSongs.distinctBy { it.videoId }.size,
             playlists = snapshot.playlists.size,
             history = snapshot.recentHistory.distinctBy { it.videoId }.size,
         )
+        _syncedCountFlow.value = allTracks.size
+        _libraryStatsFlow.value = stats
+        prefs.edit()
+            .putInt(KEY_SYNCED_COUNT, allTracks.size)
+            .putInt(KEY_STAT_LIBRARY, stats.library)
+            .putInt(KEY_STAT_LIKED, stats.liked)
+            .putInt(KEY_STAT_PLAYLISTS, stats.playlists)
+            .putInt(KEY_STAT_HISTORY, stats.history)
+            .apply()
         updateInterestLabels(snapshot)
         refreshEnabledPlaylistIds(playlistRepository.getPlaylistsOnce())
     }
@@ -482,6 +538,11 @@ class YouTubeAccountManager @Inject constructor(
         const val KEY_LAST_SYNC_TIME = "last_sync_time"
         const val KEY_PLAYLIST_SYNC_OVERRIDES = "playlist_sync_overrides"
         const val KEY_PENDING_REMOTE_DELETES = "pending_remote_playlist_deletes"
+        const val KEY_SYNCED_COUNT = "synced_count"
+        const val KEY_STAT_LIBRARY = "stat_library"
+        const val KEY_STAT_LIKED = "stat_liked"
+        const val KEY_STAT_PLAYLISTS = "stat_playlists"
+        const val KEY_STAT_HISTORY = "stat_history"
         const val YOUTUBE_PLAYLIST_SOURCE_PREFIX = "YOUTUBE_MUSIC:"
         const val YOUTUBE_SONG_ID_PREFIX = "yt_"
         const val MIN_LOCAL_MATCH_SCORE = 80

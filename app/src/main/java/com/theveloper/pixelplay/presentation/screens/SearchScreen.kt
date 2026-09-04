@@ -641,7 +641,6 @@ fun SearchScreen(
                             ) {
                                 SearchFilterChip(SearchFilterType.ALL, currentFilter, playerViewModel)
                                 SearchFilterChip(SearchFilterType.SONGS, currentFilter, playerViewModel)
-                                SearchFilterChip(SearchFilterType.VIDEOS, currentFilter, playerViewModel)
                                 SearchFilterChip(SearchFilterType.ALBUMS, currentFilter, playerViewModel)
                                 SearchFilterChip(SearchFilterType.ARTISTS, currentFilter, playerViewModel)
                                 SearchFilterChip(SearchFilterType.PLAYLISTS, currentFilter, playerViewModel)
@@ -1209,11 +1208,6 @@ fun SearchResultsList(
                     val song = (item as? SearchResultItem.SongItem)?.song ?: return@forEach
                     add(song)
                 }
-            groupedResults[SearchFilterType.VIDEOS]
-                ?.forEach { item ->
-                    val song = (item as? SearchResultItem.VideoItem)?.song ?: return@forEach
-                    add(song)
-                }
         }
     }
     val searchQueueName = remember(searchQuery) {
@@ -1236,7 +1230,6 @@ fun SearchResultsList(
 
     val sectionOrder = listOf(
         SearchFilterType.SONGS,
-        SearchFilterType.VIDEOS,
         SearchFilterType.ALBUMS,
         SearchFilterType.ARTISTS,
         SearchFilterType.PLAYLISTS

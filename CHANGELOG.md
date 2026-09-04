@@ -1,3 +1,16 @@
+## [0.11.7] - 2026-09-04
+### Changed
+- Converted VYBE to a pure YouTube Music audio experience by removing inline/fullscreen video playback and Videos tabs from Search and Artist profiles.
+- Restricted YouTube Music searches to the songs filter so music-video results no longer enter audio result shelves.
+- Reordered Accounts to show Linked Services first, followed by Settings & Data Backup.
+
+### Improved
+- Parallelized release, trending, and autoplay discovery requests with bounded timeouts for substantially faster Home and Daily Mix refreshes.
+- Persisted YouTube Music Library, Liked, Playlist, History, and total synced counts across launches and reconciled them against local synced data.
+
+### Fixed
+- Hardened Search list identity for albums with duplicate or missing provider IDs, preventing Compose list-key crashes when Search is opened or refreshed.
+
 ## [0.11.6] - 2026-09-04
 ### Fixed
 - **Player Video Button Visibility**:

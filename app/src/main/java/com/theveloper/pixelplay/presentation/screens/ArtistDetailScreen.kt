@@ -287,11 +287,10 @@ fun ArtistDetailScreen(
                             .forEach { staleKey -> expandedSections.remove(staleKey) }
                     }
                     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
-                    val tabs = listOf("Songs", "Videos", "Albums")
-                    val activeTabSongs = remember(selectedTabIndex, uiState.songs, uiState.videos, albumSections) {
+                    val tabs = listOf("Songs", "Albums")
+                    val activeTabSongs = remember(selectedTabIndex, uiState.songs, albumSections) {
                         when (selectedTabIndex) {
-                            1 -> uiState.videos
-                            2 -> albumSections.flatMap { it.songs }.distinctBy { it.id }
+                            1 -> albumSections.flatMap { it.songs }.distinctBy { it.id }
                             else -> uiState.songs
                         }
                     }
@@ -391,37 +390,6 @@ fun ArtistDetailScreen(
                                 }
                             }
                             1 -> {
-                                if (uiState.videos.isEmpty()) {
-                                    item { Text("No videos found.", modifier = Modifier.padding(16.dp)) }
-                                } else {
-                                    itemsIndexed(
-                                        items = if (isTransitionFinished) uiState.videos else uiState.videos.take(15),
-                                        key = { songIndex, song -> "video_${song.id}_$songIndex" },
-                                        contentType = { _, _ -> "artist_section_song" }
-                                    ) { songIndex, song ->
-                                        ArtistAlbumSectionSongItem(
-                                            modifier = Modifier.animateItem(
-                                                fadeInSpec = tween(durationMillis = 180),
-                                                fadeOutSpec = tween(durationMillis = 120),
-                                                placementSpec = tween(durationMillis = 200)
-                                            ),
-                                            song = song,
-                                            songIndex = songIndex,
-                                            songCount = uiState.videos.size,
-                                            isCurrentSong = stablePlayerState.currentSong?.id == song.id,
-                                            isPlaying = stablePlayerState.isPlaying,
-                                            onSongClick = {
-                                                playerViewModel.showAndPlaySong(song, uiState.videos)
-                                            },
-                                            onMoreOptionsClick = {
-                                                playerViewModel.selectSongForInfo(song)
-                                                showSongInfoBottomSheet = true
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                            2 -> {
                                 if (albumSections.isEmpty()) {
                                     item { Text("No albums found.", modifier = Modifier.padding(16.dp)) }
                                 }
