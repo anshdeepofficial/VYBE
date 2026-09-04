@@ -1,3 +1,21 @@
+## [0.11.6] - 2026-09-04
+### Fixed
+- **Player Video Button Visibility**:
+  - Restricted the video toggle button strictly to genuine music videos (`song.isMusicVideo` or video streams). Standard audio songs no longer display the video icon.
+- **Video Buffering & Loading Feedback**:
+  - Added an active player buffering listener and loading indicators. While resolving video streams or buffering, a blurred artwork background with a progress spinner and "Loading video..." text is displayed instead of a blank black screen.
+- **Fullscreen Video Orientation Glitch**:
+  - Eliminated sensor landscape activity flips. The screen remains strictly in portrait/vertical orientation on an edge-to-edge black background with a clean back navigation handler.
+- **Dynamic App Logo Light Mode Tinting**:
+  - Fixed logo color filtering in `GradientTopBar.kt` and `AboutScreen.kt` to faithfully reflect system Light/Dark theme and appearance preferences.
+- **In-App Updater Accurate MB Tracking**:
+  - Resolved the "Downloading Unknown from Unknown" issue by providing exact byte counts and automated remote `Content-Length` resolution. Progress displays exact downloaded MBs and total size (e.g. `12.4 MB of 55.0 MB`).
+  - Monotonic `versionCode = 11600` ensures seamless in-app and sideload upgrades over version 11500.
+
+### Added
+- **Complete 1:1 Parity iOS App (`iosApp`)**:
+  - Fully rewritten native SwiftUI iOS companion app matching Android VYBE feature-for-feature: online music streaming, "Best for You" and "Release Radar" home feeds, real-time debounced online search with genre badges, offline cache, and native lock screen media controls.
+
 ## [0.11.5] - 2026-09-04
 ### Fixed
 - **In-App Updater Version Code & Monotonic Identity Fix**:
