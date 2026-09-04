@@ -233,6 +233,31 @@ private fun NativeInlineVideoArtwork(
     var selectedQualityLabel by rememberSaveable { mutableStateOf("1080p") }
     var selectedTargetHeight by rememberSaveable { mutableStateOf<Int?>(1080) }
     val sessionPlayer = playerViewModel.inlineVideoPlayer()
+    val isResolvingVideoStream by playerViewModel.isResolvingVideoStream.collectAsStateWithLifecycle()
+    var isPlayerBuffering by remember { mutableStateOf(true) }
+
+    DisposableEffect(sessionPlayer) {
+        val listener = object : androidx.media3.common.Player.Listener {
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                isPlayerBuffering = playbackState == androidx.media3.common.Player.STATE_BUFFERING
+            }
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (isPlaying) {
+                    isPlayerBuffering = false
+                }
+            }
+            override fun onRenderedFirstFrame() {
+                isPlayerBuffering = false
+            }
+        }
+        sessionPlayer?.addListener(listener)
+        if (sessionPlayer != null) {
+            isPlayerBuffering = sessionPlayer.playbackState == androidx.media3.common.Player.STATE_BUFFERING
+        }
+        onDispose {
+            sessionPlayer?.removeListener(listener)
+        }
+    }
 
     LaunchedEffect(showOverlayControls, isFullscreen) {
         if (showOverlayControls) {
@@ -289,8 +314,32 @@ private fun NativeInlineVideoArtwork(
                 Modifier.fillMaxSize().align(Alignment.Center),
                 false // Square inline video has NO overlay player buttons
             )
-        } else {
-            CircularProgressIndicator(Modifier.align(Alignment.Center))
+        }
+
+        if (isResolvingVideoStream || isPlayerBuffering) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.52f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.primary,
+                        strokeWidth = 3.dp,
+                        modifier = Modifier.size(38.dp),
+                    )
+                    Text(
+                        text = "Loading video...",
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+            }
         }
 
         // Overlay controls for Square mode (Quality + Fullscreen only, auto-hiding after 5s)
@@ -386,8 +435,34 @@ private fun NativeInlineVideoArtwork(
                     .background(Color.Black)
                     .clickable { showOverlayControls = !showOverlayControls },
             ) {
-                // True Horizontal Landscape Video
+                // True Fullscreen Video
                 videoSurface(Modifier.fillMaxSize(), false)
+
+                if (isResolvingVideoStream || isPlayerBuffering) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.52f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            CircularProgressIndicator(
+                                color = MaterialTheme.colorScheme.primary,
+                                strokeWidth = 3.5.dp,
+                                modifier = Modifier.size(44.dp),
+                            )
+                            Text(
+                                text = "Loading video...",
+                                color = Color.White,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
+                    }
+                }
 
                     // Landscape Fullscreen Top Header Controls
                     AnimatedVisibility(
@@ -609,18 +684,19 @@ fun FullPlayerContent(
     var showPlaylistBottomSheet by remember { mutableStateOf(false) }
     var showPlaybackSpeedBottomSheet by remember { mutableStateOf(false) }
     var showTimerBottomSheet by remember { mutableStateOf(false) }
-    val isYouTubeSource = song.id.startsWith("yt_") || song.contentUriString.startsWith("yt://") || song.isMusicVideo
-    var showVideoPlayer by remember { mutableStateOf(false) }
+    val isExplicitVideo = song.isMusicVideo || song.contentUriString.startsWith("yt_video:") || song.id.startsWith("yt_video_")
+    var showVideoPlayer by remember(song.id) { mutableStateOf(false) }
     var isVideoToggling by remember { mutableStateOf(false) }
     val isResolvingVideoStream by playerViewModel.isResolvingVideoStream.collectAsStateWithLifecycle()
-    var videoAvailable by remember(song.id, song.isMusicVideo) { mutableStateOf(isYouTubeSource) }
+    var videoAvailable by remember(song.id, song.isMusicVideo) { mutableStateOf(isExplicitVideo) }
 
     LaunchedEffect(song.id, song.isMusicVideo) {
         showVideoPlayer = false
-        val cleanId = song.contentUriString.removePrefix("yt://")
-            .takeIf { song.contentUriString.startsWith("yt://") && it.isNotBlank() }
-            ?: song.id.removePrefix("yt_")
-        videoAvailable = (isYouTubeSource || song.isMusicVideo) && cleanId.isNotBlank() && !cleanId.startsWith("saavn_")
+        val cleanId = song.contentUriString.removePrefix("yt_video:")
+            .removePrefix("yt://")
+            .takeIf { it.isNotBlank() }
+            ?: song.id.removePrefix("yt_video_").removePrefix("yt_")
+        videoAvailable = isExplicitVideo && cleanId.isNotBlank() && !cleanId.startsWith("saavn_")
     }
     
     val isTimerActive by playerViewModel.activeTimerValueDisplay.collectAsStateWithLifecycle()
@@ -1393,7 +1469,7 @@ fun FullPlayerContent(
     }
 
         if (videoAvailable) {
-            val isVideoLoading = isVideoToggling || (showVideoPlayer && isResolvingVideoStream)
+            val isVideoLoading = isVideoToggling || isResolvingVideoStream
             FilledIconButton(
                 onClick = {
                     if (isVideoLoading) return@FilledIconButton
