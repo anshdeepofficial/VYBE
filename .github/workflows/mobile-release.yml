@@ -1,4 +1,4 @@
-﻿name: Mobile Release (Android + iPhone)
+name: Mobile Release (Android + iPhone)
 
 on:
   push:
@@ -76,12 +76,13 @@ jobs:
           echo "value=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Build signed Android release APKs
-        run: >-
-          ./gradlew :app:assembleRelease
-          -Ppixelplay.enableAbiSplits=true
-          -PAPP_VERSION_NAME=${{ steps.version.outputs.value }}
-          -PAPP_VERSION_CODE=${{ github.run_number }}
-          --no-daemon
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleRelease \
+            -Ppixelplay.enableAbiSplits=true \
+            -PAPP_VERSION_NAME=${{ steps.version.outputs.value }} \
+            -PAPP_VERSION_CODE=${{ github.run_number }} \
+            --no-daemon
 
       - name: Verify signed Android APKs
         shell: bash

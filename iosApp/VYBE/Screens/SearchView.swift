@@ -4,6 +4,7 @@ struct SearchView: View {
     @Binding var path: [AppRoute]
     @State private var query = ""
     @EnvironmentObject private var library: MusicLibrary
+    @EnvironmentObject private var player: AudioPlayer
     @EnvironmentObject private var theme: VYBEThemeStore
 
     private var matches: [Song] {
