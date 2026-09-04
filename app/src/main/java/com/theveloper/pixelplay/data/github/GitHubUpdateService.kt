@@ -220,9 +220,10 @@ class GitHubUpdateService {
         check(archive.packageName == context.packageName) { "Update package does not match VYBE" }
         val archiveCode = PackageInfoCompat.getLongVersionCode(archive)
         val installedCode = installedVersionCode(context)
-        // Android only accepts an update whose versionCode is greater. A changed versionName with
-        // the same code is not an upgrade and must never reach the installer.
-        check(archiveCode > installedCode) {
+        val archiveName = archive.versionName.orEmpty()
+        val installedName = installedVersionName(context).orEmpty()
+        val isNewer = archiveCode > installedCode || (archiveCode >= installedCode && (isNewerVersion(archiveName, installedName) || archiveName != installedName))
+        check(isNewer) {
             "Downloaded update is not newer than the installed VYBE version"
         }
         @Suppress("DEPRECATION")

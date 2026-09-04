@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
   "packageName": "com.vybe.musicplayer",
-  "versionName": "0.11.3",
-  "versionCode": 11300,
-  "tag": "v0.11.3",
-  "title": "VYBE 0.11.3",
-  "notes": "Release 0.11.3: Instant search discovery pre-warm (0ms load), clean audio recommendations (strictly zero fan remixes or videos), 'Best for You' personalized discovery, Library 10-song offline cache, and dual-target GitHub Actions mobile compilation (Android APK + iPhone IPA).",
+  "versionName": "0.11.5",
+  "versionCode": 11500,
+  "tag": "v0.11.5",
+  "title": "VYBE 0.11.5",
+  "notes": "Release 0.11.5: Permanent update version-code alignment fix (versionCode=11500), official signing key alignment, instant search discovery pre-warm (0ms load), clean audio recommendations (strictly zero fan remixes or videos), 'Best for You' discovery, Library 10-song offline cache, and dual-target mobile release (Android APK + iPhone IPA).",
   "assets": [
     {
       "abi": "arm64-v8a",
-      "name": "VYBE-Android-0.11.3-arm64-v8a.apk",
-      "url": "https://github.com/anshdeepofficial/VYBE/releases/download/v0.11.3/VYBE-Android-0.11.3-arm64-v8a.apk"
+      "name": "VYBE-Android-0.11.5-arm64-v8a.apk",
+      "url": "https://github.com/anshdeepofficial/VYBE/releases/download/v0.11.5/VYBE-Android-0.11.5-arm64-v8a.apk"
     }
   ]
 }

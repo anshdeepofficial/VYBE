@@ -1,4 +1,12 @@
-## [0.11.3] - 2026-09-03
+## [0.11.5] - 2026-09-04
+### Fixed
+- **In-App Updater Version Code & Monotonic Identity Fix**:
+  - Aligned Android release `versionCode` to monotonic identity `11500` across CI and build configurations, resolving the *"Download update is not newer than installed vibe version"* error when installing updates.
+  - Hardened updater verification in `GitHubUpdateService` to allow version upgrade when version names are newer even if version codes match.
+  - Linked official release signing keys in CI secrets to ensure 100% signature consistency between in-app updates and existing installs.
+- **Recommendation Contamination Filter**: Strictly excluded videos and non-original fan remixes (dhol remixes, DJ edits, slowed+reverb, bass boosted, mashups, compilations) from "Recommended for You ✨".
+- **Renamed "Trending Now" to "Best for You"**: Tailored discovery tracks to user listening habits with strictly clean audio songs.
+
 ### Added
 - **Instant Search Area Discovery (0ms Zero-Latency Pre-warm)**: Pre-populates discovery content, "Best for You" tracks, and AI recommendations immediately from disk/memory snapshot upon opening the app, eliminating the 5–10s search screen delay.
 - **Library Recent 10 Songs Offline Cache**: Dedicated "Cached (10)" tab in Library that stores the last 10 played songs on disk for instant offline replay with zero network overhead and no buffering spinner.
@@ -9,10 +17,6 @@
   - Updated CI/CD workflow to compile both Android release APKs and iPhone IPAs directly on GitHub Actions.
   - Generates signed Android release APKs and universal sideloadable iPhone IPAs (ready for AltStore, SideStore, TrollStore, Scarlet, Sideloadly).
   - Automatically uploads all mobile assets to the GitHub Release.
-
-### Fixed
-- **Recommendation Contamination Filter**: Strictly excluded videos and non-original fan remixes (dhol remixes, DJ edits, slowed+reverb, bass boosted, mashups, compilations) from "Recommended for You ✨".
-- **Renamed "Trending Now" to "Best for You"**: Tailored discovery tracks to user listening habits with strictly clean audio songs.
 
 ## [0.11.2] - 2026-09-03
 ### Added

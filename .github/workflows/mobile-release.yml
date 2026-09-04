@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag (e.g. v0.11.3)
+        description: Release tag (e.g. v0.11.5)
         required: false
-        default: 'v0.11.3'
+        default: 'v0.11.5'
         type: string
 
 permissions:
@@ -24,7 +24,7 @@ jobs:
     name: Android APKs
     runs-on: ubuntu-latest
     env:
-      RELEASE_TAG: ${{ inputs.tag || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || 'v0.11.3' }}
+      RELEASE_TAG: ${{ inputs.tag || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || 'v0.11.5' }}
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -74,6 +74,16 @@ jobs:
           RAW_TAG="${RELEASE_TAG}"
           VERSION="${RAW_TAG#v}"
           echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+          PROP_CODE=$(grep "^APP_VERSION_CODE=" gradle.properties | cut -d'=' -f2 | tr -d ' \r\n')
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          MAJOR=${MAJOR:-0}
+          MINOR=${MINOR:-0}
+          PATCH=${PATCH:-0}
+          CALC_CODE=$(( MAJOR * 1000000 + MINOR * 10000 + PATCH * 100 ))
+          FINAL_CODE=${PROP_CODE:-$CALC_CODE}
+          if (( FINAL_CODE < 11500 )); then FINAL_CODE=11500; fi
+          echo "code=$FINAL_CODE" >> "$GITHUB_OUTPUT"
+          echo "Resolved Android version: $VERSION with monotonic versionCode: $FINAL_CODE"
 
       - name: Build signed Android release APKs
         run: |
@@ -81,7 +91,7 @@ jobs:
           ./gradlew :app:assembleRelease \
             -Ppixelplay.enableAbiSplits=true \
             -PAPP_VERSION_NAME=${{ steps.version.outputs.value }} \
-            -PAPP_VERSION_CODE=${{ github.run_number }} \
+            -PAPP_VERSION_CODE=${{ steps.version.outputs.code }} \
             --no-daemon
 
       - name: Verify signed Android APKs
@@ -117,7 +127,7 @@ jobs:
     name: iPhone IPA
     runs-on: macos-latest
     env:
-      RELEASE_TAG: ${{ inputs.tag || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || 'v0.11.3' }}
+      RELEASE_TAG: ${{ inputs.tag || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || 'v0.11.5' }}
       P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
       P12_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
       PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
@@ -145,6 +155,15 @@ jobs:
           RAW_TAG="${RELEASE_TAG}"
           VERSION="${RAW_TAG#v}"
           echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+          PROP_CODE=$(grep "^APP_VERSION_CODE=" gradle.properties | cut -d'=' -f2 | tr -d ' \r\n')
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          MAJOR=${MAJOR:-0}
+          MINOR=${MINOR:-0}
+          PATCH=${PATCH:-0}
+          CALC_CODE=$(( MAJOR * 1000000 + MINOR * 10000 + PATCH * 100 ))
+          FINAL_CODE=${PROP_CODE:-$CALC_CODE}
+          if (( FINAL_CODE < 11500 )); then FINAL_CODE=11500; fi
+          echo "code=$FINAL_CODE" >> "$GITHUB_OUTPUT"
 
       - name: Install temporary Apple signing identity (if credentials provided)
         if: steps.check_signing.outputs.has_signing == 'true'
@@ -187,7 +206,7 @@ jobs:
               CODE_SIGN_IDENTITY='Apple Distribution' \
               PROVISIONING_PROFILE_SPECIFIER='${{ steps.signing.outputs.profile-name }}' \
               MARKETING_VERSION='${{ steps.version.outputs.value }}' \
-              CURRENT_PROJECT_VERSION='${{ github.run_number }}'
+              CURRENT_PROJECT_VERSION='${{ steps.version.outputs.code }}'
           else
             xcodebuild archive \
               -project VYBE.xcodeproj \
@@ -199,7 +218,7 @@ jobs:
               CODE_SIGNING_REQUIRED=NO \
               CODE_SIGN_IDENTITY="" \
               MARKETING_VERSION='${{ steps.version.outputs.value }}' \
-              CURRENT_PROJECT_VERSION='${{ github.run_number }}'
+              CURRENT_PROJECT_VERSION='${{ steps.version.outputs.code }}'
           fi
 
       - name: Export & Package IPA
@@ -242,7 +261,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
-      RELEASE_TAG: ${{ inputs.tag || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || 'v0.11.3' }}
+      RELEASE_TAG: ${{ inputs.tag || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || 'v0.11.5' }}
 
     steps:
       - name: Checkout repository
