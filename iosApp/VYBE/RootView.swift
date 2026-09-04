@@ -2,7 +2,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct RootView: View {
-    @AppStorage("completedSetup") private var completedSetup = false
+    @AppStorage("completedSetup") private var completedSetup = true
     @State private var tab: RootTab = .home
     @State private var path: [AppRoute] = []
     @State private var showsNowPlaying = false

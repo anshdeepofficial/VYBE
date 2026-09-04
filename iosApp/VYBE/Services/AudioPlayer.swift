@@ -46,7 +46,7 @@ final class AudioPlayer: ObservableObject {
 
     func play(_ song: Song, in source: [Song]? = nil) {
         var nextQueue = source ?? queue
-        if nextQueue.isEmpty || !nextQueue.contains(song) { nextQueue = source ?? [song] }
+        if nextQueue.isEmpty || !nextQueue.contains(song) { nextQueue = [song] }
         if isShuffled, nextQueue.count > 1 {
             nextQueue.shuffle()
             nextQueue.removeAll { $0.id == song.id }
@@ -112,13 +112,31 @@ final class AudioPlayer: ObservableObject {
     func toggleShuffle() { isShuffled.toggle() }
 
     private func loadCurrent(autoplay: Bool) {
-        guard queue.indices.contains(queueIndex), let library else { return }
+        guard queue.indices.contains(queueIndex) else { return }
         let song = queue[queueIndex]
         currentSong = song
         currentTime = 0
-        duration = song.duration
-        player.replaceCurrentItem(with: AVPlayerItem(url: library.audioURL(for: song)))
-        library.markPlayed(song)
+        duration = song.duration > 0 ? song.duration : 0
+
+        if let streamUrl = song.streamUrl, let url = URL(string: streamUrl) {
+            playUrl(url, song: song, autoplay: autoplay)
+        } else if song.source != "local" {
+            Task { @MainActor in
+                if let stream = await OnlineMusicService.shared.resolveStream(for: song),
+                   let url = URL(string: stream) {
+                    if self.currentSong?.id == song.id {
+                        self.playUrl(url, song: song, autoplay: autoplay)
+                    }
+                }
+            }
+        } else if let library {
+            playUrl(library.audioURL(for: song), song: song, autoplay: autoplay)
+        }
+    }
+
+    private func playUrl(_ url: URL, song: Song, autoplay: Bool) {
+        player.replaceCurrentItem(with: AVPlayerItem(url: url))
+        library?.markPlayed(song)
         updateNowPlaying()
         if autoplay { resume() }
     }
@@ -183,7 +201,23 @@ final class AudioPlayer: ObservableObject {
         ]
         if let image = library?.artworkImage(for: song) {
             info[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+            MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+        } else if let artworkUrl = song.artworkUrl, let url = URL(string: artworkUrl) {
+            MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+            Task {
+                if let (data, _) = try? await URLSession.shared.data(from: url),
+                   let image = UIImage(data: data) {
+                    await MainActor.run {
+                        if self.currentSong?.id == song.id {
+                            var updated = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
+                            updated[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+                            MPNowPlayingInfoCenter.default().nowPlayingInfo = updated
+                        }
+                    }
+                }
+            }
+        } else {
+            MPNowPlayingInfoCenter.default().nowPlayingInfo = info
         }
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
 }

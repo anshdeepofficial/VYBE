@@ -24,6 +24,7 @@
 		B10000000000000000000010 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000010 /* StatsView.swift */; };
 		B10000000000000000000011 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000011 /* Assets.xcassets */; };
 		B10000000000000000000012 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000014 /* PrivacyInfo.xcprivacy */; };
+		B10000000000000000000013 /* OnlineMusicService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000015 /* OnlineMusicService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -47,6 +48,7 @@
 		A10000000000000000000012 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A10000000000000000000013 /* VYBE.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VYBE.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A10000000000000000000014 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		A10000000000000000000015 /* OnlineMusicService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnlineMusicService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,7 +60,7 @@
 		D10000000000000000000002 /* VYBE */ = {isa = PBXGroup; children = (A10000000000000000000001 /* VYBEApp.swift */, A10000000000000000000007 /* RootView.swift */, D10000000000000000000003 /* Models */, D10000000000000000000004 /* Theme */, D10000000000000000000005 /* Services */, D10000000000000000000006 /* Components */, D10000000000000000000007 /* Screens */, A10000000000000000000011 /* Assets.xcassets */, A10000000000000000000012 /* Info.plist */, A10000000000000000000014 /* PrivacyInfo.xcprivacy */); path = VYBE; sourceTree = "<group>"; };
 		D10000000000000000000003 /* Models */ = {isa = PBXGroup; children = (A10000000000000000000002 /* MusicModels.swift */); path = Models; sourceTree = "<group>"; };
 		D10000000000000000000004 /* Theme */ = {isa = PBXGroup; children = (A10000000000000000000003 /* VYBETheme.swift */); path = Theme; sourceTree = "<group>"; };
-		D10000000000000000000005 /* Services */ = {isa = PBXGroup; children = (A10000000000000000000004 /* MusicLibrary.swift */, A10000000000000000000005 /* AudioPlayer.swift */); path = Services; sourceTree = "<group>"; };
+		D10000000000000000000005 /* Services */ = {isa = PBXGroup; children = (A10000000000000000000004 /* MusicLibrary.swift */, A10000000000000000000005 /* AudioPlayer.swift */, A10000000000000000000015 /* OnlineMusicService.swift */); path = Services; sourceTree = "<group>"; };
 		D10000000000000000000006 /* Components */ = {isa = PBXGroup; children = (A10000000000000000000006 /* VYBEComponents.swift */); path = Components; sourceTree = "<group>"; };
 		D10000000000000000000007 /* Screens */ = {isa = PBXGroup; children = (A10000000000000000000008 /* SetupView.swift */, A10000000000000000000009 /* HomeView.swift */, A1000000000000000000000A /* SearchView.swift */, A1000000000000000000000B /* LibraryView.swift */, A1000000000000000000000C /* NowPlayingView.swift */, A1000000000000000000000D /* LyricsAndQueueViews.swift */, A1000000000000000000000E /* SettingsView.swift */, A1000000000000000000000F /* CollectionDetailView.swift */, A10000000000000000000010 /* StatsView.swift */); path = Screens; sourceTree = "<group>"; };
 		D10000000000000000000008 /* Products */ = {isa = PBXGroup; children = (A10000000000000000000013 /* VYBE.app */); name = Products; sourceTree = "<group>"; };
@@ -77,7 +79,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		G10000000000000000000001 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (B10000000000000000000001 /* VYBEApp.swift in Sources */, B10000000000000000000002 /* MusicModels.swift in Sources */, B10000000000000000000003 /* VYBETheme.swift in Sources */, B10000000000000000000004 /* MusicLibrary.swift in Sources */, B10000000000000000000005 /* AudioPlayer.swift in Sources */, B10000000000000000000006 /* VYBEComponents.swift in Sources */, B10000000000000000000007 /* RootView.swift in Sources */, B10000000000000000000008 /* SetupView.swift in Sources */, B10000000000000000000009 /* HomeView.swift in Sources */, B1000000000000000000000A /* SearchView.swift in Sources */, B1000000000000000000000B /* LibraryView.swift in Sources */, B1000000000000000000000C /* NowPlayingView.swift in Sources */, B1000000000000000000000D /* LyricsAndQueueViews.swift in Sources */, B1000000000000000000000E /* SettingsView.swift in Sources */, B1000000000000000000000F /* CollectionDetailView.swift in Sources */, B10000000000000000000010 /* StatsView.swift in Sources */); runOnlyForDeploymentPostprocessing = 0; };
+		G10000000000000000000001 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (B10000000000000000000001 /* VYBEApp.swift in Sources */, B10000000000000000000002 /* MusicModels.swift in Sources */, B10000000000000000000003 /* VYBETheme.swift in Sources */, B10000000000000000000004 /* MusicLibrary.swift in Sources */, B10000000000000000000005 /* AudioPlayer.swift in Sources */, B10000000000000000000006 /* VYBEComponents.swift in Sources */, B10000000000000000000007 /* RootView.swift in Sources */, B10000000000000000000008 /* SetupView.swift in Sources */, B10000000000000000000009 /* HomeView.swift in Sources */, B1000000000000000000000A /* SearchView.swift in Sources */, B1000000000000000000000B /* LibraryView.swift in Sources */, B1000000000000000000000C /* NowPlayingView.swift in Sources */, B1000000000000000000000D /* LyricsAndQueueViews.swift in Sources */, B1000000000000000000000E /* SettingsView.swift in Sources */, B1000000000000000000000F /* CollectionDetailView.swift in Sources */, B10000000000000000000010 /* StatsView.swift in Sources */, B10000000000000000000013 /* OnlineMusicService.swift in Sources */); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */

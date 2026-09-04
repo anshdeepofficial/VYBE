@@ -40,7 +40,7 @@ final class MusicLibrary: ObservableObject {
             guard fileManager.fileExists(atPath: snapshotURL.path) else { return }
             let data = try Data(contentsOf: snapshotURL)
             let snapshot = try decoder.decode(LibrarySnapshot.self, from: data)
-            songs = snapshot.songs.filter { fileManager.fileExists(atPath: audioURL(for: $0).path) }
+            songs = snapshot.songs.filter { $0.isOnline || fileManager.fileExists(atPath: audioURL(for: $0).path) }
             favorites = snapshot.favorites.intersection(Set(songs.map(\.id)))
             playlists = snapshot.playlists
         } catch {
@@ -91,21 +91,32 @@ final class MusicLibrary: ObservableObject {
     }
 
     func toggleFavorite(_ song: Song) {
+        if !songs.contains(where: { $0.id == song.id }) {
+            songs.append(song)
+        }
         if favorites.contains(song.id) { favorites.remove(song.id) } else { favorites.insert(song.id) }
         try? save()
     }
 
     func markPlayed(_ song: Song) {
-        guard let index = songs.firstIndex(where: { $0.id == song.id }) else { return }
-        songs[index].playCount += 1
-        songs[index].lastPlayed = .now
+        if let index = songs.firstIndex(where: { $0.id == song.id }) {
+            songs[index].playCount += 1
+            songs[index].lastPlayed = .now
+        } else {
+            var s = song
+            s.playCount = 1
+            s.lastPlayed = .now
+            songs.append(s)
+        }
         try? save()
     }
 
     func delete(_ song: Song) {
-        try? fileManager.removeItem(at: audioURL(for: song))
-        if let artwork = song.artworkFileName {
-            try? fileManager.removeItem(at: artworkURL.appendingPathComponent(artwork))
+        if !song.isOnline {
+            try? fileManager.removeItem(at: audioURL(for: song))
+            if let artwork = song.artworkFileName {
+                try? fileManager.removeItem(at: artworkURL.appendingPathComponent(artwork))
+            }
         }
         songs.removeAll { $0.id == song.id }
         favorites.remove(song.id)
@@ -121,6 +132,9 @@ final class MusicLibrary: ObservableObject {
     }
 
     func add(_ song: Song, to playlistID: UUID) {
+        if !songs.contains(where: { $0.id == song.id }) {
+            songs.append(song)
+        }
         guard let index = playlists.firstIndex(where: { $0.id == playlistID }) else { return }
         if !playlists[index].songIDs.contains(song.id) { playlists[index].songIDs.append(song.id) }
         try? save()

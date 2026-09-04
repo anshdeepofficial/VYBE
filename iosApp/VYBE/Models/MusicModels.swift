@@ -13,6 +13,14 @@ struct Song: Identifiable, Codable, Hashable, Sendable {
     var dateAdded: Date
     var playCount: Int
     var lastPlayed: Date?
+    var streamUrl: String?
+    var artworkUrl: String?
+    var source: String
+    var remoteId: String?
+
+    var isOnline: Bool {
+        streamUrl != nil || source != "local"
+    }
 
     init(
         id: UUID = UUID(),
@@ -21,12 +29,16 @@ struct Song: Identifiable, Codable, Hashable, Sendable {
         album: String = "Unknown Album",
         genre: String = "Unknown Genre",
         duration: Double = 0,
-        fileName: String,
+        fileName: String = "",
         artworkFileName: String? = nil,
         lyrics: String? = nil,
         dateAdded: Date = .now,
         playCount: Int = 0,
-        lastPlayed: Date? = nil
+        lastPlayed: Date? = nil,
+        streamUrl: String? = nil,
+        artworkUrl: String? = nil,
+        source: String = "local",
+        remoteId: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -40,6 +52,10 @@ struct Song: Identifiable, Codable, Hashable, Sendable {
         self.dateAdded = dateAdded
         self.playCount = playCount
         self.lastPlayed = lastPlayed
+        self.streamUrl = streamUrl
+        self.artworkUrl = artworkUrl
+        self.source = source
+        self.remoteId = remoteId
     }
 }
 

@@ -6,27 +6,40 @@ struct HomeView: View {
     @EnvironmentObject private var library: MusicLibrary
     @EnvironmentObject private var player: AudioPlayer
     @EnvironmentObject private var theme: VYBEThemeStore
+    @ObservedObject private var online = OnlineMusicService.shared
 
     private var mix: [Song] {
-        let source = library.recentlyPlayed.isEmpty ? library.songs : library.recentlyPlayed
-        return Array(source.prefix(12))
+        if !library.recentlyPlayed.isEmpty {
+            return Array(library.recentlyPlayed.prefix(12))
+        } else if !online.trendingTracks.isEmpty {
+            return Array(online.trendingTracks.prefix(12))
+        } else {
+            return Array(library.songs.prefix(12))
+        }
     }
 
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 28) {
                 topBar
-                if library.songs.isEmpty {
-                    EmptyLibraryView(presented: $showsImporter)
-                } else {
-                    if theme.showYourMix { yourMix }
-                    if theme.showRecentlyPlayed { recentlyPlayed }
+                yourMix
+                trendingSection
+                releaseRadarSection
+                quickPicksSection
+                if !library.recentlyPlayed.isEmpty {
+                    recentlyPlayed
+                }
+                if !library.albums.isEmpty {
                     albums
                 }
-            }.padding(.bottom, 30)
+            }
+            .padding(.bottom, 30)
         }
         .scrollIndicators(.hidden)
         .background(theme.palette.background)
+        .refreshable {
+            await online.fetchHomeFeed()
+        }
     }
 
     private var topBar: some View {
@@ -35,7 +48,9 @@ struct HomeView: View {
             Spacer()
             CircleIconButton(symbol: "chart.bar.xaxis") { path.append(.stats) }
             CircleIconButton(symbol: "gearshape.fill") { path.append(.settings) }
-        }.padding(.horizontal, 18).padding(.top, 10)
+        }
+        .padding(.horizontal, 18)
+        .padding(.top, 10)
     }
 
     private var yourMix: some View {
@@ -48,13 +63,18 @@ struct HomeView: View {
                 .font(.system(size: 70, weight: .bold, design: .rounded))
                 .minimumScaleFactor(0.78)
                 Spacer()
-                Button { if let first = mix.first { player.play(first, in: mix) } } label: {
+                Button {
+                    if let first = mix.first {
+                        player.play(first, in: mix)
+                    }
+                } label: {
                     Image(systemName: "play.fill")
                         .font(.system(size: 34, weight: .bold))
                         .frame(width: 108, height: 108)
                         .background(theme.palette.primary, in: Circle())
                         .foregroundStyle(theme.palette.onPrimaryContainer)
-                }.buttonStyle(.plain)
+                }
+                .buttonStyle(.plain)
             }
             Text("Today's Mix for you")
                 .font(.system(.title3, design: .rounded, weight: .medium))
@@ -70,10 +90,106 @@ struct HomeView: View {
                 if mix.indices.contains(2) {
                     ArtworkView(song: mix[2], size: 80, radius: 40).offset(x: 125, y: 70)
                 }
-            }.frame(maxWidth: .infinity).frame(height: 265)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 265)
         }
         .foregroundStyle(theme.palette.text)
         .padding(.horizontal, 26)
+    }
+
+    private var trendingSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            sectionTitle("Best for You")
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: 14) {
+                    ForEach(online.trendingTracks) { song in
+                        Button {
+                            player.play(song, in: online.trendingTracks)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 8) {
+                                ArtworkView(song: song, size: 145, radius: 32)
+                                Text(song.title)
+                                    .font(.system(.headline, design: .rounded, weight: .bold))
+                                    .lineLimit(1)
+                                Text(song.artist)
+                                    .font(.system(.caption, design: .rounded))
+                                    .foregroundStyle(theme.palette.textMuted)
+                                    .lineLimit(1)
+                            }
+                            .frame(width: 145, alignment: .leading)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 18)
+            }
+            .scrollIndicators(.hidden)
+        }
+        .foregroundStyle(theme.palette.text)
+    }
+
+    private var releaseRadarSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            sectionTitle("Release Radar")
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: 14) {
+                    ForEach(online.releaseRadarTracks) { song in
+                        Button {
+                            player.play(song, in: online.releaseRadarTracks)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 8) {
+                                ArtworkView(song: song, size: 145, radius: 32)
+                                Text(song.title)
+                                    .font(.system(.headline, design: .rounded, weight: .bold))
+                                    .lineLimit(1)
+                                Text(song.artist)
+                                    .font(.system(.caption, design: .rounded))
+                                    .foregroundStyle(theme.palette.textMuted)
+                                    .lineLimit(1)
+                            }
+                            .frame(width: 145, alignment: .leading)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 18)
+            }
+            .scrollIndicators(.hidden)
+        }
+        .foregroundStyle(theme.palette.text)
+    }
+
+    private var quickPicksSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            sectionTitle("Quick Picks")
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                ForEach(online.quickPicks) { song in
+                    Button {
+                        player.play(song, in: online.quickPicks)
+                    } label: {
+                        HStack(spacing: 10) {
+                            ArtworkView(song: song, size: 52, radius: 12)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(song.title)
+                                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                                    .lineLimit(1)
+                                Text(song.artist)
+                                    .font(.system(.caption2, design: .rounded))
+                                    .foregroundStyle(theme.palette.textMuted)
+                                    .lineLimit(1)
+                            }
+                            Spacer(minLength: 0)
+                        }
+                        .padding(8)
+                        .vybeCard(theme.palette.surface, radius: 18)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 18)
+        }
+        .foregroundStyle(theme.palette.text)
     }
 
     private var recentlyPlayed: some View {
@@ -81,7 +197,7 @@ struct HomeView: View {
             sectionTitle("Recently played")
             ScrollView(.horizontal) {
                 LazyHStack(spacing: 14) {
-                    ForEach(Array((library.recentlyPlayed.isEmpty ? library.songs : library.recentlyPlayed).prefix(12))) { song in
+                    ForEach(Array(library.recentlyPlayed.prefix(12))) { song in
                         Button { player.play(song, in: library.songs) } label: {
                             VStack(alignment: .leading, spacing: 8) {
                                 ArtworkView(song: song, size: 145, radius: 32)
@@ -119,4 +235,3 @@ struct HomeView: View {
         Text(text).font(.system(.title2, design: .rounded, weight: .bold)).padding(.horizontal, 20)
     }
 }
-

@@ -25,22 +25,34 @@ struct ArtworkView: View {
         Group {
             if let image = library.artworkImage(for: song) {
                 Image(uiImage: image).resizable().scaledToFill()
-            } else {
-                ZStack {
-                    LinearGradient(
-                        colors: [theme.palette.primaryContainer, theme.palette.primary.opacity(0.68)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                    Image(systemName: "music.note")
-                        .font(.system(size: size * 0.28, weight: .semibold, design: .rounded))
-                        .foregroundStyle(theme.palette.onPrimaryContainer)
+            } else if let artworkUrl = song?.artworkUrl, let url = URL(string: artworkUrl) {
+                AsyncImage(url: url) { phase in
+                    if let image = phase.image {
+                        image.resizable().scaledToFill()
+                    } else {
+                        placeholder
+                    }
                 }
+            } else {
+                placeholder
             }
         }
         .frame(width: size, height: size)
         .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
         .accessibilityHidden(true)
+    }
+
+    private var placeholder: some View {
+        ZStack {
+            LinearGradient(
+                colors: [theme.palette.primaryContainer, theme.palette.primary.opacity(0.68)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            Image(systemName: "music.note")
+                .font(.system(size: size * 0.28, weight: .semibold, design: .rounded))
+                .foregroundStyle(theme.palette.onPrimaryContainer)
+        }
     }
 }
 

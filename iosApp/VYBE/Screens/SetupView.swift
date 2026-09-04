@@ -33,7 +33,14 @@ struct SetupView: View {
                     if page == 2 { isComplete = true } else { withAnimation { page += 1 } }
                 }
                 .buttonStyle(VYBEPrimaryButtonStyle())
-            }.padding(24)
+            }.padding(.horizontal, 24).padding(.top, 12)
+
+            Button("Skip to Home") {
+                isComplete = true
+            }
+            .font(.system(.subheadline, design: .rounded, weight: .semibold))
+            .foregroundStyle(theme.palette.textMuted)
+            .padding(.bottom, 20)
         }
         .foregroundStyle(theme.palette.text)
         .background(theme.palette.background.ignoresSafeArea())
@@ -47,7 +54,7 @@ struct SetupView: View {
                 .shadow(color: .black.opacity(0.2), radius: 25, y: 12)
             Text("Music, your way.")
                 .font(.system(size: 42, weight: .bold, design: .rounded))
-            Text("The expressive VYBE player is now built for iPhone, with offline music, background playback, favorites, playlists and lyrics.")
+            Text("Stream millions of songs online, discover trending tracks, browse release radar, and enjoy offline caching — all in pure VYBE style.")
                 .font(.system(.title3, design: .rounded)).foregroundStyle(theme.palette.textMuted)
                 .multilineTextAlignment(.center).padding(.horizontal, 24)
         }.padding(24)
@@ -55,14 +62,14 @@ struct SetupView: View {
 
     private var importPage: some View {
         VStack(spacing: 26) {
-            Image(systemName: "folder.badge.plus")
+            Image(systemName: "sparkles")
                 .font(.system(size: 64, weight: .semibold))
                 .foregroundStyle(theme.palette.onPrimaryContainer)
                 .frame(width: 142, height: 142)
                 .background(theme.palette.primaryContainer, in: RoundedRectangle(cornerRadius: 48, style: .continuous))
-            Text("Bring your library")
+            Text("Online & Offline")
                 .font(.system(size: 38, weight: .bold, design: .rounded))
-            Text("iPhone protects the filesystem, so VYBE uses the native Files picker. Select music from iCloud Drive, On My iPhone or a connected provider.")
+            Text("VYBE streams online tracks seamlessly with instant playback and caching. You can also import any local audio files from your Files app anytime.")
                 .font(.system(.title3, design: .rounded)).foregroundStyle(theme.palette.textMuted)
                 .multilineTextAlignment(.center).padding(.horizontal, 24)
             ImportAudioButton(presented: $showsImporter)
