@@ -319,7 +319,7 @@ fun AboutScreen(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    SocialChip("Changelog", "What's new", R.drawable.rounded_format_list_bulleted_24, "Open VYBE changelog", { navController.navigateSafely(Screen.Changelog.route) }, Modifier.weight(1f))
+                    SocialChip("Release Notes", "What's new", R.drawable.rounded_format_list_bulleted_24, "Open VYBE release notes", { navController.navigateSafely(Screen.Changelog.route) }, Modifier.weight(1f))
                     SocialChip(
                         if (isCheckingUpdate) "Checking…" else "Updates",
                         "Check latest",

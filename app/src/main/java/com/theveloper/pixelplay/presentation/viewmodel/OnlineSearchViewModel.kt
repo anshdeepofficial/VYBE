@@ -134,15 +134,19 @@ class OnlineSearchViewModel @Inject constructor(
     }
 
     init {
-        // Instant Search Area: Pre-populate from disk/memory snapshot in 0ms so user never waits 5-10s!
-        val cached = searchDiscoveryCache.get()
-        if (cached != null && (cached.bestForYouTracks.isNotEmpty() || cached.aiRecommendations.isNotEmpty())) {
-            _trendingTracks.value = cached.bestForYouTracks.filter(::isCleanOriginalAudio)
-            baseTrendingTracks = _trendingTracks.value
-            _aiRecommendations.value = cached.aiRecommendations.filter(::isCleanOriginalAudio)
-            _latestReleaseTracks.value = cached.latestReleases.filter(::isCleanOriginalAudio)
-            _discoveryTitle.value = "Best for You"
-            _isLoading.value = false
+        // Instant Search Area: Pre-populate from in-memory snapshot in 0ms so user never waits!
+        try {
+            val cached = searchDiscoveryCache.get()
+            if (cached != null && (cached.bestForYouTracks.isNotEmpty() || cached.aiRecommendations.isNotEmpty())) {
+                _trendingTracks.value = cached.bestForYouTracks.filter(::isCleanOriginalAudio)
+                baseTrendingTracks = _trendingTracks.value
+                _aiRecommendations.value = cached.aiRecommendations.filter(::isCleanOriginalAudio)
+                _latestReleaseTracks.value = cached.latestReleases.filter(::isCleanOriginalAudio)
+                _discoveryTitle.value = "Best for You"
+                _isLoading.value = false
+            }
+        } catch (_: Throwable) {
+            // Safe fallback: fresh recommendations will load below
         }
         viewModelScope.launch {
             loadTrendingAndRecommendations()

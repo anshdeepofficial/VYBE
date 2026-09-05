@@ -1,3 +1,11 @@
+## [0.11.9] - 2026-09-05
+### Fixed
+- Fixed critical `ClassCastException` (`LinkedTreeMap cannot be cast to Song`) when opening the Search screen by removing unsafe Gson disk deserialization and switching to a robust in-memory discovery cache.
+- Hardened `OnlineSearchViewModel` initialization against corrupted cache reads with comprehensive safety fallbacks.
+
+### Changed
+- Replaced the in-app "Changelog" button with a modern "Release Notes" screen featuring full release history and updated Material 3 formatting.
+
 ## [0.11.8] - 2026-09-05
 ### Changed
 - Converted VYBE to a pure YouTube Music audio experience by removing inline and fullscreen video playback.

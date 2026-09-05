@@ -1,10 +1,8 @@
-﻿package com.theveloper.pixelplay.data.cache
+package com.theveloper.pixelplay.data.cache
 
 import android.content.Context
-import com.google.gson.Gson
 import com.theveloper.pixelplay.data.model.Song
 import dagger.hilt.android.qualifiers.ApplicationContext
-import timber.log.Timber
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -20,27 +18,17 @@ class SearchDiscoveryCache @Inject constructor(
         val timestamp: Long = System.currentTimeMillis()
     )
 
-    private val gson = Gson()
     private val cacheFile = File(context.filesDir, "search_discovery_snapshot.json")
 
     @Volatile
     private var memorySnapshot: DiscoverySnapshot? = null
 
     init {
-        loadFromDisk()
-    }
-
-    private fun loadFromDisk() {
-        try {
+        // Crucial: Clean up any legacy corrupt file from previous versions to eliminate LinkedTreeMap ClassCastException
+        runCatching {
             if (cacheFile.exists()) {
-                val json = cacheFile.readText()
-                val snapshot = gson.fromJson(json, DiscoverySnapshot::class.java)
-                if (snapshot != null && (snapshot.bestForYouTracks.isNotEmpty() || snapshot.aiRecommendations.isNotEmpty())) {
-                    memorySnapshot = snapshot
-                }
+                cacheFile.delete()
             }
-        } catch (e: Exception) {
-            Timber.tag("SearchDiscoveryCache").w(e, "Failed to load discovery snapshot from disk")
         }
     }
 
@@ -48,11 +36,5 @@ class SearchDiscoveryCache @Inject constructor(
 
     fun put(snapshot: DiscoverySnapshot) {
         memorySnapshot = snapshot
-        try {
-            val json = gson.toJson(snapshot)
-            cacheFile.writeText(json)
-        } catch (e: Exception) {
-            Timber.tag("SearchDiscoveryCache").w(e, "Failed to write discovery snapshot to disk")
-        }
     }
 }

@@ -32,6 +32,43 @@ private data class ChangelogRelease(
 
 private val VybeChangelog = listOf(
     ChangelogRelease(
+        version = "0.11.9",
+        date = "5 September 2026",
+        changes = listOf(
+            "Search Crash Fix: Resolved ClassCastException on Search screen by safely managing in-memory discovery caching and eliminating raw disk deserialization.",
+            "In-App Release Notes: Redesigned and updated Release Notes screen with full changelog history and proper Material 3 styling.",
+            "Stability: Hardened background discovery retrieval against corrupted cache states."
+        )
+    ),
+    ChangelogRelease(
+        version = "0.11.8",
+        date = "5 September 2026",
+        changes = listOf(
+            "Pure Audio Player: Completely removed video playback, video surfaces, buffering indicators, and player header video toggles.",
+            "YouTube Music Songs Only: Strict filtering excludes official music videos (OMVs) and video uploads. Search and discovery query exclusively through YouTube Music songs endpoints.",
+            "Ultra-Fast 1–2s Refresh: Parallelized discovery requests with bounded 1.8s timeout; home refresh now completes in 1–2 seconds.",
+            "Persistent Synced Library: Synced counts for Library, Liked Tracks, Playlists, and History persist accurately across launches.",
+            "Accounts Layout: Streamlined hierarchy placing Linked Services first, followed directly by Backup & Data Settings."
+        )
+    ),
+    ChangelogRelease(
+        version = "0.11.6",
+        date = "4 September 2026",
+        changes = listOf(
+            "Player Video Button: Restricted video icon strictly to verified music videos.",
+            "Theme Tinting: Dynamic app logo tinting now properly respects system Light/Dark appearance.",
+            "In-App Updater: Fixed unknown download size display with real-time MB and percentage tracking."
+        )
+    ),
+    ChangelogRelease(
+        version = "0.11.5",
+        date = "4 September 2026",
+        changes = listOf(
+            "Streaming Engine: Optimized YouTube Music and JioSaavn audio stream resolution with rapid fallbacks.",
+            "Cache: Enhanced audio chunk caching for gapless and instant track skipping."
+        )
+    ),
+    ChangelogRelease(
         version = "0.10.7",
         date = "2 September 2026",
         changes = listOf(
@@ -375,7 +412,7 @@ fun ChangelogScreen(onBackClick: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Changelog", fontWeight = FontWeight.Bold) },
+                title = { Text("Release Notes", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
