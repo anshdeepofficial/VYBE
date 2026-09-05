@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag (e.g. v0.11.7)
+        description: Release tag (e.g. v0.11.8)
         required: false
-        default: 'v0.11.7'
+        default: 'v0.11.8'
         type: string
 
 permissions:
@@ -24,7 +24,7 @@ jobs:
     name: Android APKs
     runs-on: ubuntu-latest
     env:
-      RELEASE_TAG: ${{ inputs.tag || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || 'v0.11.7' }}
+      RELEASE_TAG: ${{ inputs.tag || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || 'v0.11.8' }}
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
