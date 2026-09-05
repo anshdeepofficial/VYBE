@@ -3,6 +3,7 @@ package com.theveloper.pixelplay.data.github
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.theveloper.pixelplay.R
@@ -133,13 +134,18 @@ class GitHubUpdateService {
             )
         }
         
-        val channelId = "vybe_update_channel"
+        val progressChannelId = "vybe_update_progress_channel"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                channelId,
-                "App Updates",
-                NotificationManager.IMPORTANCE_DEFAULT
-            )
+                progressChannelId,
+                "Update Download Progress",
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Shows silent progress while downloading VYBE updates"
+                enableLights(false)
+                enableVibration(false)
+                setSound(null, null)
+            }
             val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             nm.createNotificationChannel(channel)
         }
@@ -151,11 +157,14 @@ class GitHubUpdateService {
         } else {
             update.apkName
         }
-        val builder = NotificationCompat.Builder(context, channelId)
+        val builder = NotificationCompat.Builder(context, progressChannelId)
             .setSmallIcon(R.drawable.monochrome_player)
             .setContentTitle("Downloading VYBE Update")
             .setContentText(initialText)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setCategory(NotificationCompat.CATEGORY_PROGRESS)
+            .setOnlyAlertOnce(true)
+            .setSilent(true)
             .setOngoing(true)
             .setProgress(100, 0, false)
 
@@ -170,6 +179,7 @@ class GitHubUpdateService {
             check(code in 200..299) { "Update download failed ($code)" }
             val total = connection.contentLengthLong.takeIf { it > 0L } ?: update.apkSizeBytes
             var lastNotificationTime = 0L
+            var lastReportedPercent = -1
             connection.inputStream.buffered().use { input ->
                 partial.outputStream().buffered().use { output ->
                     val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
@@ -183,10 +193,12 @@ class GitHubUpdateService {
                         onProgress(progress, downloaded, total)
 
                         val now = System.currentTimeMillis()
-                        if (now - lastNotificationTime >= 400L || downloaded == total) {
+                        val percent = if (total > 0L) (progress * 100).toInt().coerceIn(0, 100) else -1
+                        val percentChanged = percent != lastReportedPercent
+                        if ((percentChanged && now - lastNotificationTime >= 500L) || downloaded == total) {
                             lastNotificationTime = now
+                            lastReportedPercent = percent
                             if (total > 0L) {
-                                val percent = (progress * 100).toInt().coerceIn(0, 100)
                                 builder.setContentText("${formatBytes(downloaded)} / ${formatBytes(total)} ($percent%)")
                                 builder.setProgress(100, percent, false)
                             } else {
@@ -198,9 +210,12 @@ class GitHubUpdateService {
                     }
                 }
             }
+            val serverLength = connection.contentLengthLong.takeIf { it > 0L } ?: 0L
             connection.disconnect()
             check(partial.length() > 4L) { "Downloaded APK is empty" }
-            if (update.apkSizeBytes > 0L) {
+            if (serverLength > 0L) {
+                check(partial.length() == serverLength) { "Downloaded update size does not match" }
+            } else if (update.apkSizeBytes > 0L) {
                 check(partial.length() == update.apkSizeBytes) { "Downloaded update size does not match" }
             }
             update.apkSha256?.takeIf(String::isNotBlank)?.let { expected ->
@@ -219,8 +234,40 @@ class GitHubUpdateService {
                 .apply()
             onProgress(1f, total, total)
             target
-        }.onSuccess {
+        }.onSuccess { file ->
             runCatching { notificationManager.cancel(notificationId) }
+            runCatching {
+                val installIntent = Intent(Intent.ACTION_VIEW).apply {
+                    val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+                    setDataAndType(uri, "application/vnd.android.package-archive")
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                val pendingInstall = PendingIntent.getActivity(
+                    context,
+                    10002,
+                    installIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                val completeChannelId = "vybe_app_updates"
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    val completeChannel = NotificationChannel(
+                        completeChannelId,
+                        "App Updates",
+                        NotificationManager.IMPORTANCE_DEFAULT
+                    )
+                    val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                    nm.createNotificationChannel(completeChannel)
+                }
+                val completeNotification = NotificationCompat.Builder(context, completeChannelId)
+                    .setSmallIcon(R.drawable.monochrome_player)
+                    .setContentTitle("Update ready to install")
+                    .setContentText("VYBE ${update.tagName} is ready. Tap to install.")
+                    .setContentIntent(pendingInstall)
+                    .setAutoCancel(true)
+                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                    .build()
+                notificationManager.notify(10002, completeNotification)
+            }
         }.onFailure {
             runCatching { notificationManager.cancel(notificationId) }
         }.onFailure {

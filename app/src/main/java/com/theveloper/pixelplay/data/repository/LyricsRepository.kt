@@ -43,11 +43,21 @@ interface LyricsRepository {
      * Update lyrics for a song in the database.
      */
     suspend fun updateLyrics(songId: Long, lyricsContent: String)
+
+    /**
+     * Update lyrics for a song in the database and persistent disk cache.
+     */
+    suspend fun updateLyrics(song: Song, lyricsContent: String)
     
     /**
      * Reset lyrics for a song (remove from database and cache).
      */
     suspend fun resetLyrics(songId: Long)
+
+    /**
+     * Reset lyrics for a song (remove from database, persistent disk cache, and memory).
+     */
+    suspend fun resetLyrics(song: Song)
     
     /**
      * Reset all lyrics (clear database and cache).

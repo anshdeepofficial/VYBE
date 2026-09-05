@@ -1061,15 +1061,25 @@ class LyricsRepositoryImpl @Inject constructor(
         }
     }
 
+    private fun getLyricsJsonFile(songId: String): File {
+        val safeId = songId.replace(Regex("[^a-zA-Z0-9._-]"), "_")
+        val lyricsDir = File(context.filesDir, "lyrics").apply { mkdirs() }
+        return File(lyricsDir, "$safeId.json")
+    }
+
+    private fun getArtistTitleLyricsJsonFile(artist: String, title: String): File? {
+        val cleanArtist = artist.trim().lowercase(Locale.ROOT).replace(Regex("[^a-z0-9]"), "")
+        val cleanTitle = title.trim().lowercase(Locale.ROOT).replace(Regex("[^a-z0-9]"), "")
+        if (cleanTitle.isBlank()) return null
+        val lyricsDir = File(context.filesDir, "lyrics").apply { mkdirs() }
+        return File(lyricsDir, "meta_${cleanArtist}_${cleanTitle}.json")
+    }
+
     /**
      * Save lyrics to JSON disk cache (matching Rhythm)
      */
     private fun saveLocalLyricsJson(song: Song, lyrics: Lyrics) {
         try {
-            val fileName = "${song.id}.json"
-            val lyricsDir = File(context.filesDir, "lyrics")
-            lyricsDir.mkdirs()
-
             val wordByWordLyrics = lyrics.synced
                 ?.takeIf { lines -> lines.any { !it.words.isNullOrEmpty() } }
                 ?.let(::toWordByWordLrc)
@@ -1080,10 +1090,24 @@ class LyricsRepositoryImpl @Inject constructor(
                 wordByWordLyrics = wordByWordLyrics
             )
 
-            val file = File(lyricsDir, fileName)
             val json = gson.toJson(lyricsData)
-            file.writeText(json)
-            Log.d(TAG, "Saved lyrics to JSON cache: ${file.absolutePath}")
+
+            // 1. Save by safe ID
+            val fileById = getLyricsJsonFile(song.id)
+            fileById.writeText(json)
+            Log.d(TAG, "Saved lyrics to JSON cache by ID: ${fileById.absolutePath}")
+
+            // 2. Also save by direct song.id for legacy compatibility if different
+            val legacyFile = File(context.filesDir, "lyrics/${song.id}.json")
+            if (legacyFile.absolutePath != fileById.absolutePath) {
+                runCatching { legacyFile.writeText(json) }
+            }
+
+            // 3. Save by artist + title so it survives ID changes or cross-source playback
+            getArtistTitleLyricsJsonFile(song.displayArtist, song.title)?.let { metaFile ->
+                metaFile.writeText(json)
+                Log.d(TAG, "Saved lyrics to JSON cache by meta: ${metaFile.absolutePath}")
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error saving lyrics to JSON cache: ${e.message}", e)
         }
@@ -1279,12 +1303,34 @@ class LyricsRepositoryImpl @Inject constructor(
     }
 
     private fun readLyricsJsonCache(song: Song): LyricsData? {
-        val fileName = "${song.id}.json"
-        val file = File(context.filesDir, "lyrics/$fileName")
-        if (!file.exists()) return null
+        try {
+            // 1. Try safe filename by song.id
+            val fileById = getLyricsJsonFile(song.id)
+            if (fileById.exists()) {
+                val json = fileById.readText()
+                val data = gson.fromJson(json, LyricsData::class.java)
+                if (data != null && data.hasLyrics()) return data
+            }
 
-        val json = file.readText()
-        return gson.fromJson(json, LyricsData::class.java)
+            // 2. Try legacy direct filename
+            val legacyFile = File(context.filesDir, "lyrics/${song.id}.json")
+            if (legacyFile.exists()) {
+                val json = legacyFile.readText()
+                val data = gson.fromJson(json, LyricsData::class.java)
+                if (data != null && data.hasLyrics()) return data
+            }
+
+            // 3. Try artist + title match
+            val metaFile = getArtistTitleLyricsJsonFile(song.displayArtist, song.title)
+            if (metaFile != null && metaFile.exists()) {
+                val json = metaFile.readText()
+                val data = gson.fromJson(json, LyricsData::class.java)
+                if (data != null && data.hasLyrics()) return data
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error reading JSON cache: ${e.message}", e)
+        }
+        return null
     }
 
     // ========== Original methods (kept for backward compatibility) ==========
@@ -1549,31 +1595,110 @@ class LyricsRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun updateLyrics(song: Song, lyricsContent: String): Unit = withContext(Dispatchers.IO) {
+        LogUtils.d(this@LyricsRepositoryImpl, "Updating lyrics for song: ${song.title} (${song.id})")
+
+        val parsedLyrics = LyricsUtils.parseLyrics(lyricsContent).copy(areFromRemote = false)
+        if (!parsedLyrics.isValid()) {
+            LogUtils.w(this@LyricsRepositoryImpl, "Attempted to save empty lyrics for song: ${song.title}")
+            return@withContext
+        }
+
+        val cacheKey = generateCacheKey(song.id)
+        lyricsCache.put(cacheKey, parsedLyrics)
+
+        // Save to JSON disk cache (both ID and artist/title)
+        saveLocalLyricsJson(song, parsedLyrics)
+
+        // Save to database if numeric ID
+        val numericId = song.id.toLongOrNull()
+        if (numericId != null) {
+            val isSynced = parsedLyrics.synced?.isNotEmpty() == true
+            try {
+                lyricsDao.insert(
+                    com.theveloper.pixelplay.data.database.LyricsEntity(
+                        songId = numericId,
+                        content = lyricsContent,
+                        isSynced = isSynced,
+                        source = "user_imported"
+                    )
+                )
+            } catch (e: Exception) {
+                Log.w(TAG, "Error inserting into lyricsDao: ${e.message}")
+            }
+        }
+        LogUtils.d(this@LyricsRepositoryImpl, "Updated and cached lyrics for song: ${song.title} (${song.id})")
+    }
+
     override suspend fun updateLyrics(songId: Long, lyricsContent: String): Unit = withContext(Dispatchers.IO) {
         LogUtils.d(this@LyricsRepositoryImpl, "Updating lyrics for songId: $songId")
 
-        val parsedLyrics = LyricsUtils.parseLyrics(lyricsContent)
+        val parsedLyrics = LyricsUtils.parseLyrics(lyricsContent).copy(areFromRemote = false)
         if (!parsedLyrics.isValid()) {
             LogUtils.w(this@LyricsRepositoryImpl, "Attempted to save empty lyrics for songId: $songId")
             return@withContext
         }
 
-        lyricsDao.insert(
-             com.theveloper.pixelplay.data.database.LyricsEntity(
-                 songId = songId,
-                 content = lyricsContent,
-                 isSynced = parsedLyrics.synced?.isNotEmpty() == true,
-                 source = "manual"
-             )
-        )
+        try {
+            lyricsDao.insert(
+                 com.theveloper.pixelplay.data.database.LyricsEntity(
+                     songId = songId,
+                     content = lyricsContent,
+                     isSynced = parsedLyrics.synced?.isNotEmpty() == true,
+                     source = "user_imported"
+                 )
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "Error inserting into lyricsDao: ${e.message}")
+        }
 
         val cacheKey = generateCacheKey(songId.toString())
         lyricsCache.put(cacheKey, parsedLyrics)
+
+        // Also save to disk JSON cache
+        try {
+            val file = getLyricsJsonFile(songId.toString())
+            val lyricsData = LyricsData(
+                plainLyrics = parsedLyrics.plain?.joinToString("\n"),
+                syncedLyrics = parsedLyrics.synced?.joinToString("\n") { "[${formatTimestamp(it.time)}]${it.line}" },
+                wordByWordLyrics = parsedLyrics.synced?.takeIf { lines -> lines.any { !it.words.isNullOrEmpty() } }?.let(::toWordByWordLrc)
+            )
+            file.writeText(gson.toJson(lyricsData))
+        } catch (e: Exception) {
+            Log.w(TAG, "Error writing JSON cache for songId $songId: ${e.message}")
+        }
+
         LogUtils.d(this@LyricsRepositoryImpl, "Updated and cached lyrics for songId: $songId")
     }
 
+    override suspend fun resetLyrics(song: Song): Unit = withContext(Dispatchers.IO) {
+        LogUtils.d(this@LyricsRepositoryImpl, "Resetting lyrics for song: ${song.title} (${song.id})")
+        val cacheKey = generateCacheKey(song.id)
+        lyricsCache.remove(cacheKey)
+
+        val numericId = song.id.toLongOrNull()
+        if (numericId != null) {
+            try {
+                lyricsDao.deleteLyrics(numericId)
+            } catch (e: Exception) {
+                Log.w(TAG, "Error removing lyrics from DB for ID: $numericId", e)
+            }
+        }
+
+        try {
+            val fileById = getLyricsJsonFile(song.id)
+            if (fileById.exists()) fileById.delete()
+            val metaFile = getArtistTitleLyricsJsonFile(song.displayArtist, song.title)
+            if (metaFile?.exists() == true) metaFile.delete()
+            val legacyFile = File(context.filesDir, "lyrics/${song.id}.json")
+            if (legacyFile.exists()) legacyFile.delete()
+        } catch (e: Exception) {
+            Log.w(TAG, "Error deleting JSON cache: ${e.message}")
+        }
+    }
+
     override suspend fun resetLyrics(songId: Long): Unit = withContext(Dispatchers.IO) {
-        LogUtils.d(this, "Resetting lyrics for songId: $songId")
+        LogUtils.d(this@LyricsRepositoryImpl, "Resetting lyrics for songId: $songId")
         val cacheKey = generateCacheKey(songId.toString())
         lyricsCache.remove(cacheKey)
         try {
@@ -1584,8 +1709,10 @@ class LyricsRepositoryImpl @Inject constructor(
         
         // Also remove JSON cache
         try {
-            val file = File(context.filesDir, "lyrics/${songId}.json")
+            val file = getLyricsJsonFile(songId.toString())
             if (file.exists()) file.delete()
+            val legacyFile = File(context.filesDir, "lyrics/${songId}.json")
+            if (legacyFile.exists()) legacyFile.delete()
         } catch (e: Exception) {
             Log.w(TAG, "Error deleting JSON cache: ${e.message}")
         }

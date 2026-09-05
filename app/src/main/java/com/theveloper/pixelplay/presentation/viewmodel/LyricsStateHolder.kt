@@ -204,7 +204,6 @@ class LyricsStateHolder @Inject constructor(
                     val (lyrics, rawLyrics) = storedLyrics
                     _searchUiState.value = LyricsSearchUiState.Success(lyrics)
                     _songUpdates.emit(song.withPersistedLyrics(rawLyrics, refreshedAlbumArtUri = null) to lyrics)
-                    _messageEvents.emit(contextHelper(R.string.lyrics_already_available))
                     return@launch
                 }
             }
@@ -303,10 +302,8 @@ class LyricsStateHolder @Inject constructor(
         scope?.launch {
             _searchUiState.value = LyricsSearchUiState.Success(result.lyrics)
 
-            // 1. Update DB cache
-            currentSong.id.toLongOrNull()?.let { songId ->
-                musicRepository.updateLyrics(songId, result.rawLyrics)
-            }
+            // 1. Update DB & persistent disk cache
+            musicRepository.updateLyrics(currentSong, result.rawLyrics)
 
             // 2. Attempt metadata write-back to the audio file
             val refreshedAlbumArtUri = persistLyricsToFileMetadataIfPossible(currentSong, result.rawLyrics)
@@ -325,7 +322,11 @@ class LyricsStateHolder @Inject constructor(
             val sanitizedContent = validatedImport.sanitizedContent
             val parsedLyrics = validatedImport.parsedLyrics
 
-            musicRepository.updateLyrics(songId, sanitizedContent)
+            if (currentSong != null) {
+                musicRepository.updateLyrics(currentSong, sanitizedContent)
+            } else {
+                musicRepository.updateLyrics(songId, sanitizedContent)
+            }
 
             if (currentSong != null && currentSong.id.toLongOrNull() == songId) {
                 val refreshedAlbumArtUri = persistLyricsToFileMetadataIfPossible(currentSong, sanitizedContent)
@@ -394,7 +395,7 @@ class LyricsStateHolder @Inject constructor(
                     val validation = LyricsImportSecurity.validateImportedLrcContent(translatedText)
                     if (validation is LyricsImportValidationResult.Valid) {
                         val validated = validation.value
-                        localSongId?.let { musicRepository.updateLyrics(it, validated.sanitizedContent) }
+                        musicRepository.updateLyrics(currentSong, validated.sanitizedContent)
                         val refreshedAlbumArtUri = persistLyricsToFileMetadataIfPossible(
                             currentSong,
                             validated.sanitizedContent,
@@ -541,11 +542,19 @@ class LyricsStateHolder @Inject constructor(
         .map { it.replace(Regex("""^\d+[.)]\s*"""), "") }
         .toList()
 
+    fun resetLyrics(song: Song) {
+        resetSearchState()
+        scope?.launch {
+            musicRepository.resetLyrics(song)
+            _songUpdates.emit(song.copy(lyrics = null) to null)
+        }
+    }
+
     fun resetLyrics(songId: Long) {
         resetSearchState()
         scope?.launch {
             musicRepository.resetLyrics(songId)
-            _songUpdates.emit(Song.emptySong().copy(id = songId.toString()) to null)
+            _songUpdates.emit(Song.emptySong().copy(id = songId.toString(), lyrics = null) to null)
         }
     }
 

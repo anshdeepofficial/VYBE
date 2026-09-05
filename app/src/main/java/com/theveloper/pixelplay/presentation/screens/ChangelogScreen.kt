@@ -32,6 +32,16 @@ private data class ChangelogRelease(
 
 private val VybeChangelog = listOf(
     ChangelogRelease(
+        version = "0.12.0",
+        date = "5 September 2026",
+        changes = listOf(
+            "In-App Updater Size Verification Fix: Resolved 'Downloaded update size does not match' error by making size verification resilient and ensuring accurate package manifest checks.",
+            "Silent Update Download: Download progress notification is now completely silent without repetitive alert sounds on percentage changes, with a single completion alert once ready to install.",
+            "Permanent Lyrics Caching: Fetched and translated lyrics for local and online tracks are safely cached to disk and persist indefinitely across app restarts.",
+            "Reset Imported Lyrics Flow: Resetting lyrics immediately cleans the song's stored lyrics and opens the Fetch Lyrics picker dialog directly inside the player sheet."
+        )
+    ),
+    ChangelogRelease(
         version = "0.11.9",
         date = "5 September 2026",
         changes = listOf(

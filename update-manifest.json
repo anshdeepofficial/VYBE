@@ -1,18 +1,18 @@
 {
   "schemaVersion": 1,
   "packageName": "com.vybe.musicplayer",
-  "versionName": "0.11.9",
-  "versionCode": 11900,
-  "tag": "v0.11.9",
-  "title": "VYBE 0.11.9",
-  "notes": "• Search Crash Fix: Resolved ClassCastException on Search screen\n• In-App Release Notes: Redesigned Release Notes screen\n• Pure Audio Player: Video features completely removed\n• YouTube Music Songs Only: Strict filtering, no OMVs\n• 1–2s Ultra-Fast Refresh: Concurrent loading with bounded timeout\n• Persistent Synced Counts: Accurate stats for Library and Liked",
+  "versionName": "0.12.0",
+  "versionCode": 12000,
+  "tag": "v0.12.0",
+  "title": "VYBE 0.12.0",
+  "notes": "• In-App Updater Fix: Resolved size mismatch error during download\n• Silent Updater: Removed repeated sound alerts during progress\n• Permanent Lyrics Caching: Lyrics persist across sessions without refetching\n• Reset Imported Lyrics: Sheet stays open with instant re-fetch options",
   "assets": [
     {
       "abi": "arm64-v8a",
-      "name": "VYBE-Android-0.11.9-arm64-v8a.apk",
-      "size": 57219314,
-      "sizeBytes": 57219314,
-      "url": "https://github.com/anshdeepofficial/VYBE/releases/download/v0.11.9/VYBE-Android-0.11.9-arm64-v8a.apk"
+      "name": "VYBE-Android-0.12.0-arm64-v8a.apk",
+      "size": 57219030,
+      "sizeBytes": 57219030,
+      "url": "https://github.com/anshdeepofficial/VYBE/releases/download/v0.12.0/VYBE-Android-0.12.0-arm64-v8a.apk"
     }
   ]
 }

@@ -3493,7 +3493,7 @@ class PlayerViewModel @Inject constructor(
         val currentSong = stablePlayerState.value.currentSong ?: return
         // Online lyric lookup is always enabled; the former opt-out path produced invalid/empty
         // requests and HTTP 400 responses on manual searches.
-        lyricsStateHolder.fetchLyricsForSong(currentSong, true, lyricsSourcePreference.value) { resId ->
+        lyricsStateHolder.fetchLyricsForSong(currentSong, forcePickResults, lyricsSourcePreference.value) { resId ->
             context.getString(resId)
         }
     }
@@ -3511,9 +3511,14 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun resetLyricsForCurrentSong() {
-        val songId = stablePlayerState.value.currentSong?.id?.toLongOrNull() ?: return
-        lyricsStateHolder.resetLyrics(songId)
-        playbackStateHolder.updateStablePlayerState { state -> state.copy(lyrics = null) }
+        val currentSong = stablePlayerState.value.currentSong ?: return
+        lyricsStateHolder.resetLyrics(currentSong)
+        playbackStateHolder.updateStablePlayerState { state ->
+            state.copy(
+                lyrics = null,
+                currentSong = state.currentSong?.copy(lyrics = null)
+            )
+        }
     }
 
     fun resetAllLyrics() {

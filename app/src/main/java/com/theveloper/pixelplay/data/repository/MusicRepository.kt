@@ -326,8 +326,10 @@ interface MusicRepository {
     suspend fun searchRemoteLyricsByQuery(title: String, artist: String? = null): Result<Pair<String, List<LyricsSearchResult>>>
 
     suspend fun updateLyrics(songId: Long, lyrics: String)
+    suspend fun updateLyrics(song: Song, lyrics: String)
 
     suspend fun resetLyrics(songId: Long)
+    suspend fun resetLyrics(song: Song)
 
     suspend fun resetAllLyrics()
 

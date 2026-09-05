@@ -1,3 +1,10 @@
+## [0.12.0] - 2026-09-05
+### Fixed
+- Fixed in-app updater download size mismatch ("Downloaded update size does not match") by making size checks resilient and matching package manifest sizes.
+- Fixed noisy notification sound triggering on every download percentage change; updater now uses a silent progress channel with a single completion alert.
+- Fixed lyrics re-fetching issue: fetched and translated lyrics are now permanently stored in disk cache across app restarts.
+- Fixed "Reset Imported Lyrics" closing the lyrics sheet; now clears existing stored lyrics and immediately presents the search options picker dialog without closing the sheet.
+
 ## [0.11.9] - 2026-09-05
 ### Fixed
 - Fixed critical `ClassCastException` (`LinkedTreeMap cannot be cast to Song`) when opening the Search screen by removing unsafe Gson disk deserialization and switching to a robust in-memory discovery cache.

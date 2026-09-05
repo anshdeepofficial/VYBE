@@ -430,8 +430,6 @@ fun LyricsSheet(
     }
 
     var showFetchLyricsDialog by remember { mutableStateOf(false) }
-    // Flag to prevent dialog from showing briefly after reset
-    var wasResetTriggered by remember { mutableStateOf(false) }
     // Save lyrics dialog state
     var showSaveLyricsDialog by remember { mutableStateOf(false) }
     var showSyncControls by remember { mutableStateOf(false) }
@@ -516,13 +514,9 @@ fun LyricsSheet(
 
     LaunchedEffect(currentSong, lyrics, isLoadingLyrics) {
         if (currentSong != null && lyrics == null && !isLoadingLyrics) {
-            // Only show dialog if reset was not just triggered
-            if (!wasResetTriggered) {
-                showFetchLyricsDialog = true
-            }
+            showFetchLyricsDialog = true
         } else if (lyrics != null || isLoadingLyrics) {
             showFetchLyricsDialog = false
-            wasResetTriggered = false // Reset the flag when lyrics are loaded
         }
     }
 
@@ -1021,8 +1015,9 @@ fun LyricsSheet(
                     isSyncControlsVisible = showSyncControls,
                     onSaveLyricsAsLrc = { showSaveLyricsDialog = true },
                     onResetImportedLyrics = {
-                        wasResetTriggered = true
                         resetLyricsForCurrentSong()
+                        onSearchLyrics(true)
+                        showFetchLyricsDialog = true
                     },
                     onTranslateViaAi = onTranslateViaAi,
                     onTransliterateToEnglishScript = onTransliterateToEnglishScript,

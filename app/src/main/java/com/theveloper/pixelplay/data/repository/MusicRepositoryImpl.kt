@@ -1042,7 +1042,6 @@ class MusicRepositoryImpl @Inject constructor(
     override suspend fun searchRemoteLyrics(song: Song): Result<Pair<String, List<LyricsSearchResult>>> {
         return lyricsRepository.searchRemote(song)
     }
-
     override suspend fun searchRemoteLyricsByQuery(title: String, artist: String?): Result<Pair<String, List<LyricsSearchResult>>> {
         return lyricsRepository.searchRemoteByQuery(title, artist)
     }
@@ -1051,8 +1050,16 @@ class MusicRepositoryImpl @Inject constructor(
         lyricsRepository.updateLyrics(songId, lyrics)
     }
 
+    override suspend fun updateLyrics(song: Song, lyrics: String) {
+        lyricsRepository.updateLyrics(song, lyrics)
+    }
+
     override suspend fun resetLyrics(songId: Long) {
         lyricsRepository.resetLyrics(songId)
+    }
+
+    override suspend fun resetLyrics(song: Song) {
+        lyricsRepository.resetLyrics(song)
     }
 
     override suspend fun resetAllLyrics() {

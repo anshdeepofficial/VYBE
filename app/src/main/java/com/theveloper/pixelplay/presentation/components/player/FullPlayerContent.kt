@@ -1057,7 +1057,6 @@ fun FullPlayerContent(
             playbackPositionFlow = playerViewModel.currentPlaybackPosition,
             lyricsSearchUiState = lyricsSearchUiState,
             resetLyricsForCurrentSong = {
-                showLyricsSheet = false
                 playerViewModel.resetLyricsForCurrentSong()
             },
             onSearchLyrics = { forcePick -> playerViewModel.fetchLyricsForCurrentSong(forcePick) },
