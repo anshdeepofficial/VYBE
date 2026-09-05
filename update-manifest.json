@@ -5,7 +5,7 @@
   "versionCode": 11800,
   "tag": "v0.11.8",
   "title": "VYBE 0.11.8",
-  "notes": "Release 0.11.8: pure YouTube Music audio playback, songs-only search and artist views, faster bounded Home refresh, persistent synced-library counts, cleaner Accounts layout, and search crash fix.",
+  "notes": "• Pure Audio Player: Video features completely removed\n• YouTube Music Songs Only: Strict filtering, no OMVs or videos\n• 1–2s Ultra-Fast Refresh: Concurrent loading with bounded timeout\n• Persistent Synced Counts: Accurate stats for Library, Liked, and Playlists\n• Accounts Reordered: Linked Services first, followed by Backup\n• Search Crash Fixed: Search screen opens reliably without crashing",
   "assets": [
     {
       "abi": "arm64-v8a",
