@@ -1,3 +1,16 @@
+## [0.11.8] - 2026-09-05
+### Changed
+- Converted VYBE to a pure YouTube Music audio experience by removing inline and fullscreen video playback.
+- Restricted YouTube Music searches strictly to songs (`SEARCH_FILTER_SONGS`), excluding OMVs and videos.
+- Reordered Accounts to show Linked Services first, followed by Backup.
+
+### Improved
+- Home and Daily Mix refreshes now complete in 1–2s via parallelized requests with bounded 1.8s timeout.
+- Fully persisted YouTube Music synced tracks count and statistics across app launches.
+
+### Fixed
+- Fixed crash when tapping Search button caused by speech recognizer availability and Dagger dependency mapping.
+
 ## [0.11.7] - 2026-09-04
 ### Changed
 - Converted VYBE to a pure YouTube Music audio experience by removing inline/fullscreen video playback and Videos tabs from Search and Artist profiles.
