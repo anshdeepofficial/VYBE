@@ -32,6 +32,15 @@ private data class ChangelogRelease(
 
 private val VybeChangelog = listOf(
     ChangelogRelease(
+        version = "0.12.2",
+        date = "7 September 2026",
+        changes = listOf(
+            "Clean Reinstall: Android Auto Backup, cloud restore, device-transfer restore, and retained uninstall data are disabled.",
+            "Fresh installs no longer inherit Listening Again, listening stats, cache metadata, recommendations, or queues from a previous installation.",
+            "Manual account backup remains available and restores data only after explicit user sign-in and confirmation."
+        )
+    ),
+    ChangelogRelease(
         version = "0.12.1",
         date = "7 September 2026",
         changes = listOf(

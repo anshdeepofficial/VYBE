@@ -620,3 +620,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added New Finds before Quick Picks, Listen Again, and Your Mix on Home.
 - Added a persisted last-successful-backup time and an automatic account settings backup at 8:00 AM daily.
 - Added the signed-in YouTube Music profile photo to Accounts.
+## [0.12.2] - 2026-09-07
+### Fixed
+- Disabled Android Auto Backup, automatic cloud restore, OEM device-transfer restore, and retained-data uninstall behavior for VYBE.
+- A true uninstall followed by reinstall now starts with empty listening history, stats, recommendations, discovery snapshots, queues, and caches unless the user explicitly signs in and chooses an in-app restore.
+- Manual and account-based VYBE backup remain available and user-controlled.

@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <data-extraction-rules>
     <cloud-backup>
+        <!-- A reinstall must always start clean. Account backup is opt-in and
+             handled explicitly inside VYBE, never by Android Auto Backup. -->
+        <exclude domain="root" path="."/>
+        <exclude domain="file" path="."/>
+        <exclude domain="database" path="."/>
+        <exclude domain="sharedpref" path="."/>
+        <exclude domain="external" path="."/>
         <!-- Exclude all credential/token stores from cloud backup -->
         <exclude domain="sharedpref" path="jellyfin_prefs.xml"/>
         <exclude domain="sharedpref" path="navidrome_prefs.xml"/>
@@ -24,6 +31,13 @@
              Provider authentication stores remain excluded above. -->
     </cloud-backup>
     <device-transfer>
+        <!-- Prevent OEM device-transfer tools from restoring listening history,
+             discovery snapshots, cache metadata, or settings after reinstall. -->
+        <exclude domain="root" path="."/>
+        <exclude domain="file" path="."/>
+        <exclude domain="database" path="."/>
+        <exclude domain="sharedpref" path="."/>
+        <exclude domain="external" path="."/>
         <!-- Also exclude from device-to-device transfers — user must re-authenticate -->
         <exclude domain="sharedpref" path="jellyfin_prefs.xml"/>
         <exclude domain="sharedpref" path="navidrome_prefs.xml"/>
