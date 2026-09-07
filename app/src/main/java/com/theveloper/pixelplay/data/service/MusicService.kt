@@ -1572,6 +1572,15 @@ class MusicService : MediaLibraryService() {
             Timber.tag(TAG).e(error, "Error en el reproductor: ")
             serviceScope.launch {
                 val currentMediaItem = mediaSession?.player?.currentMediaItem
+                val mediaId = currentMediaItem?.mediaId.orEmpty()
+                val uri = currentMediaItem?.localConfiguration?.uri?.toString().orEmpty()
+                // Online stream URLs expire and DualPlayerEngine refreshes them in-place.
+                // Do not flash a terminal error for that recoverable first attempt.
+                val isRecoverableOnlineSource = mediaId.startsWith("yt_") ||
+                    mediaId.startsWith("saavn_") || uri.startsWith("yt") ||
+                    uri.startsWith("saavn") || uri.contains("googlevideo.com") ||
+                    uri.contains("jiosaavn")
+                if (isRecoverableOnlineSource) return@launch
                 val trackTitle = currentMediaItem?.mediaMetadata?.title?.toString()
                     ?: currentMediaItem?.mediaId
                     ?: getString(R.string.common_unknown_track)

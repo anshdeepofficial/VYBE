@@ -32,6 +32,19 @@ private data class ChangelogRelease(
 
 private val VybeChangelog = listOf(
     ChangelogRelease(
+        version = "0.12.1",
+        date = "7 September 2026",
+        changes = listOf(
+            "Playback Recovery: Online retries preserve the autoplay queue and no longer show a misleading recoverable source error.",
+            "Continuous Radio: Artist-related fallback tracks are added and repeat-one cannot block queue progression.",
+            "Instant Search: Discovery restores immediately from disk with one clean loading indicator.",
+            "Library: Internal playback cache is a strict unique last 10 and the visible Cache folder is removed.",
+            "Albums & Metadata: Exact provider IDs and normalized title/artist fallback resolve albums; placeholder artist labels are removed.",
+            "Home: New Finds appears before Quick Picks, Listen Again, and Your Mix.",
+            "Backup & Account: Last backup time, daily 8:00 AM backup, and the YouTube Music profile photo are now included."
+        )
+    ),
+    ChangelogRelease(
         version = "0.12.0",
         date = "5 September 2026",
         changes = listOf(

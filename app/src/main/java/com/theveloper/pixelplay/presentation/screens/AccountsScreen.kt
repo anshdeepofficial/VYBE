@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -92,6 +93,7 @@ import com.theveloper.pixelplay.presentation.viewmodel.ExternalServiceAccount
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
+import coil.compose.AsyncImage
 
 @Composable
 fun AccountsScreen(
@@ -390,6 +392,11 @@ fun AccountsScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        Text(
+                            text = "Automatic backup runs daily at 8:00 AM. Manual backup remains available anytime.",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
 
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -478,7 +485,14 @@ private fun ConnectedAccountCard(
     modifier = Modifier.fillMaxWidth(),
     verticalAlignment = Alignment.CenterVertically
 ) {
-    if (account.service == ExternalServiceAccount.NAVIDROME) {
+    if (account.service == ExternalServiceAccount.YOUTUBE_MUSIC && !account.avatarUrl.isNullOrBlank()) {
+        AsyncImage(
+            model = account.avatarUrl,
+            contentDescription = "YouTube Music profile photo",
+            modifier = Modifier.size(44.dp).clip(androidx.compose.foundation.shape.CircleShape),
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+        )
+    } else if (account.service == ExternalServiceAccount.NAVIDROME) {
         ServiceIcon(
             service = account.service,
             tint = palette.iconTint,

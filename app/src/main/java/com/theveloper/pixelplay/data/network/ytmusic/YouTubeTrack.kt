@@ -29,7 +29,11 @@ data class YouTubeTrack(
     val releaseDateEpochMillis: Long = 0L,
 ) : Parcelable {
     fun toSong(streamUrl: String? = null): Song {
-        val cleaned = SongMetadataCleaner.clean(title, artist)
+        val reliableArtist = linkedArtists.joinToString(", ") { it.name }
+            .takeIf(String::isNotBlank)
+            ?: artist.takeUnless { it.isBlank() || it.equals("YouTube Music", ignoreCase = true) }
+            ?: "Unknown Artist"
+        val cleaned = SongMetadataCleaner.clean(title, reliableArtist)
         val finalStream = streamUrl ?: "yt_$videoId"
         return Song(
             id = "yt_$videoId",

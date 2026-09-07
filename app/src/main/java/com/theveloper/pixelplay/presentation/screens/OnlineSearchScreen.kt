@@ -159,7 +159,9 @@ fun OnlineSearchScreen(
     val discoveryChips = remember { listOf("Best for You", "Latest Releases") }
 
     androidx.compose.material3.pulltorefresh.PullToRefreshBox(
-        isRefreshing = isLoading && !isSearching,
+        // Cached discovery remains visible during refresh; the centered cold-start
+        // indicator is the single loading affordance on this screen.
+        isRefreshing = false,
         onRefresh = {
             selectedGenre = null
             viewModel.fetchTrending()

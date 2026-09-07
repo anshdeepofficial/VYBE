@@ -72,14 +72,22 @@ class AlbumDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             val match = runCatching {
-                onlineMusicRepository.searchMusicStructured("$title $artist").albums
-                    .firstOrNull { album ->
-                        album.title.equals(title, ignoreCase = true) &&
-                            (artist.isBlank() || album.artist.contains(artist, ignoreCase = true) ||
-                                artist.contains(album.artist, ignoreCase = true))
-                    }
-                    ?: onlineMusicRepository.searchMusicStructured(title).albums
-                        .firstOrNull { it.title.equals(title, ignoreCase = true) }
+                val wantedTitle = normalize(title)
+                val wantedArtist = normalize(artist)
+                val candidates = (
+                    onlineMusicRepository.searchMusicStructured("$title $artist").albums +
+                        onlineMusicRepository.searchMusicStructured(title).albums
+                    ).distinctBy { it.browseId }
+                candidates.maxByOrNull { album ->
+                    val candidateTitle = normalize(album.title)
+                    val candidateArtist = normalize(album.artist)
+                    (if (candidateTitle == wantedTitle) 100 else if (candidateTitle.contains(wantedTitle)) 40 else 0) +
+                        (if (wantedArtist.isNotBlank() &&
+                            (candidateArtist.contains(wantedArtist) || wantedArtist.contains(candidateArtist))) 60 else 0)
+                }?.takeIf { album ->
+                    val candidateTitle = normalize(album.title)
+                    candidateTitle == wantedTitle || candidateTitle.contains(wantedTitle) || wantedTitle.contains(candidateTitle)
+                }
             }.getOrNull()
             if (match != null) {
                 loadOnlineAlbumData(match.browseId)
@@ -88,6 +96,10 @@ class AlbumDetailViewModel @Inject constructor(
             }
         }
     }
+
+    private fun normalize(value: String): String = value.lowercase()
+        .replace(Regex("[^\\p{L}\\p{N}]+"), " ")
+        .trim()
 
     private fun loadOnlineAlbumData(browseId: String) {
         viewModelScope.launch {

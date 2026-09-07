@@ -1,18 +1,18 @@
 {
   "schemaVersion": 1,
   "packageName": "com.vybe.musicplayer",
-  "versionName": "0.12.0",
-  "versionCode": 12000,
-  "tag": "v0.12.0",
-  "title": "VYBE 0.12.0",
-  "notes": "• In-App Updater Fix: Resolved size mismatch error during download\n• Silent Updater: Removed repeated sound alerts during progress\n• Permanent Lyrics Caching: Lyrics persist across sessions without refetching\n• Reset Imported Lyrics: Sheet stays open with instant re-fetch options",
+  "versionName": "0.12.1",
+  "versionCode": 12100,
+  "tag": "v0.12.1",
+  "title": "VYBE 0.12.1",
+  "notes": "PLAYBACK & QUEUE\n• Online retries now preserve the full autoplay queue.\n• Recoverable source refreshes no longer show a false error.\n• Artist-related continuation prevents single-song loops.\n\nDISCOVERY\n• New Finds is now first on Home.\n• Search opens instantly from cache with one loading indicator.\n\nLIBRARY & ACCOUNT\n• Internal cache is a strict unique last 10 and its Library folder is removed.\n• Album lookup and YouTube artist metadata are more reliable.\n• Daily 8:00 AM backup, last-backup time, and account avatar added.",
   "assets": [
     {
       "abi": "arm64-v8a",
-      "name": "VYBE-Android-0.12.0-arm64-v8a.apk",
+      "name": "VYBE-Android-0.12.1-arm64-v8a.apk",
       "size": 57219030,
       "sizeBytes": 57219030,
-      "url": "https://github.com/anshdeepofficial/VYBE/releases/download/v0.12.0/VYBE-Android-0.12.0-arm64-v8a.apk"
+      "url": "https://github.com/anshdeepofficial/VYBE/releases/download/v0.12.1/VYBE-Android-0.12.1-arm64-v8a.apk"
     }
   ]
 }

@@ -607,3 +607,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Preserved square artwork and centered landscape thumbnails over a blurred fill.
 - Restored original album title, artist, header artwork, and track thumbnails.
 - Added automatic GitHub update alerts with 1-hour, tomorrow, and skip-version controls.
+## [0.12.1] - 2026-09-07
+### Fixed
+- Preserved the complete autoplay queue when an expired online stream URL is refreshed, and suppressed the misleading recoverable source-error popup.
+- Ensured online radio never inherits repeat-one and added an artist-related continuation fallback when the provider returns only the seed track.
+- Made Search discovery appear instantly from a persistent snapshot and removed its duplicate refresh/loading indicator.
+- Hardened remote album lookup using exact provider IDs plus normalized title-and-artist fallback matching.
+- Removed `YouTube Music` placeholder artist metadata when a provider artist is available.
+- Enforced a canonical, deduplicated last-10 internal playback cache while removing the Cache folder from Library navigation.
+
+### Added
+- Added New Finds before Quick Picks, Listen Again, and Your Mix on Home.
+- Added a persisted last-successful-backup time and an automatic account settings backup at 8:00 AM daily.
+- Added the signed-in YouTube Music profile photo to Accounts.

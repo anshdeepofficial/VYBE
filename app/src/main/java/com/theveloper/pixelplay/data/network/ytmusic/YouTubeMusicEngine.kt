@@ -2023,7 +2023,7 @@ class YouTubeMusicEngine @Inject constructor(
 
     private fun extractMusicArtist(textObj: JSONObject?): String {
         val runs = textObj?.optJSONArray("runs") ?: return extractRunsText(textObj)
-            .split('•')
+            .split(Regex("[•·]"))
             .firstOrNull { it.trim().lowercase() !in RESULT_TYPE_LABELS }
             ?.trim()
             .orEmpty()
@@ -2039,7 +2039,7 @@ class YouTubeMusicEngine @Inject constructor(
         }
         if (artistNames.isNotEmpty()) return artistNames.distinct().joinToString(", ")
         return extractRunsText(textObj)
-            .split('•')
+            .split(Regex("[•·]"))
             .map(String::trim)
             .firstOrNull { it.isNotBlank() && it.lowercase() !in RESULT_TYPE_LABELS }
             .orEmpty()

@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 enum class ExternalServiceAccount {
@@ -38,6 +39,7 @@ data class ExternalAccountUiModel(
     val likedCount: Int = 0,
     val playlistCount: Int = 0,
     val historyCount: Int = 0,
+    val avatarUrl: String? = null,
 )
 
 data class AccountsUiState(
@@ -71,8 +73,13 @@ class AccountsViewModel @Inject constructor(
     private val _backupStorageSize = MutableStateFlow("Calculating...")
     val backupStorageSize: StateFlow<String> = _backupStorageSize
 
-    private val _lastBackupTime = MutableStateFlow("Up to date")
-    val lastBackupTime: StateFlow<String> = _lastBackupTime
+    val lastBackupTime: StateFlow<String> = youTubeSettingsSyncManager.lastBackupTimeMillis
+        .map { timestamp ->
+            if (timestamp <= 0L) "Not backed up yet"
+            else java.text.SimpleDateFormat("hh:mm a, dd MMM", java.util.Locale.getDefault())
+                .format(java.util.Date(timestamp))
+        }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, "Not backed up yet")
 
     private val _isManualBackingUp = MutableStateFlow(false)
     val isManualBackingUp: StateFlow<Boolean> = _isManualBackingUp
@@ -83,8 +90,6 @@ class AccountsViewModel @Inject constructor(
             try {
                 youTubeSettingsSyncManager.backupCurrentDevice()
                 calculateBackupSize()
-                val dateFormat = java.text.SimpleDateFormat("hh:mm a, dd MMM", java.util.Locale.getDefault())
-                _lastBackupTime.value = dateFormat.format(java.util.Date())
             } finally {
                 kotlinx.coroutines.delay(800)
                 _isManualBackingUp.value = false
@@ -123,8 +128,9 @@ class AccountsViewModel @Inject constructor(
         youTubeAccountManager.isLoggedInFlow,
         youTubeAccountManager.syncedCountFlow,
         youTubeAccountManager.libraryStatsFlow,
+        youTubeAccountManager.accountAvatarUrlFlow,
         loggingOutServices
-    ) { youTubeConnected, youTubeSyncedCount, stats, activeLogouts ->
+    ) { youTubeConnected, youTubeSyncedCount, stats, avatarUrl, activeLogouts ->
         val connectedAccounts = buildList {
             if (youTubeConnected) {
                 add(
@@ -142,6 +148,7 @@ class AccountsViewModel @Inject constructor(
                         likedCount = stats.liked,
                         playlistCount = stats.playlists,
                         historyCount = stats.history,
+                        avatarUrl = avatarUrl,
                     )
                 )
             }

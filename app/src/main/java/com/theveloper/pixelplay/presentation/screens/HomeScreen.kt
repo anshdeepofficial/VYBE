@@ -451,6 +451,17 @@ fun HomeScreen(
             ) {
                 // YouTube Trending — always rendered prominently on Home
                 // Keep discovery immediately accessible, before the large Your Mix hero.
+                if (discoverySongs.isNotEmpty()) {
+                    item(key = "new_finds_section", contentType = "youtube_music_row") {
+                        YouTubeMusicHomeRow(
+                            title = "New Finds",
+                            songs = discoverySongs.take(10),
+                            queueName = "New Finds",
+                            playerViewModel = playerViewModel,
+                        )
+                    }
+                }
+
                 item(
                     key = "quick_picks_section",
                     contentType = "youtube_music_row"
@@ -558,12 +569,6 @@ fun HomeScreen(
                         YouTubeMusicHomeRow("Because You Listened to ${historySeed.artist}", relatedSongs, "Because You Listened", playerViewModel)
                     }
                 }
-                if (discoverySongs.isNotEmpty()) {
-                    item(key = "discover_weekly", contentType = "youtube_music_row") {
-                        YouTubeMusicHomeRow("Discover Weekly & Fresh Finds", discoverySongs, "Discover Weekly", playerViewModel)
-                    }
-                }
-
                 // Daily Mix
                 if (dailyMixSongs.isNotEmpty()) {
                     item(

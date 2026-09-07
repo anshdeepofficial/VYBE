@@ -696,7 +696,16 @@ class DualPlayerEngine @Inject constructor(
                         }
                         val newItem = currentItem.buildUpon().setUri(freshUri).build()
                         val pos = playerA.currentPosition.coerceAtLeast(0L)
-                        playerA.setMediaItem(newItem, pos)
+                        val currentIndex = playerA.currentMediaItemIndex
+                        // Keep the radio/playlist timeline intact while refreshing an expired
+                        // stream URL. setMediaItem() used to replace the entire queue here,
+                        // leaving the recovered track alone and repeating forever.
+                        if (currentIndex != C.INDEX_UNSET && currentIndex < playerA.mediaItemCount) {
+                            playerA.replaceMediaItem(currentIndex, newItem)
+                            playerA.seekTo(currentIndex, pos)
+                        } else {
+                            playerA.setMediaItem(newItem, pos)
+                        }
                         playerA.prepare()
                         playerA.play()
                     }

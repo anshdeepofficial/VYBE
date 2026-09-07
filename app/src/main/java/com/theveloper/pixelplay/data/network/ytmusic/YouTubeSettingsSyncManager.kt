@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 sealed interface YouTubeSettingsSyncState {
     data object Idle : YouTubeSettingsSyncState
@@ -61,6 +62,10 @@ class YouTubeSettingsSyncManager @Inject constructor(
     private val checkedAccounts = mutableSetOf<String>()
     private val _state = MutableStateFlow<YouTubeSettingsSyncState>(YouTubeSettingsSyncState.Idle)
     val state: StateFlow<YouTubeSettingsSyncState> = _state.asStateFlow()
+    private val _lastBackupTimeMillis = MutableStateFlow(
+        devicePreferences.getLong(LAST_BACKUP_TIME_KEY, 0L)
+    )
+    val lastBackupTimeMillis: StateFlow<Long> = _lastBackupTimeMillis.asStateFlow()
 
     init {
         scope.launch {
@@ -98,6 +103,17 @@ class YouTubeSettingsSyncManager @Inject constructor(
                             }
                     }
                 }
+        }
+        scope.launch {
+            while (true) {
+                delay(millisUntilNextEightAm())
+                val identity = accountManager.accountIdentityFlow.value
+                if (accountManager.isLoggedInFlow.value && identity.isNotBlank()) {
+                    runCatching { uploadCurrentSettings(identity) }
+                        .onSuccess { recordBackupTime() }
+                }
+                delay(60_000L)
+            }
         }
     }
 
@@ -138,6 +154,7 @@ class YouTubeSettingsSyncManager @Inject constructor(
                 uploadCurrentSettings(identity)
                 markHandled(identity, optedOut = false)
             }.onSuccess {
+                recordBackupTime()
                 _state.value = YouTubeSettingsSyncState.Idle
             }.onFailure { error ->
                 _state.value = YouTubeSettingsSyncState.Error(error.message ?: "Settings backup upload failed")
@@ -179,6 +196,24 @@ class YouTubeSettingsSyncManager @Inject constructor(
         val entries = userPreferencesRepository.exportPreferencesForBackup()
         val envelope = SettingsBackupEnvelope(updatedAt = System.currentTimeMillis(), entries = entries)
         accountManager.saveRemoteSettingsBackup(encode(envelope, identity))
+    }
+
+    private fun recordBackupTime() {
+        val now = System.currentTimeMillis()
+        devicePreferences.edit().putLong(LAST_BACKUP_TIME_KEY, now).apply()
+        _lastBackupTimeMillis.value = now
+    }
+
+    private fun millisUntilNextEightAm(): Long {
+        val now = Calendar.getInstance()
+        val next = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 8)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+            if (!after(now)) add(Calendar.DAY_OF_YEAR, 1)
+        }
+        return (next.timeInMillis - now.timeInMillis).coerceAtLeast(60_000L)
     }
 
     private fun encode(envelope: SettingsBackupEnvelope, identity: String): String {
@@ -223,5 +258,6 @@ class YouTubeSettingsSyncManager @Inject constructor(
 
     private companion object {
         const val DEVICE_PREFS_NAME = "youtube_music_settings_sync_device"
+        const val LAST_BACKUP_TIME_KEY = "last_successful_backup_time"
     }
 }

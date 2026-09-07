@@ -1,6 +1,7 @@
 package com.theveloper.pixelplay.data.cache
 
 import android.content.Context
+import com.google.gson.Gson
 import com.theveloper.pixelplay.data.model.Song
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
@@ -19,22 +20,28 @@ class SearchDiscoveryCache @Inject constructor(
     )
 
     private val cacheFile = File(context.filesDir, "search_discovery_snapshot.json")
+    private val gson = Gson()
 
     @Volatile
     private var memorySnapshot: DiscoverySnapshot? = null
 
     init {
-        // Crucial: Clean up any legacy corrupt file from previous versions to eliminate LinkedTreeMap ClassCastException
-        runCatching {
-            if (cacheFile.exists()) {
-                cacheFile.delete()
+        memorySnapshot = runCatching {
+            cacheFile.takeIf(File::exists)?.readText()?.let {
+                gson.fromJson(it, DiscoverySnapshot::class.java)
             }
-        }
+        }.getOrNull()
     }
 
     fun get(): DiscoverySnapshot? = memorySnapshot
 
     fun put(snapshot: DiscoverySnapshot) {
         memorySnapshot = snapshot
+        runCatching {
+            val temp = File(cacheFile.parentFile, "${cacheFile.name}.tmp")
+            temp.writeText(gson.toJson(snapshot))
+            if (cacheFile.exists()) cacheFile.delete()
+            temp.renameTo(cacheFile)
+        }
     }
 }

@@ -56,7 +56,10 @@ class PlaybackRecentCacheManager @Inject constructor(
                 val json = metadataFile.readText()
                 val listType = object : TypeToken<List<Song>>() {}.type
                 val songs: List<Song> = gson.fromJson(json, listType) ?: emptyList()
-                val updatedSongs = songs.take(MAX_CACHED_SONGS).map { song ->
+                val updatedSongs = songs
+                    .distinctBy { canonicalKey(it) }
+                    .take(MAX_CACHED_SONGS)
+                    .map { song ->
                     val cleanId = cleanSongId(song.id)
                     val audioFile = File(cacheDir, "$cleanId.m4a")
                     if (audioFile.exists() && audioFile.length() > 10_000L) {
@@ -99,7 +102,8 @@ class PlaybackRecentCacheManager @Inject constructor(
 
                 // Update in-memory list (latest at index 0, max 10)
                 _cachedSongs.update { current ->
-                    val withoutCurrent = current.filterNot { it.id == song.id }
+                    val key = canonicalKey(song)
+                    val withoutCurrent = current.filterNot { canonicalKey(it) == key }
                     (listOf(effectiveSong) + withoutCurrent).take(MAX_CACHED_SONGS)
                 }
                 persistCache()
@@ -152,12 +156,13 @@ class PlaybackRecentCacheManager @Inject constructor(
                                 // Update song in cache with local path
                                 _cachedSongs.update { list ->
                                     list.map { item ->
-                                        if (item.id == song.id) {
+                                        if (canonicalKey(item) == canonicalKey(song)) {
                                             item.copy(path = targetFile.absolutePath, contentUriString = targetFile.absolutePath)
                                         } else item
                                     }
                                 }
                                 persistCache()
+                                pruneOldFiles()
                                 Timber.tag(TAG).d("Successfully cached audio for %s to %s", song.title, targetFile.absolutePath)
                             }
                         }
@@ -197,4 +202,8 @@ class PlaybackRecentCacheManager @Inject constructor(
             Timber.tag(TAG).e(e, "Failed to persist recent cache")
         }
     }
+
+    private fun canonicalKey(song: Song): String = cleanSongId(
+        song.id.ifBlank { song.contentUriString }
+    )
 }

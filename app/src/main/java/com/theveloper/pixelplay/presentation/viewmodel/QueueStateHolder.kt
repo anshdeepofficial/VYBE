@@ -322,11 +322,22 @@ class QueueStateHolder @Inject constructor(
 
     fun playOnlineSeed(seed: Song, sourceName: String, callbacks: PlaybackSourceCallbacks) {
         callbacks.scope.launch {
-            val queue = runCatching {
+            val initialQueue = runCatching {
                 withContext(Dispatchers.IO) { onlineMusicRepository.getAutoplayQueue(seed) }
             }.onFailure { Timber.w(it, "Could not build autoplay queue for %s", seed.title) }
                 .getOrDefault(listOf(seed))
                 .ifEmpty { listOf(seed) }
+            val queue = if (initialQueue.size > 1) initialQueue else {
+                val related = runCatching {
+                    withContext(Dispatchers.IO) {
+                        onlineMusicRepository.searchMusicStructured(seed.artist).songs
+                    }
+                }.getOrDefault(emptyList())
+                    .filterNot { it.id == seed.id }
+                    .distinctBy { it.id }
+                    .take(20)
+                (listOf(seed) + related).distinctBy { it.id }
+            }
             callbacks.playSongs(queue, seed, sourceName, null)
             callbacks.showSheet()
         }

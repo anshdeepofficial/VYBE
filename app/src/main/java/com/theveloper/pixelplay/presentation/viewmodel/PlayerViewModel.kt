@@ -1247,7 +1247,7 @@ class PlayerViewModel @Inject constructor(
             } else {
                 listOf("SONGS", "ALBUMS", "ARTIST", "PLAYLISTS", "FOLDERS", "LIKED")
             }
-            listOf("DOWNLOADS") + stored.filterNot { it == "DOWNLOADS" }
+            listOf("DOWNLOADS") + stored.filterNot { it == "DOWNLOADS" || it == "CACHED" }
         }
         .stateIn(
             viewModelScope,
@@ -2276,8 +2276,14 @@ class PlayerViewModel @Inject constructor(
     fun playArtist(artist: Artist) =
         queueStateHolder.playArtist(artist, playbackSourceCallbacks())
 
-    fun playOnlineSeed(song: Song, sourceName: String = "VYBE Radio") =
+    fun playOnlineSeed(song: Song, sourceName: String = "VYBE Radio") {
+        // A radio seed must be allowed to advance. A previously persisted repeat-one
+        // mode made a successfully recovered online track loop forever.
+        if (stablePlayerState.value.repeatMode == androidx.media3.common.Player.REPEAT_MODE_ONE) {
+            playbackStateHolder.setRepeatMode(androidx.media3.common.Player.REPEAT_MODE_OFF)
+        }
         queueStateHolder.playOnlineSeed(song, sourceName, playbackSourceCallbacks())
+    }
 
     fun playSharedVybeLink(uri: Uri) {
         val shared = VybeSongShareLink.parse(uri) ?: return
