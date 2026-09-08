@@ -1,3 +1,14 @@
+## [0.13.0] - 2026-09-08
+### Fixed
+- Prevented valid first-page YouTube Music Home and Quick Picks data from being discarded when continuation requests exceeded the cold-start timeout.
+- Search no longer opens as a blank page on a fresh guest installation; Explore categories remain available while remote discovery loads.
+- Removed the misleading empty Your Mix placeholder for guest profiles without a generated personal mix.
+
+### Added
+- Added Speed dial backed by the current provider/recommendation pool.
+- Added persistent visibility and ordering control for Speed dial.
+- Added focused tests for Home shelf parsing, continuation tokens, and multi-page album tracks.
+
 ## [0.12.0] - 2026-09-05
 ### Fixed
 - Fixed in-app updater download size mismatch ("Downloaded update size does not match") by making size checks resilient and matching package manifest sizes.

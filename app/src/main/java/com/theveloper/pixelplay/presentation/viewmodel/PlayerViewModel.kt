@@ -241,6 +241,111 @@ class PlayerViewModel @Inject constructor(
     private val playbackRecentCacheManager: com.theveloper.pixelplay.data.cache.PlaybackRecentCacheManager,
 ) : ViewModel() {
 
+    private val _isVideoMode = MutableStateFlow(false)
+    val isVideoMode: StateFlow<Boolean> = _isVideoMode.asStateFlow()
+    private val _isVideoLoading = MutableStateFlow(false)
+    val isVideoLoading: StateFlow<Boolean> = _isVideoLoading.asStateFlow()
+    private val _videoQualityHeight = MutableStateFlow(720)
+    val videoQualityHeight: StateFlow<Int> = _videoQualityHeight.asStateFlow()
+    private var audioMediaItemBeforeVideo: androidx.media3.common.MediaItem? = null
+    private var videoMediaItemIndex: Int = -1
+
+    fun setVideoMode(enabled: Boolean) {
+        val controller = mediaController ?: return
+        val currentSong = stablePlayerState.value.currentSong ?: return
+        if (enabled && !currentSong.isMusicVideo) return
+        if (enabled == _isVideoMode.value || _isVideoLoading.value) return
+        val position = controller.currentPosition.coerceAtLeast(0L)
+        val playWhenReady = controller.playWhenReady
+        if (!enabled) {
+            val audioItem = audioMediaItemBeforeVideo ?: return
+            val index = videoMediaItemIndex.takeIf { it in 0 until controller.mediaItemCount }
+                ?: controller.currentMediaItemIndex
+            controller.replaceMediaItem(index, audioItem)
+            controller.seekTo(index, position)
+            controller.prepare()
+            controller.playWhenReady = playWhenReady
+            audioMediaItemBeforeVideo = null
+            videoMediaItemIndex = -1
+            _isVideoMode.value = false
+            return
+        }
+        viewModelScope.launch {
+            _isVideoLoading.value = true
+            val videoId = currentSong.id.removePrefix("yt_video_").removePrefix("yt_")
+            val videoUrl = newPipeStreamResolver.resolveVideo(
+                videoId = videoId,
+                preferLowData = dataSaverEnabled.value,
+                targetHeight = if (dataSaverEnabled.value) 360 else _videoQualityHeight.value,
+            )
+            if (!videoUrl.isNullOrBlank() && stablePlayerState.value.currentSong?.id == currentSong.id) {
+                audioMediaItemBeforeVideo = controller.currentMediaItem
+                videoMediaItemIndex = controller.currentMediaItemIndex
+                val videoItem = controller.currentMediaItem?.buildUpon()
+                    ?.setUri(videoUrl)
+                    ?.setMimeType("video/mp4")
+                    ?.build()
+                if (videoItem != null) {
+                    controller.replaceMediaItem(controller.currentMediaItemIndex, videoItem)
+                    controller.seekTo(controller.currentMediaItemIndex, position)
+                    controller.prepare()
+                    controller.playWhenReady = playWhenReady
+                    _isVideoMode.value = true
+                }
+            }
+            _isVideoLoading.value = false
+        }
+    }
+
+    fun setVideoQuality(height: Int) {
+        val normalized = height.coerceIn(360, 1080)
+        if (_videoQualityHeight.value == normalized) return
+        _videoQualityHeight.value = normalized
+        if (!_isVideoMode.value || _isVideoLoading.value) return
+        val controller = mediaController ?: return
+        val currentSong = stablePlayerState.value.currentSong ?: return
+        viewModelScope.launch {
+            _isVideoLoading.value = true
+            val position = controller.currentPosition.coerceAtLeast(0L)
+            val playWhenReady = controller.playWhenReady
+            val url = newPipeStreamResolver.resolveVideo(
+                videoId = currentSong.id.removePrefix("yt_video_").removePrefix("yt_"),
+                preferLowData = dataSaverEnabled.value,
+                targetHeight = if (dataSaverEnabled.value) 360 else normalized,
+            )
+            if (!url.isNullOrBlank() && stablePlayerState.value.currentSong?.id == currentSong.id) {
+                controller.currentMediaItem?.buildUpon()?.setUri(url)?.setMimeType("video/mp4")?.build()
+                    ?.let { item ->
+                        controller.replaceMediaItem(controller.currentMediaItemIndex, item)
+                        controller.seekTo(controller.currentMediaItemIndex, position)
+                        controller.prepare()
+                        controller.playWhenReady = playWhenReady
+                    }
+            }
+            _isVideoLoading.value = false
+        }
+    }
+
+    fun resetVideoModeForTrackChange() {
+        val controller = mediaController
+        val original = audioMediaItemBeforeVideo
+        if (controller != null && original != null && videoMediaItemIndex in 0 until controller.mediaItemCount) {
+            controller.replaceMediaItem(videoMediaItemIndex, original)
+        }
+        audioMediaItemBeforeVideo = null
+        videoMediaItemIndex = -1
+        _isVideoMode.value = false
+        _isVideoLoading.value = false
+    }
+
+    fun attachInlineVideoView(view: androidx.media3.ui.PlayerView) {
+        view.player = mediaController
+    }
+
+    fun detachInlineVideoView(view: androidx.media3.ui.PlayerView) {
+        if (view.player === mediaController) view.player = null
+    }
+
     val cachedSongs: StateFlow<List<Song>> = playbackRecentCacheManager.cachedSongs
 
     val dataSaverEnabled: StateFlow<Boolean> = userPreferencesRepository.dataSaverEnabledFlow
@@ -1602,6 +1707,7 @@ class PlayerViewModel @Inject constructor(
     val quickPickSongs: StateFlow<ImmutableList<Song>> = dailyMixStateHolder.quickPickSongs
     val trendingSongs: StateFlow<ImmutableList<Song>> = dailyMixStateHolder.trendingSongs
     val discoverySongs: StateFlow<ImmutableList<Song>> = dailyMixStateHolder.discoverySongs
+    val youtubeHomeShelves = dailyMixStateHolder.youtubeHomeShelves
     val isHomeRefreshing: StateFlow<Boolean> = dailyMixStateHolder.isRefreshing
     val topMoods: StateFlow<ImmutableList<String>> = dailyMixStateHolder.topMoods
     val moodColors: StateFlow<Map<String, Long>> = userPreferencesRepository.moodColorsFlow

@@ -5,6 +5,7 @@ import com.theveloper.pixelplay.presentation.navigation.navigateSafely
 import com.theveloper.pixelplay.presentation.components.BackupModuleSelectionDialog
 import com.theveloper.pixelplay.data.preferences.AiPreferencesRepository
 import com.theveloper.pixelplay.data.preferences.SongIdentityMode
+import com.theveloper.pixelplay.data.preferences.HomeSectionPreference
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.Date
@@ -94,7 +95,10 @@ import androidx.compose.material.icons.rounded.Science
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.UnfoldMore
+import androidx.compose.material.icons.rounded.ArrowUpward
+import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Switch
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -268,6 +272,7 @@ fun SettingsCategoryScreen(
     var showListenTogetherDialog by remember { mutableStateOf(false) }
     var showStorageUsageDialog by remember { mutableStateOf(false) }
     var showLogoRestartDialog by remember { mutableStateOf(false) }
+    var showHomeSectionsDialog by remember { mutableStateOf(false) }
     var storageUsage by remember { mutableStateOf<StorageUsageSnapshot?>(null) }
     var isStorageUsageLoading by remember { mutableStateOf(false) }
     var listenTogetherInvite by remember { mutableStateOf("") }
@@ -281,6 +286,69 @@ fun SettingsCategoryScreen(
     }
     var albumArtCacheLimitDraft by remember(uiState.albumArtCacheLimitMb) {
         mutableStateOf(uiState.albumArtCacheLimitMb.toFloat())
+    }
+
+    if (showHomeSectionsDialog) {
+        val labels = mapOf(
+            HomeSectionPreference.MOODS to "Mood shortcuts",
+            HomeSectionPreference.NEW_FINDS to "New Finds",
+            HomeSectionPreference.QUICK_PICKS to "Quick Picks",
+            HomeSectionPreference.SPEED_DIAL to "Speed dial",
+            HomeSectionPreference.LISTEN_AGAIN to "Listen Again",
+            HomeSectionPreference.YOUTUBE_SHELVES to "YouTube Music recommendations",
+            HomeSectionPreference.YOUR_MIX to "Your Mix",
+            HomeSectionPreference.RELEASES to "New Releases",
+            HomeSectionPreference.CHARTS to "Top Charts",
+            HomeSectionPreference.BECAUSE_YOU_LISTENED to "Because You Listened",
+            HomeSectionPreference.DAILY_MIX to "Daily Mix",
+            HomeSectionPreference.RECENTLY_PLAYED to "Recently Played",
+        )
+        AlertDialog(
+            onDismissRequest = { showHomeSectionsDialog = false },
+            title = { Text("Manage Home") },
+            text = {
+                LazyColumn(modifier = Modifier.heightIn(max = 520.dp)) {
+                    items(uiState.homeSectionOrder, key = { it }) { sectionId ->
+                        val index = uiState.homeSectionOrder.indexOf(sectionId)
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(labels[sectionId] ?: sectionId, style = MaterialTheme.typography.bodyLarge)
+                            }
+                            IconButton(
+                                enabled = index > 0,
+                                onClick = {
+                                    settingsViewModel.setHomeSectionOrder(
+                                        uiState.homeSectionOrder.toMutableList().apply {
+                                            add(index - 1, removeAt(index))
+                                        }
+                                    )
+                                },
+                            ) { Icon(Icons.Rounded.ArrowUpward, "Move up") }
+                            IconButton(
+                                enabled = index < uiState.homeSectionOrder.lastIndex,
+                                onClick = {
+                                    settingsViewModel.setHomeSectionOrder(
+                                        uiState.homeSectionOrder.toMutableList().apply {
+                                            add(index + 1, removeAt(index))
+                                        }
+                                    )
+                                },
+                            ) { Icon(Icons.Rounded.ArrowDownward, "Move down") }
+                            Switch(
+                                checked = sectionId !in uiState.hiddenHomeSections,
+                                onCheckedChange = { settingsViewModel.setHomeSectionVisible(sectionId, it) },
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showHomeSectionsDialog = false }) { Text("Done") }
+            },
+        )
     }
 
     val exportLauncher = rememberLauncherForActivityResult(
@@ -747,6 +815,13 @@ fun SettingsCategoryScreen(
                             }
 
                             SettingsSubsection(title = stringResource(R.string.settings_home_collage_section)) {
+                                SettingsItem(
+                                    title = "Manage Home sections",
+                                    subtitle = "Show, hide, and reorder every Home block",
+                                    leadingIcon = { Icon(painterResource(R.drawable.rounded_view_column_24), null, tint = MaterialTheme.colorScheme.secondary) },
+                                    trailingIcon = { Icon(Icons.Rounded.ChevronRight, null) },
+                                    onClick = { showHomeSectionsDialog = true },
+                                )
                                 ThemeSelectorItem(
                                     label = stringResource(R.string.settings_collage_pattern_title),
                                     description = stringResource(R.string.settings_collage_pattern_subtitle),

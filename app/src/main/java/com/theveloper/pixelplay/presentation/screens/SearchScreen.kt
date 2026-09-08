@@ -50,6 +50,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -242,9 +243,17 @@ fun SearchScreen(
     }.collectAsStateWithLifecycle(initialValue = SearchUiSlice())
     val currentFilter = searchUiState.selectedSearchFilter
     val sourceGenres by playerViewModel.genres.collectAsStateWithLifecycle()
+    val discoveryQuickPicks by playerViewModel.quickPickSongs.collectAsStateWithLifecycle()
+    val discoveryTrending by playerViewModel.trendingSongs.collectAsStateWithLifecycle()
+    val discoveryReleases by playerViewModel.latestReleaseSongs.collectAsStateWithLifecycle()
+    val discoveryShelves by playerViewModel.youtubeHomeShelves.collectAsStateWithLifecycle()
     val discoveryDay = remember { java.time.LocalDate.now().toEpochDay() }
     val genres = remember(sourceGenres, discoveryDay) {
-        sourceGenres.shuffled(kotlin.random.Random(discoveryDay))
+        val instantExplore = listOf(
+            "New releases", "Charts", "Workout", "Feel good", "Energise", "Relax",
+            "Romance", "Focus", "Party", "Indian", "Punjabi", "Hip-Hop"
+        ).map { name -> Genre(id = name, name = name) }
+        sourceGenres.ifEmpty { instantExplore }.shuffled(kotlin.random.Random(discoveryDay))
     }
     val stablePlayerState by playerViewModel.stablePlayerState.collectAsStateWithLifecycle()
     val favoriteSongIds by playerViewModel.favoriteSongIds.collectAsStateWithLifecycle()
@@ -530,8 +539,30 @@ fun SearchScreen(
                                     .padding(horizontal = 16.dp, vertical = 6.dp)
                             )
                         }
+                        val discoveryRows = remember(
+                            discoveryQuickPicks,
+                            discoveryTrending,
+                            discoveryReleases,
+                            discoveryShelves,
+                        ) {
+                            buildList {
+                                if (discoveryQuickPicks.isNotEmpty()) add("Best for You" to discoveryQuickPicks.toList())
+                                if (discoveryTrending.isNotEmpty()) add("Trending Now" to discoveryTrending.toList())
+                                if (discoveryReleases.isNotEmpty()) add("Latest Releases" to discoveryReleases.toList())
+                                discoveryShelves.forEach { shelf ->
+                                    if (shelf.songs.isNotEmpty() && none { it.first.equals(shelf.title, true) }) {
+                                        add(shelf.title to shelf.songs)
+                                    }
+                                }
+                            }
+                        }
                         Box(modifier = Modifier.fillMaxSize()) {
-                            GenreCategoriesGrid(
+                            if (discoveryRows.isNotEmpty()) {
+                                SearchDiscoveryFeed(
+                                    rows = discoveryRows,
+                                    playerViewModel = playerViewModel,
+                                )
+                            } else GenreCategoriesGrid(
                                 genres = genres,
                                 onGenreClick = { genre ->
                                     Timber.tag("SearchScreen")
@@ -1014,6 +1045,78 @@ fun SearchScreen(
 }
 
 @Composable
+private fun SearchDiscoveryFeed(
+    rows: List<Pair<String, List<Song>>>,
+    playerViewModel: PlayerViewModel,
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(top = 8.dp, bottom = MiniPlayerHeight + 140.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+    ) {
+        rows.forEach { (title, sourceSongs) ->
+            val songs = sourceSongs.distinctBy(Song::id).take(12)
+            if (songs.isNotEmpty()) item(key = "discovery_$title") {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f),
+                        )
+                        TextButton(onClick = { playerViewModel.playSongs(songs, songs.first(), title) }) {
+                            Text("Play all")
+                        }
+                    }
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        items(songs, key = { "${title}_${it.id}" }) { song ->
+                            Card(
+                                modifier = Modifier.width(148.dp).combinedClickable(
+                                    onClick = { playerViewModel.playSongs(songs, song, title) },
+                                    onLongClick = { playerViewModel.selectSongForInfo(song) },
+                                ),
+                                shape = RoundedCornerShape(16.dp),
+                            ) {
+                                Column {
+                                    SmartImage(
+                                        model = song.albumArtUriString,
+                                        contentDescription = song.title,
+                                        targetSize = SmartImageListTargetSize,
+                                        modifier = Modifier.fillMaxWidth().height(148.dp),
+                                    )
+                                    Text(
+                                        text = song.title,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        fontWeight = FontWeight.SemiBold,
+                                        modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 8.dp),
+                                    )
+                                    Text(
+                                        text = song.displayArtist,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(start = 10.dp, end = 10.dp, bottom = 10.dp),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun SearchResultSectionHeader(title: String) {
     Text(
         text = title,
@@ -1230,6 +1333,7 @@ fun SearchResultsList(
 
     val sectionOrder = listOf(
         SearchFilterType.SONGS,
+        SearchFilterType.VIDEOS,
         SearchFilterType.ALBUMS,
         SearchFilterType.ARTISTS,
         SearchFilterType.PLAYLISTS
@@ -1341,7 +1445,9 @@ fun SearchResultsList(
                                 ) {
                                     {
                                         navController.navigateSafelyReplacing(
-                                            route = Screen.AlbumDetail.createRoute(item.album.id),
+                                            route = Screen.AlbumDetail.createRoute(
+                                                item.album.remoteBrowseId ?: item.album.id.toString()
+                                            ),
                                             patternToPop = Screen.AlbumDetail.route
                                         )
                                         onItemSelected()

@@ -97,8 +97,10 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.data.network.ytmusic.YouTubeHomeCollection
 import com.theveloper.pixelplay.data.network.ytmusic.YouTubeSettingsSyncState
 import com.theveloper.pixelplay.data.preferences.CollagePattern
+import com.theveloper.pixelplay.data.preferences.HomeSectionPreference
 import com.theveloper.pixelplay.presentation.components.AlbumArtCollage
 import com.theveloper.pixelplay.presentation.components.ChangelogBottomSheet
 import com.theveloper.pixelplay.presentation.netease.dashboard.NeteaseDashboardViewModel
@@ -172,6 +174,7 @@ fun HomeScreen(
     val trendingSongs by playerViewModel.trendingSongs.collectAsStateWithLifecycle()
     val latestReleaseSongs by playerViewModel.latestReleaseSongs.collectAsStateWithLifecycle()
     val discoverySongs by playerViewModel.discoverySongs.collectAsStateWithLifecycle()
+    val youtubeHomeShelves by playerViewModel.youtubeHomeShelves.collectAsStateWithLifecycle()
     val homeMixPreviewSongs by playerViewModel.homeMixPreviewSongs.collectAsStateWithLifecycle()
     val playbackHistory by playerViewModel.playbackHistory.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -325,8 +328,12 @@ fun HomeScreen(
     }
     // A fresh session ordering prevents Home from presenting the exact same first cards
     // on every launch while keeping the underlying personalised recommendation pool intact.
-    val sessionQuickPicks = remember(quickPickSongs) {
-        quickPickSongs.shuffled().take(10)
+    val sessionQuickPicks = remember(quickPickSongs, youtubeHomeShelves, trendingSongs, latestReleaseSongs) {
+        val providerFallback = youtubeHomeShelves.flatMap { it.songs }
+        (quickPickSongs + providerFallback + trendingSongs + latestReleaseSongs)
+            .distinctBy(Song::id)
+            .shuffled()
+            .take(10)
     }
     val historySeed = recentlyPlayedQueue.firstOrNull()
     val relatedSongs = remember(historySeed, quickPickSongs, dailyMixSongs) {
@@ -449,9 +456,38 @@ fun HomeScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
+                val enabledHomeSections = settingsUiState.homeSectionOrder
+                    .filterNot { it in settingsUiState.hiddenHomeSections }
+                enabledHomeSections.forEach { homeSection -> when (homeSection) {
+                HomeSectionPreference.MOODS -> item(key = "home_mood_shortcuts", contentType = "mood_shortcuts") {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        items(listOf("Workout", "Feel good", "Energise", "Relax", "Romantic")) { mood ->
+                            Surface(
+                                onClick = {
+                                    navController.navigateSafely(
+                                        Screen.GenreDetail.createRoute(java.net.URLEncoder.encode(mood, "UTF-8"))
+                                    )
+                                },
+                                shape = RoundedCornerShape(18.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            ) {
+                                Text(
+                                    mood,
+                                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 11.dp),
+                                    style = MaterialTheme.typography.labelLarge,
+                                )
+                            }
+                        }
+                    }
+                }
                 // YouTube Trending — always rendered prominently on Home
                 // Keep discovery immediately accessible, before the large Your Mix hero.
-                if (discoverySongs.isNotEmpty()) {
+                HomeSectionPreference.NEW_FINDS -> if (discoverySongs.isNotEmpty() && youtubeHomeShelves.none {
+                        it.title.contains("fresh", true) || it.title.contains("new find", true)
+                    }) {
                     item(key = "new_finds_section", contentType = "youtube_music_row") {
                         YouTubeMusicHomeRow(
                             title = "New Finds",
@@ -462,7 +498,7 @@ fun HomeScreen(
                     }
                 }
 
-                item(
+                HomeSectionPreference.QUICK_PICKS -> item(
                     key = "quick_picks_section",
                     contentType = "youtube_music_row"
                 ) {
@@ -474,7 +510,18 @@ fun HomeScreen(
                     )
                 }
 
-                if (recentlyPlayedQueue.isNotEmpty()) {
+                HomeSectionPreference.SPEED_DIAL -> if (sessionQuickPicks.isNotEmpty()) {
+                    item(key = "speed_dial_section", contentType = "youtube_music_row") {
+                        YouTubeMusicHomeRow(
+                            title = "Speed dial",
+                            songs = sessionQuickPicks.take(10),
+                            queueName = "Speed dial",
+                            playerViewModel = playerViewModel,
+                        )
+                    }
+                }
+
+                HomeSectionPreference.LISTEN_AGAIN -> if (recentlyPlayedQueue.isNotEmpty()) {
                     item(key = "listen_again_section", contentType = "youtube_music_row") {
                         YouTubeMusicHomeRow(
                             title = "Listen Again",
@@ -485,24 +532,39 @@ fun HomeScreen(
                     }
                 }
 
-                if (yourMixSongs.isEmpty()) {
-                    item(
-                        key = "your_mix_placeholder",
-                        contentType = "your_mix_placeholder"
-                    ) {
-                        if (shouldShowYourMixLoadingPlaceholder) {
-                            YourMixLoadingPlaceholder()
-                        } else {
-                            YourMixEmptyPlaceholder(
-                                onRefresh = {
-                                    homePlaceholderRefreshGeneration++
-                                    settingsViewModel.refreshLibrary()
-                                    playerViewModel.forceUpdateDailyMix()
-                                }
-                            )
+                // Render the remaining provider-authored shelves in the exact order returned by
+                // YouTube Music. VYBE only applies its own visual language; it does not relabel
+                // random search results as charts, mixes, community playlists or long listens.
+                HomeSectionPreference.YOUTUBE_SHELVES -> youtubeHomeShelves
+                    .filterNot { shelf ->
+                        shelf.title.contains("quick picks", true) ||
+                            shelf.title.contains("listen again", true) ||
+                            shelf.title.contains("podcast", true)
+                    }
+                    .forEachIndexed { index, shelf ->
+                        item(
+                            key = "youtube_home_${index}_${shelf.title}",
+                            contentType = "youtube_music_row",
+                        ) {
+                            if (shelf.songs.isNotEmpty()) {
+                                YouTubeMusicHomeRow(
+                                    title = shelf.title,
+                                    songs = shelf.songs,
+                                    queueName = shelf.title,
+                                    playerViewModel = playerViewModel,
+                                )
+                            } else {
+                                YouTubeMusicCollectionRow(
+                                    title = shelf.title,
+                                    collections = shelf.collections,
+                                    navController = navController,
+                                )
+                            }
                         }
                     }
-                } else {
+
+                HomeSectionPreference.YOUR_MIX -> {
+                if (yourMixSongs.isNotEmpty()) {
                     item(
                         key = "your_mix_header",
                         contentType = "your_mix_header"
@@ -554,23 +616,29 @@ fun HomeScreen(
                     }
                 }
 
-                if (latestReleaseSongs.isNotEmpty()) {
+                }
+
+                HomeSectionPreference.RELEASES -> if (latestReleaseSongs.isNotEmpty() && youtubeHomeShelves.none {
+                        it.title.contains("new release", true) || it.title.contains("release radar", true)
+                    }) {
                     item(key = "release_radar", contentType = "youtube_music_row") {
                         YouTubeMusicHomeRow("New Releases & Release Radar", latestReleaseSongs.take(10), "Release Radar", playerViewModel)
                     }
                 }
-                if (trendingSongs.isNotEmpty()) {
+                HomeSectionPreference.CHARTS -> if (trendingSongs.isNotEmpty() && youtubeHomeShelves.none {
+                        it.title.contains("chart", true) || it.title.contains("trending", true)
+                    }) {
                     item(key = "top_charts", contentType = "youtube_music_row") {
                         YouTubeMusicHomeRow("Top Charts & Trending", trendingSongs.take(10), "Top Charts", playerViewModel)
                     }
                 }
-                if (historySeed != null && relatedSongs.isNotEmpty()) {
+                HomeSectionPreference.BECAUSE_YOU_LISTENED -> if (historySeed != null && relatedSongs.isNotEmpty()) {
                     item(key = "because_you_listened", contentType = "youtube_music_row") {
                         YouTubeMusicHomeRow("Because You Listened to ${historySeed.artist}", relatedSongs, "Because You Listened", playerViewModel)
                     }
                 }
                 // Daily Mix
-                if (dailyMixSongs.isNotEmpty()) {
+                HomeSectionPreference.DAILY_MIX -> if (dailyMixSongs.isNotEmpty()) {
                     item(
                         key = "daily_mix_section",
                         contentType = "daily_mix_section"
@@ -602,17 +670,7 @@ fun HomeScreen(
                     }
                 }
 
-                item(
-                    key = "release_radar_section",
-                    contentType = "release_radar_section"
-                ) {
-                    ReleaseRadarSection(
-                        songs = latestReleaseSongs,
-                        playerViewModel = playerViewModel,
-                    )
-                }
-
-                if (recentlyPlayedSongs.size >= RecentlyPlayedSectionMinSongsToShow) {
+                HomeSectionPreference.RECENTLY_PLAYED -> if (recentlyPlayedSongs.size >= RecentlyPlayedSectionMinSongsToShow) {
                     item(
                         key = "recently_played_section",
                         contentType = "recently_played_section"
@@ -637,6 +695,8 @@ fun HomeScreen(
                         )
                     }
                 }
+                else -> Unit
+                } }
             }
         }
         Box(
@@ -1005,12 +1065,22 @@ private fun YouTubeMusicHomeRow(
     val context = LocalContext.current
 
     Column(modifier = Modifier.padding(bottom = 8.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f).padding(vertical = 4.dp)
+            )
+            if (songs.isNotEmpty()) {
+                TextButton(onClick = { playerViewModel.playSongs(songs, songs.first(), queueName) }) {
+                    Text("Play all")
+                }
+            }
+        }
         Spacer(modifier = Modifier.height(8.dp))
         
         if (songs.isEmpty()) {
@@ -1021,9 +1091,10 @@ private fun YouTubeMusicHomeRow(
                     .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(48.dp),
-                    color = MaterialTheme.colorScheme.primary
+                Text(
+                    text = "Music is temporarily unavailable. Pull down to retry.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium,
                 )
             }
             return@Column
@@ -1041,6 +1112,9 @@ private fun YouTubeMusicHomeRow(
                         .combinedClickable(
                             onClick = {
                                 playerViewModel.playSongs(songs, song, queueName)
+                            },
+                            onDoubleClick = {
+                                playerViewModel.toggleFavoriteSpecificSong(song)
                             },
                             onLongClick = {
                                 contextMenuSong = song
@@ -1138,6 +1212,70 @@ private fun YouTubeMusicHomeRow(
             bottomBarHeight = 0.dp,
             playerViewModel = playerViewModel
         )
+    }
+}
+
+@Composable
+private fun YouTubeMusicCollectionRow(
+    title: String,
+    collections: List<YouTubeHomeCollection>,
+    navController: NavController,
+) {
+    if (collections.isEmpty()) return
+    Column(modifier = Modifier.padding(bottom = 8.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        )
+        Spacer(Modifier.height(8.dp))
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+                            items(collections.take(20), key = { it.browseId }) { collection ->
+                Card(
+                    modifier = Modifier.width(164.dp).clickable {
+                        val route = if (collection.pageType == "MUSIC_PAGE_TYPE_ARTIST") {
+                            Screen.ArtistDetail.createRoute(collection.browseId)
+                        } else {
+                            Screen.AlbumDetail.createRoute(collection.browseId)
+                        }
+                        navController.navigateSafely(route)
+                    },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    ),
+                ) {
+                    AsyncImage(
+                        model = collection.thumbnailUrl,
+                        contentDescription = collection.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxWidth().aspectRatio(1f),
+                    )
+                    Column(Modifier.padding(12.dp)) {
+                        Text(
+                            collection.title,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        if (collection.subtitle.isNotBlank()) {
+                            Text(
+                                collection.subtitle,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

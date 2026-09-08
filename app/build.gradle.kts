@@ -207,11 +207,8 @@ android {
 
     splits {
         abi {
-            // VYBE ships a single modern-device APK. Do not add 32-bit ABIs here.
-            isEnable = true
-            reset()
-            include("arm64-v8a")
-            isUniversalApk = false
+            // Ship one universal APK instead of architecture-specific APK files.
+            isEnable = false
         }
     }
 
@@ -397,6 +394,8 @@ dependencies {
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.junit)
     testImplementation(libs.androidx.room.testing)
+    // Android's unit-test stub does not implement JSONObject iteration.
+    testImplementation("org.json:json:20240303")
     testImplementation(kotlin("test"))
 
     // Testing (Instrumentation)

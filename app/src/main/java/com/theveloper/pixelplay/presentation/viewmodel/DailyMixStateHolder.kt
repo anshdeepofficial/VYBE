@@ -5,6 +5,7 @@ import com.theveloper.pixelplay.data.database.AudiusFavoriteDao
 import com.theveloper.pixelplay.data.database.OnlineSongCacheDao
 import com.theveloper.pixelplay.data.database.toSong
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.data.network.ytmusic.YouTubeHomeShelf
 import com.theveloper.pixelplay.data.preferences.UserPreferencesRepository
 import com.theveloper.pixelplay.data.repository.MusicRepository
 import com.theveloper.pixelplay.data.repository.OnlineMusicRepository
@@ -47,6 +48,12 @@ class DailyMixStateHolder @Inject constructor(
     private val playbackStatsRepository: PlaybackStatsRepository,
     private val recommendationEngine: UnifiedRecommendationEngine,
 ) {
+    private data class RemoteHomeData(
+        val releases: List<Song>,
+        val trending: List<Song>,
+        val related: List<Song>,
+        val shelves: List<YouTubeHomeShelf>,
+    )
     private var scope: CoroutineScope? = null
     private var updateJob: Job? = null
 
@@ -70,6 +77,9 @@ class DailyMixStateHolder @Inject constructor(
 
     private val _discoverySongs = MutableStateFlow<ImmutableList<Song>>(persistentListOf())
     val discoverySongs: StateFlow<ImmutableList<Song>> = _discoverySongs.asStateFlow()
+
+    private val _youtubeHomeShelves = MutableStateFlow<List<YouTubeHomeShelf>>(emptyList())
+    val youtubeHomeShelves: StateFlow<List<YouTubeHomeShelf>> = _youtubeHomeShelves.asStateFlow()
 
     private val _topMoods = MutableStateFlow<ImmutableList<String>>(persistentListOf("Chill", "Happy", "Workout", "Focus", "Romantic", "Sad", "Party", "Relax"))
     val topMoods: StateFlow<ImmutableList<String>> = _topMoods.asStateFlow()
@@ -128,7 +138,7 @@ class DailyMixStateHolder @Inject constructor(
 
             // Fetch latest releases, trending, and autoplay queue candidates in parallel with bounded timeout
             // to ensure home refresh finishes in 1-2 seconds.
-            val (latestReleases, trending, relatedDiscovery) = coroutineScope {
+            val remoteHome = coroutineScope {
                 val latestDeferred = async(Dispatchers.IO) {
                     withTimeoutOrNull(1800L) {
                         runCatching { onlineMusicRepository.getLatestReleases(region) }.getOrNull()
@@ -139,6 +149,11 @@ class DailyMixStateHolder @Inject constructor(
                         runCatching { onlineMusicRepository.getTrendingTracks(region) }.getOrNull()
                     }.orEmpty()
                 }
+                val homeDeferred = async(Dispatchers.IO) {
+                    withTimeoutOrNull(8_000L) {
+                        runCatching { onlineMusicRepository.getYouTubeMusicHome(region) }.getOrNull()
+                    }.orEmpty()
+                }
                 val relatedDeferred = recentHistorySongs.take(3).map { seed ->
                     async(Dispatchers.IO) {
                         withTimeoutOrNull(1800L) {
@@ -146,12 +161,30 @@ class DailyMixStateHolder @Inject constructor(
                         }.orEmpty()
                     }
                 }
-                Triple(
-                    latestDeferred.await(),
-                    trendingDeferred.await(),
-                    relatedDeferred.awaitAll().flatten()
+                RemoteHomeData(
+                    releases = latestDeferred.await(),
+                    trending = trendingDeferred.await(),
+                    related = relatedDeferred.awaitAll().flatten(),
+                    shelves = homeDeferred.await(),
                 )
             }
+            val latestReleases = remoteHome.releases
+            val trending = remoteHome.trending
+            val relatedDiscovery = remoteHome.related
+            _youtubeHomeShelves.value = remoteHome.shelves
+            val providerQuickPicks = remoteHome.shelves
+                .firstOrNull { it.title.contains("quick picks", true) }
+                ?.songs.orEmpty()
+            val guestFallback = remoteHome.shelves.asSequence()
+                .flatMap { it.songs.asSequence() }
+                .plus(trending.asSequence())
+                .plus(latestReleases.asSequence())
+                .distinctBy(Song::id)
+                .take(20)
+                .toList()
+            (providerQuickPicks.ifEmpty { guestFallback })
+                .takeIf { it.isNotEmpty() }
+                ?.let { _quickPickSongs.value = it.take(20).toImmutableList() }
             _trendingSongs.value = trending.distinctBy { it.id }.take(30).toImmutableList()
             val loggedOutDiscovery = (latestReleases + trending).distinctBy { it.id }
 
@@ -247,10 +280,12 @@ class DailyMixStateHolder @Inject constructor(
                 _yourMixSongs.value = yourMix.toImmutableList()
                 userPreferencesRepository.saveYourMixSongIds(yourMix.map { it.id })
 
-                _quickPickSongs.value = dailyMixManager
-                    .getTopCandidatesForAi(rankedCandidates, favoriteIds, limit = 45)
-                    .take(10)
-                    .toImmutableList()
+                if (_quickPickSongs.value.isEmpty()) {
+                    _quickPickSongs.value = dailyMixManager
+                        .getTopCandidatesForAi(rankedCandidates, favoriteIds, limit = 45)
+                        .take(10)
+                        .toImmutableList()
+                }
             } else {
                 _yourMixSongs.value = persistentListOf()
                 _dailyMixSongs.value = persistentListOf()

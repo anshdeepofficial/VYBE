@@ -7,6 +7,7 @@ import com.theveloper.pixelplay.data.network.saavn.JioSaavnEngine
 import com.theveloper.pixelplay.data.network.ytmusic.YouTubeAlbumDetails
 import com.theveloper.pixelplay.data.network.ytmusic.YouTubeArtistProfile
 import com.theveloper.pixelplay.data.network.ytmusic.YouTubeMusicEngine
+import com.theveloper.pixelplay.data.network.ytmusic.YouTubeHomeShelf
 import com.theveloper.pixelplay.data.network.ytmusic.YouTubeSearchResult
 import com.theveloper.pixelplay.data.network.ytmusic.YouTubeTrack
 import kotlinx.coroutines.Dispatchers
@@ -25,6 +26,9 @@ class OnlineMusicRepository @Inject constructor(
     private val onlineSongCacheDao: OnlineSongCacheDao,
     private val userPreferencesRepository: com.theveloper.pixelplay.data.preferences.UserPreferencesRepository,
 ) {
+    suspend fun getYouTubeMusicHome(region: String = "IN"): List<YouTubeHomeShelf> =
+        youTubeEngine.getHomeShelves(normalizedRegion(region))
+
     private data class MoodSource(
         val browseId: String,
         val aliases: Set<String>,

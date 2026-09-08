@@ -1,18 +1,18 @@
 {
   "schemaVersion": 1,
   "packageName": "com.vybe.musicplayer",
-  "versionName": "0.12.2",
-  "versionCode": 12200,
-  "tag": "v0.12.2",
-  "title": "VYBE 0.12.2",
-  "notes": "CLEAN REINSTALL\n• Android Auto Backup and automatic cloud restore are disabled.\n• OEM device-transfer restore and retained uninstall data are disabled.\n• Reinstalling starts with empty Listening Again, listening stats, discovery snapshots, queues, and caches.\n• Manual account backup remains available and restores only after explicit sign-in and confirmation.",
+  "versionName": "0.13.0",
+  "versionCode": 13000,
+  "tag": "v0.13.0",
+  "title": "VYBE 0.13.0 - Major Discovery Update",
+  "notes": "HOME & SEARCH\n• Guest Search opens immediately with Explore categories while YouTube Music discovery loads.\n• Fixed cold-start continuation timeout dropping Quick Picks and valid provider shelves.\n• Added Speed dial with persistent Home visibility/order controls.\n• Removed the misleading empty Your Mix card.\n• Provider shelves, charts, releases, collections, videos and artists remain in provider order when available.",
   "assets": [
     {
-      "abi": "arm64-v8a",
-      "name": "VYBE-Android-0.12.2-arm64-v8a.apk",
-      "size": 57219294,
-      "sizeBytes": 57219294,
-      "url": "https://github.com/anshdeepofficial/VYBE/releases/download/v0.12.2/VYBE-Android-0.12.2-arm64-v8a.apk"
+      "abi": "universal",
+      "name": "VYBE-v0.13.0-release.apk",
+      "size": 130987409,
+      "sizeBytes": 130987409,
+      "url": "https://github.com/anshdeepofficial/VYBE/releases/download/v0.13.0/VYBE-v0.13.0-release.apk"
     }
   ]
 }

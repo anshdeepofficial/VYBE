@@ -60,6 +60,26 @@ object LogoMode {
     const val DARK = "dark"
 }
 
+object HomeSectionPreference {
+    const val MOODS = "moods"
+    const val NEW_FINDS = "new_finds"
+    const val QUICK_PICKS = "quick_picks"
+    const val SPEED_DIAL = "speed_dial"
+    const val LISTEN_AGAIN = "listen_again"
+    const val YOUTUBE_SHELVES = "youtube_shelves"
+    const val YOUR_MIX = "your_mix"
+    const val RELEASES = "releases"
+    const val CHARTS = "charts"
+    const val BECAUSE_YOU_LISTENED = "because_you_listened"
+    const val DAILY_MIX = "daily_mix"
+    const val RECENTLY_PLAYED = "recently_played"
+
+    val defaults = listOf(
+        MOODS, NEW_FINDS, QUICK_PICKS, SPEED_DIAL, LISTEN_AGAIN, YOUTUBE_SHELVES, YOUR_MIX,
+        RELEASES, CHARTS, BECAUSE_YOU_LISTENED, DAILY_MIX, RECENTLY_PLAYED,
+    )
+}
+
 /** Controls how a full library scan treats multiple files with matching metadata. */
 enum class SongIdentityMode {
     FILE,
@@ -281,6 +301,8 @@ class UserPreferencesRepository @Inject constructor(
         val COLLAGE_PATTERN = stringPreferencesKey("collage_pattern")
         val COLLAGE_AUTO_ROTATE = booleanPreferencesKey("collage_auto_rotate")
         val MOOD_COLORS = stringPreferencesKey("mood_colors_v1")
+        val HOME_SECTION_ORDER = stringPreferencesKey("home_section_order_v1")
+        val HIDDEN_HOME_SECTIONS = stringSetPreferencesKey("hidden_home_sections_v1")
 
         // Quick settings / last playlist
         val LAST_PLAYLIST_ID = stringPreferencesKey("last_playlist_id")
@@ -1403,6 +1425,34 @@ suspend fun markDirectoryRulesVersionApplied(version: Int) {
 
     suspend fun setCollageAutoRotate(enabled: Boolean) {
         dataStore.edit { it[PreferencesKeys.COLLAGE_AUTO_ROTATE] = enabled }
+    }
+
+    val homeSectionOrderFlow: Flow<List<String>> = pref { preferences ->
+        val saved = preferences[PreferencesKeys.HOME_SECTION_ORDER]
+            ?.split(',')
+            ?.filter { it in HomeSectionPreference.defaults }
+            .orEmpty()
+        (saved + HomeSectionPreference.defaults).distinct()
+    }
+
+    val hiddenHomeSectionsFlow: Flow<Set<String>> = pref {
+        it[PreferencesKeys.HIDDEN_HOME_SECTIONS].orEmpty()
+            .filterTo(mutableSetOf()) { id -> id in HomeSectionPreference.defaults }
+    }
+
+    suspend fun setHomeSectionOrder(order: List<String>) {
+        val normalized = (order.filter { it in HomeSectionPreference.defaults } +
+            HomeSectionPreference.defaults).distinct()
+        dataStore.edit { it[PreferencesKeys.HOME_SECTION_ORDER] = normalized.joinToString(",") }
+    }
+
+    suspend fun setHomeSectionVisible(sectionId: String, visible: Boolean) {
+        if (sectionId !in HomeSectionPreference.defaults) return
+        dataStore.edit { preferences ->
+            val hidden = preferences[PreferencesKeys.HIDDEN_HOME_SECTIONS].orEmpty().toMutableSet()
+            if (visible) hidden.remove(sectionId) else hidden.add(sectionId)
+            preferences[PreferencesKeys.HIDDEN_HOME_SECTIONS] = hidden
+        }
     }
 
     val moodColorsFlow: Flow<Map<String, Long>> =

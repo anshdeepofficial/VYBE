@@ -146,3 +146,20 @@ data class YouTubeAlbumDetails(
     val tracks: List<Song> = emptyList(),
     val releaseDateEpochMillis: Long = 0L,
 )
+
+/** A provider-authored YouTube Music Home shelf, kept in provider order. */
+@Immutable
+data class YouTubeHomeShelf(
+    val title: String,
+    val songs: List<Song>,
+    val collections: List<YouTubeHomeCollection> = emptyList(),
+)
+
+@Immutable
+data class YouTubeHomeCollection(
+    val browseId: String,
+    val title: String,
+    val subtitle: String,
+    val thumbnailUrl: String?,
+    val pageType: String = "",
+)

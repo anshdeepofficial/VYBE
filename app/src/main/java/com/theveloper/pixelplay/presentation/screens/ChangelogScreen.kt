@@ -32,6 +32,29 @@ private data class ChangelogRelease(
 
 private val VybeChangelog = listOf(
     ChangelogRelease(
+        version = "0.13.0",
+        date = "8 September 2026",
+        changes = listOf(
+            "Major discovery update: Guest Search now opens instantly with useful Explore categories while live YouTube Music recommendations load and signed-in preferences replace them.",
+            "Home reliability: Provider pagination is bounded so valid first-page Quick Picks and shelves are no longer discarded by a cold-start timeout.",
+            "Home content: Added Speed dial and retained provider-authored shelves, collections, charts, releases, videos, artists, community playlists, moods and long-listen sections whenever supplied for the region/account.",
+            "Empty state cleanup: Removed the misleading No data to show Your Mix card when a guest profile has not produced a personal mix yet.",
+            "Customization: Speed dial joins the persistent Home section visibility and ordering controls."
+        )
+    ),
+    ChangelogRelease(
+        version = "0.12.3",
+        date = "7 September 2026",
+        changes = listOf(
+            "YouTube Music Home: Real personalised provider shelves now appear in provider order, including mixes, Speed Dial, community playlists, moods, albums, videos, artists, long listens, live music and fresh releases when available for the account and region.",
+            "Fast Home: The last successful authentic feed is cached for instant relaunch and offline fallback; random search results are never labelled as official shelves.",
+            "Search: Songs, Videos, Albums and Artists are separated, official music videos are retained, and exact remote browse IDs open the correct result.",
+            "Song / Video player: Verified music videos switch inside the artwork area on the same Media3 session and exact timestamp, with landscape fullscreen and 360p/720p/1080p quality selection.",
+            "Home interactions: Every song shelf supports Play all, tap to play, double-tap to like and long-press actions in VYBE's visual language.",
+            "Music-only policy: Podcast and promotional shelves remain excluded from VYBE."
+        )
+    ),
+    ChangelogRelease(
         version = "0.12.2",
         date = "7 September 2026",
         changes = listOf(

@@ -75,6 +75,7 @@ import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -137,9 +138,8 @@ import androidx.media3.common.Player
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.ui.PlayerView
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.compose.material.icons.rounded.Fullscreen
-import androidx.compose.material.icons.rounded.FullscreenExit
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.diagnostics.AdvancedPerformanceDiagnostics
 import com.theveloper.pixelplay.data.model.Artist
@@ -1177,6 +1177,11 @@ private fun FullPlayerAlbumCoverSection(
     currentPositionProvider: () -> Long,
     modifier: Modifier = Modifier
 ) {
+    val isVideoMode by playerViewModel.isVideoMode.collectAsStateWithLifecycle()
+    val isVideoLoading by playerViewModel.isVideoLoading.collectAsStateWithLifecycle()
+    val videoQualityHeight by playerViewModel.videoQualityHeight.collectAsStateWithLifecycle()
+    var showFullscreenVideo by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(song.id) { playerViewModel.resetVideoModeForTrackChange() }
     val shouldDelay = loadingTweaks.delayAll || loadingTweaks.delayAlbumCarousel
     val shouldApplyPausedScale = !isPlayingProvider() && !playWhenReadyProvider()
     val albumArtScale by animateFloatAsState(
@@ -1243,14 +1248,15 @@ private fun FullPlayerAlbumCoverSection(
                 }
             }
         ) {
+            Box(Modifier.fillMaxWidth().height(carouselHeight)) {
             AnimatedContent(
-                targetState = showInlineLyrics,
+                targetState = showInlineLyrics to isVideoMode,
                 transitionSpec = {
                     (fadeIn(animationSpec = tween(280)) + scaleIn(initialScale = 0.96f, animationSpec = tween(280)))
                         .togetherWith(fadeOut(animationSpec = tween(200)) + scaleOut(targetScale = 0.96f, animationSpec = tween(200)))
                 },
                 label = "AlbumLyricsTransition"
-            ) { isLyricsVisible ->
+            ) { (isLyricsVisible, videoVisible) ->
                 if (isLyricsVisible) {
                     InlineLyricsCoverView(
                         song = song,
@@ -1260,6 +1266,20 @@ private fun FullPlayerAlbumCoverSection(
                         modifier = Modifier
                             .height(carouselHeight)
                             .fillMaxWidth()
+                    )
+                } else if (videoVisible) {
+                    AndroidView(
+                        factory = { context ->
+                            PlayerView(context).apply {
+                                useController = false
+                                resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+                                setShutterBackgroundColor(android.graphics.Color.BLACK)
+                                playerViewModel.attachInlineVideoView(this)
+                            }
+                        },
+                        update = { playerViewModel.attachInlineVideoView(it) },
+                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(18.dp)),
+                        onRelease = { playerViewModel.detachInlineVideoView(it) },
                     )
                 } else {
                     AlbumCarouselSection(
@@ -1287,6 +1307,87 @@ private fun FullPlayerAlbumCoverSection(
                             },
                         albumArtQuality = albumArtQuality
                     )
+                }
+            }
+                if (song.isMusicVideo && !showInlineLyrics) {
+                    Surface(
+                        modifier = Modifier.align(Alignment.TopCenter).padding(top = 10.dp),
+                        shape = RoundedCornerShape(22.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            TextButton(onClick = { playerViewModel.setVideoMode(false) }) {
+                                Text("Song", fontWeight = if (!isVideoMode) FontWeight.Bold else FontWeight.Normal)
+                            }
+                            TextButton(onClick = { playerViewModel.setVideoMode(true) }) {
+                                if (isVideoLoading) {
+                                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                                } else {
+                                    Text("Video", fontWeight = if (isVideoMode) FontWeight.Bold else FontWeight.Normal)
+                                }
+                            }
+                        }
+                    }
+                    if (isVideoMode) {
+                        TextButton(
+                            onClick = {
+                                playerViewModel.setVideoQuality(
+                                    when (videoQualityHeight) {
+                                        360 -> 720
+                                        720 -> 1080
+                                        else -> 360
+                                    }
+                                )
+                            },
+                            modifier = Modifier.align(Alignment.BottomStart).padding(12.dp),
+                        ) {
+                            Text(if (playerViewModel.dataSaverEnabled.value) "360p · Saver" else "${videoQualityHeight}p")
+                        }
+                        FilledIconButton(
+                            onClick = { showFullscreenVideo = true },
+                            modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp),
+                        ) {
+                            Icon(Icons.Rounded.Fullscreen, contentDescription = "Fullscreen video")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showFullscreenVideo && isVideoMode) {
+        val activity = LocalContext.current as? android.app.Activity
+        DisposableEffect(activity) {
+            val previousOrientation = activity?.requestedOrientation
+            activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            onDispose {
+                if (activity != null && previousOrientation != null) {
+                    activity.requestedOrientation = previousOrientation
+                }
+            }
+        }
+        Dialog(
+            onDismissRequest = { showFullscreenVideo = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            Box(Modifier.fillMaxSize().background(Color.Black)) {
+                AndroidView(
+                    factory = { context ->
+                        PlayerView(context).apply {
+                            useController = true
+                            resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+                            playerViewModel.attachInlineVideoView(this)
+                        }
+                    },
+                    update = { playerViewModel.attachInlineVideoView(it) },
+                    modifier = Modifier.fillMaxSize(),
+                    onRelease = { playerViewModel.detachInlineVideoView(it) },
+                )
+                FilledIconButton(
+                    onClick = { showFullscreenVideo = false },
+                    modifier = Modifier.align(Alignment.TopEnd).padding(20.dp),
+                ) {
+                    Icon(Icons.Rounded.FullscreenExit, contentDescription = "Exit fullscreen")
                 }
             }
         }

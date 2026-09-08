@@ -27,6 +27,7 @@ import com.theveloper.pixelplay.data.preferences.AlbumArtPaletteStyle
 import com.theveloper.pixelplay.data.preferences.AppLanguage
 import com.theveloper.pixelplay.data.preferences.CollagePattern
 import com.theveloper.pixelplay.data.preferences.FullPlayerLoadingTweaks
+import com.theveloper.pixelplay.data.preferences.HomeSectionPreference
 import com.theveloper.pixelplay.data.preferences.ThemePreferencesRepository
 import com.theveloper.pixelplay.data.repository.LyricsRepository
 import com.theveloper.pixelplay.data.repository.MusicRepository
@@ -119,6 +120,8 @@ data class SettingsUiState(
     val isInspectingBackup: Boolean = false,
     val collagePattern: CollagePattern = CollagePattern.default,
     val collageAutoRotate: Boolean = false,
+    val homeSectionOrder: List<String> = HomeSectionPreference.defaults,
+    val hiddenHomeSections: Set<String> = emptySet(),
     val minSongDuration: Int = 10000,
     val minTracksPerAlbum: Int = 2,
     val songIdentityMode: SongIdentityMode = SongIdentityMode.FILE,
@@ -1011,6 +1014,14 @@ class SettingsViewModel @Inject constructor(
                 _uiState.update { it.copy(collageAutoRotate = autoRotate) }
             }
         }
+        viewModelScope.launch {
+            combine(
+                userPreferencesRepository.homeSectionOrderFlow,
+                userPreferencesRepository.hiddenHomeSectionsFlow,
+            ) { order, hidden -> order to hidden }.collect { (order, hidden) ->
+                _uiState.update { it.copy(homeSectionOrder = order, hiddenHomeSections = hidden) }
+            }
+        }
 
         // One-time device capability check â€” result is cached inside HiFiCapabilityChecker
         _uiState.update {
@@ -1356,6 +1367,14 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             themePreferencesRepository.setAppThemeMode(mode)
         }
+    }
+
+    fun setHomeSectionOrder(order: List<String>) {
+        viewModelScope.launch { userPreferencesRepository.setHomeSectionOrder(order) }
+    }
+
+    fun setHomeSectionVisible(sectionId: String, visible: Boolean) {
+        viewModelScope.launch { userPreferencesRepository.setHomeSectionVisible(sectionId, visible) }
     }
 
     fun setLogoMode(mode: String) {

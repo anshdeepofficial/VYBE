@@ -133,6 +133,12 @@ class SearchStateHolder @Inject constructor(
                                             }
                                             if (
                                                 currentFilter == SearchFilterType.ALL ||
+                                                currentFilter == SearchFilterType.VIDEOS
+                                            ) {
+                                                addAll(result.videos.map(SearchResultItem::VideoItem))
+                                            }
+                                            if (
+                                                currentFilter == SearchFilterType.ALL ||
                                                 currentFilter == SearchFilterType.ALBUMS
                                             ) {
                                                 addAll(result.albums.map { album ->
