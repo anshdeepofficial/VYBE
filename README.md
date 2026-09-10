@@ -1,176 +1,119 @@
-<p align="center">
-  <img src="app/src/main/ic_launcher-playstore.png" alt="VYBE logo" width="132" />
-</p>
+<div align="center">
 
-<h1 align="center">VYBE</h1>
+<img src="app/src/main/ic_launcher-playstore.png" alt="VYBE Logo" width="132" />
 
-<p align="center">
-  <a href="https://github.com/sponsors/anshdeepofficial"><img src="https://img.shields.io/badge/Sponsor-%E2%9D%A4-EA4AAA?style=for-the-badge&logo=githubsponsors&logoColor=white" alt="Sponsor on GitHub" height="40" /></a>
-  <a href="https://buymeacoffee.com/anshdeepofficial"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="40" /></a>
-</p>
+# VYBE
 
-<p align="center">
-  A modern Android and iPhone music experience for discovery, local playback, lyrics, and personal listening.
-</p>
+**A modern music experience for YouTube Music discovery, local playback, lyrics, downloads, and personal listening.**
 
-<p align="center">
-  <a href="https://github.com/anshdeepofficial/VYBE/releases/latest"><img src="https://img.shields.io/github/v/release/anshdeepofficial/VYBE?style=for-the-badge&logo=github&label=Latest%20Release" alt="Latest release" /></a>
-  <img src="https://img.shields.io/github/downloads/anshdeepofficial/VYBE/total?style=for-the-badge&logo=github&label=Release%20Downloads" alt="Total GitHub release downloads" />
-  <img src="https://vybetune.vercel.app/api/install-badge" alt="Anonymous VYBE install count" />
-  <img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android 8.0+" />
-  <img src="https://img.shields.io/badge/iPhone-iOS%2017%2B-000000?style=for-the-badge&logo=apple&logoColor=white" alt="iOS 17+" />
-  <img src="https://img.shields.io/badge/Kotlin-Jetpack%20Compose-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin and Jetpack Compose" />
-</p>
+[![Latest Release](https://img.shields.io/github/v/release/anshdeepofficial/VYBE?style=for-the-badge&logo=github&label=Latest)](https://github.com/anshdeepofficial/VYBE/releases/latest)
+![Downloads](https://img.shields.io/github/downloads/anshdeepofficial/VYBE/total?style=for-the-badge&logo=github&label=Downloads)
+![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white)
+![Kotlin](https://img.shields.io/badge/Kotlin-Jetpack%20Compose-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)
 
-## Experience VYBE
+<a href="https://github.com/anshdeepofficial/VYBE/releases/latest"><img src="https://img.shields.io/badge/Download-Latest%20APK-22C55E?style=for-the-badge&logo=android&logoColor=white" alt="Download latest VYBE APK" /></a>
+<a href="https://github.com/sponsors/anshdeepofficial"><img src="https://img.shields.io/badge/Sponsor-%E2%9D%A4-EA4AAA?style=for-the-badge&logo=githubsponsors&logoColor=white" alt="Sponsor on GitHub" /></a>
+<a href="https://buymeacoffee.com/anshdeepofficial"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Support-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=000" alt="Buy Me a Coffee" /></a>
 
-<p align="center">
-  <img src="docs/screenshots/vybe-welcome.png" alt="VYBE welcome screen" width="210" />
-  <img src="docs/screenshots/vybe-home.png" alt="VYBE personalized home" width="210" />
-  <img src="docs/screenshots/vybe-search.png" alt="VYBE search and discovery" width="210" />
-  <img src="docs/screenshots/vybe-player.png" alt="VYBE playback experience" width="210" />
-</p>
-
-## What VYBE offers
-
-### Discover and play
-
-- Search songs, albums, movies, and artists through the YouTube Music catalog.
-- Explore trending music, latest releases, Quick Picks, and recommendations without signing in.
-- Connect a YouTube Music account for playlists, liked music, listening history, and personalized discovery.
-- Open artist and album pages directly from search results and the player.
-- Stream in the background with Android media controls, queue management, shuffle, repeat, and crossfade.
-
-### Your library, everywhere
-
-- Browse downloads, songs, albums, artists, playlists, folders, and liked music in one library.
-- Play music already stored on the device.
-- Download supported tracks for offline playback and follow download progress in the app and notification area.
-- Import public Spotify playlists from a playlist URL without a Spotify account.
-- Optionally sync imported playlists with a connected YouTube Music account.
-- Back up and restore app preferences across devices.
-
-### Lyrics and personalization
-
-- Load synchronized lyrics automatically when available.
-- Save, edit, translate, or romanize lyrics using a configured AI provider.
-- Follow the current lyric line from the player.
-- Generate a Daily Mix with AI using your own provider and API key.
-- Review listening history and statistics for songs, albums, artists, and genres.
-
-### A player that feels personal
-
-- Material You colors with light, dark, and system themes.
-- Customizable navigation, corners, artwork quality, carousel style, and playback behavior.
-- Optional immersive artwork with focused cover art and subtle background blur.
-- Smooth mini-player progress, artwork transitions, and full-screen playback.
-- Configurable notification actions and volume-button playback controls.
-- In-app update checks backed by GitHub Releases.
-
-## Why VYBE is different
-
-VYBE combines a traditional device music player with online discovery and deeply personalized listening. The comparison below describes VYBE's product direction without targeting any individual application.
-
-| VYBE | Other open-source music players |
-| --- | --- |
-| Combines local files, offline downloads, YouTube Music discovery, and imported public playlists in one library. | Commonly focus mainly on either local playback or a single online source. |
-| Works without signing in, while an optional YouTube Music connection adds personalized history, playlists, and recommendations. | Online personalization and account-linked recommendations are often limited or unavailable. |
-| Includes Quick Picks, Listen Again, Release Radar, Top Charts, Daily Mix, related recommendations, and Fresh Finds. | Discovery is commonly based on folders, tags, radio, or manually managed libraries. |
-| Provides automatic synchronized lyrics plus saving, editing, AI translation, and romanization. | Usually provide basic lyrics display or rely on a single lyrics source. |
-| Offers no-user-key song recognition through a compatible device recognition service. | Song recognition is not normally integrated into the main navigation. |
-| Supports public Spotify playlist URL import without requiring Spotify login. | Playlist migration between different music ecosystems is often a separate process. |
-| Includes listening statistics, habits, artist/album insights, and personalized mixes. | Statistics are frequently limited to play counts or external scrobbling services. |
-| Provides immersive and animated artwork, Material You theming, configurable navigation, UI density, and notification actions. | Customization commonly centers on themes, layouts, and conventional player controls. |
-| Includes Data Saver, high-refresh controls, Bluetooth resume, download progress, and in-app GitHub updates. | These capabilities vary and may require separate tools or manual APK updates. |
-| Designed as a music-only experience; podcasts and shows are intentionally excluded. | Some players combine music with podcasts, radio, or other media types. |
-
-## Download
-
-The current release is **VYBE 0.10.1**.
-
-| Device architecture | APK |
-| --- | --- |
-| Most modern Android phones (ARM64) | [Download VYBE 0.10.1 ARM64](https://github.com/anshdeepofficial/VYBE/releases/download/v0.10.1/VYBE-v0.10.1-arm64-v8a-release.apk) |
-| Older 32-bit Android phones (ARMv7) | [Download VYBE 0.10.1 ARMv7](https://github.com/anshdeepofficial/VYBE/releases/download/v0.10.1/VYBE-v0.10.1-armeabi-v7a-release.apk) |
-
-If you are unsure, choose the ARM64 build. Android may ask to allow installation from your browser or file manager when installing outside Google Play.
-
-### Keep VYBE updated with Obtainium
-
-<p align="center">
-  <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium%3A%2F%2Fadd%2Fhttps%3A%2F%2Fgithub.com%2Fanshdeepofficial%2FVYBE">
-    <img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/icon_small.png" alt="Obtainium icon" width="34" />
-    <img src="https://img.shields.io/badge/Add_to_Obtainium-6750A4?style=for-the-badge" alt="Add VYBE to Obtainium" />
-  </a>
-</p>
-
-Tap the button to add this GitHub repository to Obtainium. If Obtainium is not installed, the official redirect page provides its download link; after installing it, return here and tap the button again.
-
-## Build from source
-
-### Requirements
-
-- Git
-- Android: Android Studio with the current Android SDK and JDK 21
-- iPhone: macOS with Xcode 16 or newer
-
-### Debug build
-
-```powershell
-git clone https://github.com/anshdeepofficial/VYBE.git
-cd VYBE
-.\gradlew.bat :app:assembleDebug
-```
-
-On macOS or Linux, run `./gradlew :app:assembleDebug` instead.
-
-The debug APK is written under `app/build/outputs/apk/debug/`.
-
-### iPhone build
-
-Open `iosApp/VYBE.xcodeproj` in Xcode, select the **VYBE** scheme and an iPhone
-simulator, then build and run. A physical-device or distributable IPA build
-requires an Apple Developer team and signing profile. See
-[`iosApp/README.md`](iosApp/README.md) for local instructions and
-[`docs/IOS_RELEASE.md`](docs/IOS_RELEASE.md) for the combined APK/IPA release
-workflow.
-
-### Release signing
-
-Release signing credentials must remain local. Never commit a keystore, passwords, API keys, or `keystore.properties` to the repository. Configure the signing values locally, then run the appropriate release task for the required ABI.
-
-## Optional integrations
-
-VYBE works without an account. Features that connect to external services may require their own credentials or user authorization:
-
-- YouTube Music account connection for personalization and synchronization
-- AI provider API key for playlist generation and lyric tools
-- GitHub repository configuration for in-app update delivery
-- Optional cloud or self-hosted music sources exposed in the app
-
-Keep all private credentials outside version control.
-
-## Project notes
-
-- Minimum supported Android version: Android 8.0 (API 26)
-- Minimum supported iPhone version: iOS 17
-- UI: Jetpack Compose/Material 3 on Android; SwiftUI on iPhone
-- Playback: AndroidX Media3 on Android; AVFoundation on iPhone
-- Platform sources remain separate under `app/` and `iosApp/`
-- Latest published version: 0.9.5 (version code 40)
-
-## Feedback and issues
-
-Found a reproducible problem or have a focused feature request? Open a [GitHub issue](https://github.com/anshdeepofficial/VYBE/issues) with the app version, operating-system version, device model, and clear reproduction steps.
-
-## License
-
-VYBE is free and open-source software licensed under the
-[GNU General Public License v3.0](LICENSE). Source distributions and derivatives
-must preserve the same license and corresponding-source requirements.
+</div>
 
 ---
 
+## ✨ Meet VYBE
+
+VYBE combines online music discovery with a full local music player. Search the YouTube Music catalog, explore personalized recommendations, manage local and downloaded music, follow synchronized lyrics, build queues, and customize the listening experience from one Android app.
+
+## 📱 Experience
+
 <p align="center">
-  <strong>VYBE — your music, your way.</strong>
+  <img src="docs/screenshots/vybe-welcome.png" alt="VYBE welcome" width="205" />
+  <img src="docs/screenshots/vybe-home.png" alt="VYBE home" width="205" />
+  <img src="docs/screenshots/vybe-search.png" alt="VYBE search" width="205" />
+  <img src="docs/screenshots/vybe-player.png" alt="VYBE player" width="205" />
 </p>
+
+## 🚀 Highlights
+
+### 🎵 Discover & Play
+
+- Search songs, albums, videos, and artists through the YouTube Music catalog
+- Explore Quick Picks, latest releases, charts, mixes, and recommendations
+- Use VYBE without signing in for guest discovery
+- Connect YouTube Music for account-linked playlists, history, liked music, and personalization
+- Open artist and album pages directly from search and playback
+
+### 📚 One Music Library
+
+- Browse local songs, albums, artists, playlists, and folders
+- Keep downloaded and online music accessible from one library
+- Import supported public Spotify playlists
+- Sync supported imported playlists with a connected YouTube Music account
+- Back up and restore app preferences
+
+### 🎤 Lyrics & Personalization
+
+- Load synchronized lyrics when available
+- Save and edit lyrics
+- Translate or romanize lyrics through a configured AI provider
+- Follow the active lyric line during playback
+- Review listening history and music statistics
+
+### 🎧 Player Experience
+
+- Queue management, shuffle, repeat, and crossfade
+- Android media controls and background playback
+- Material You light, dark, and system themes
+- Custom navigation, artwork, corners, carousel style, and playback behavior
+- Full-screen playback with artwork transitions and immersive background treatment
+- In-app update checks backed by GitHub Releases
+
+## 🛠️ Tech Stack
+
+| Area | Technology |
+| --- | --- |
+| Platform | Android 8.0+ |
+| Language | Kotlin |
+| UI | Jetpack Compose / Material You |
+| Online catalog | YouTube Music |
+| Distribution | GitHub Releases |
+
+## 📥 Install VYBE
+
+Use the **[Latest Release](https://github.com/anshdeepofficial/VYBE/releases/latest)** page and download the newest published `.apk`.
+
+> VYBE now publishes a universal signed Android APK for supported architectures. The old version-specific ARM64/ARMv7 README download links have been removed. Using `releases/latest` keeps this README pointed at the newest release instead of an outdated APK.
+
+Android may ask you to allow installation from your browser or file manager when installing outside Google Play.
+
+## 🧑‍💻 Build From Source
+
+```bash
+git clone https://github.com/anshdeepofficial/VYBE.git
+cd VYBE
+```
+
+Open the project in Android Studio, let Gradle sync the dependencies, select a compatible Android device or emulator, and run the app.
+
+## 📦 Releases & Updates
+
+VYBE uses GitHub Releases for public Android builds and in-app update checks. The dynamic version badge at the top of this README always reflects the newest published release.
+
+**[View the latest VYBE release →](https://github.com/anshdeepofficial/VYBE/releases/latest)**
+
+## 🔐 Accounts & Third-Party Services
+
+Sign-in and external integrations are optional. Availability and behavior of online features can depend on third-party services. Never commit personal credentials, cookies, tokens, or private API keys to the repository.
+
+## 🤝 Contributing
+
+Contributions are welcome. Keep changes focused, preserve playback stability, test affected discovery/library/player flows, and document meaningful behavior changes.
+
+## ⚖️ Disclaimer
+
+VYBE is an independent open-source client and is not affiliated with YouTube, YouTube Music, Google, or Spotify. Users are responsible for complying with applicable service terms, content licenses, and local laws.
+
+---
+
+<div align="center">
+Built with music in mind by <a href="https://github.com/anshdeepofficial">Anshdeep Singh</a>
+</div>
