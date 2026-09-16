@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.media3.common.MediaItem
 import com.theveloper.pixelplay.R
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.data.model.SongCatalogMetadata
 import com.theveloper.pixelplay.utils.MediaItemBuilder
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -64,6 +65,9 @@ class MediaMapper @Inject constructor(
             mimeType = extras?.getString(MediaItemBuilder.EXTERNAL_EXTRA_MIME_TYPE),
             bitrate = extras?.getInt(MediaItemBuilder.EXTERNAL_EXTRA_BITRATE)?.takeIf { it > 0 },
             sampleRate = extras?.getInt(MediaItemBuilder.EXTERNAL_EXTRA_SAMPLE_RATE)?.takeIf { it > 0 }
-        )
+        ).let { song ->
+            SongCatalogMetadata.decode(extras?.getString(MediaItemBuilder.EXTRA_CATALOG_METADATA))
+                ?.applyTo(song) ?: song
+        }
     }
 }

@@ -39,7 +39,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         AiUsageEntity::class,
         DownloadedSongEntity::class
     ],
-    version = 45,
+    version = 46,
     exportSchema = true
 )
 abstract class PixelPlayDatabase : RoomDatabase() {
@@ -1559,7 +1559,13 @@ abstract class PixelPlayDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_45_46 = object : Migration(45, 46) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `online_song_cache` ADD COLUMN `catalogMetadataJson` TEXT")
+                db.execSQL("ALTER TABLE `downloaded_songs` ADD COLUMN `catalogMetadataJson` TEXT")
+            }
+        }
+
     }
 }
-
 

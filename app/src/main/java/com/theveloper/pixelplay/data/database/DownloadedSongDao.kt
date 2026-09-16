@@ -7,6 +7,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.data.model.SongCatalogMetadata
 import kotlinx.coroutines.flow.Flow
 
 @Entity(tableName = "downloaded_songs")
@@ -20,7 +21,8 @@ data class DownloadedSongEntity(
     val localFilePath: String,
     val mimeType: String = "audio/mp4",
     val bitrate: Int = 256,
-    val downloadedAt: Long = System.currentTimeMillis()
+    val downloadedAt: Long = System.currentTimeMillis(),
+    val catalogMetadataJson: String? = null,
 )
 
 fun DownloadedSongEntity.toSong(): Song {
@@ -38,7 +40,7 @@ fun DownloadedSongEntity.toSong(): Song {
         mimeType = mimeType,
         bitrate = bitrate,
         sampleRate = 44100
-    )
+    ).let { SongCatalogMetadata.decode(catalogMetadataJson)?.applyTo(it) ?: it }
 }
 
 @Dao

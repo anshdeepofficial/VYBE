@@ -49,6 +49,7 @@ import com.theveloper.pixelplay.data.diagnostics.PerformanceMetrics
 import com.theveloper.pixelplay.data.model.PlayerInfo
 import com.theveloper.pixelplay.data.media.MediaMapper
 import com.theveloper.pixelplay.data.model.PlaybackQueueItemSnapshot
+import com.theveloper.pixelplay.data.model.SongCatalogMetadata
 import com.theveloper.pixelplay.data.model.PlaybackQueueSnapshot
 import com.theveloper.pixelplay.data.preferences.EqualizerPreferencesRepository
 import com.theveloper.pixelplay.data.preferences.ThemePreferencesRepository
@@ -1812,6 +1813,9 @@ class MusicService : MediaLibraryService() {
                     albumTitle = metadata.albumTitle?.toString(),
                     artworkUri = resolveStoredArtworkUriString(metadata),
                     durationMs = durationMs,
+                    catalogMetadata = SongCatalogMetadata.decode(
+                        metadata.extras?.getString(MediaItemBuilder.EXTRA_CATALOG_METADATA)
+                    )?.takeIf { it.songId == mediaItem.mediaId },
                 )
             )
         }
@@ -1949,6 +1953,9 @@ class MusicService : MediaLibraryService() {
             ?.let { metadataBuilder.setArtworkUri(it) }
 
         val extras = Bundle().apply {
+            snapshotItem.catalogMetadata?.takeIf { it.songId == snapshotItem.mediaId }?.let {
+                putString(MediaItemBuilder.EXTRA_CATALOG_METADATA, it.encode())
+            }
             putBoolean(
                 MediaItemBuilder.EXTERNAL_EXTRA_FLAG,
                 snapshotItem.mediaId.startsWith("external:")

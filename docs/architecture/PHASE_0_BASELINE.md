@@ -1,6 +1,8 @@
 # Phase 0 baseline — open, not release-approved
 
-Inspected 2026-09-16. No runtime behavior or UI is changed by this baseline PR.
+Inspected 2026-09-16. The initial baseline commit changes no runtime behavior.
+Follow-up implementation changes are tracked separately in ADR 0002; this file
+records the original snapshot, not a claim that its findings remain unfixed.
 
 ## Reproducible source snapshots
 

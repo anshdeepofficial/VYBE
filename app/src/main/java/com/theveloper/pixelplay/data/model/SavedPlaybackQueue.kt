@@ -23,6 +23,7 @@ data class SavedQueueSong(
     val qqMusicMid: String? = null,
     val navidromeId: String? = null,
     val jellyfinId: String? = null,
+    val catalogMetadata: SongCatalogMetadata? = null,
 ) {
     fun toSong(): Song = Song(
         id = id,
@@ -46,7 +47,7 @@ data class SavedQueueSong(
         qqMusicMid = qqMusicMid,
         navidromeId = navidromeId,
         jellyfinId = jellyfinId,
-    )
+    ).let { catalogMetadata?.applyTo(it) ?: it }
 }
 
 fun Song.toSavedQueueSong(): SavedQueueSong = SavedQueueSong(
@@ -69,6 +70,7 @@ fun Song.toSavedQueueSong(): SavedQueueSong = SavedQueueSong(
     qqMusicMid = qqMusicMid,
     navidromeId = navidromeId,
     jellyfinId = jellyfinId,
+    catalogMetadata = catalogMetadata(),
 )
 
 @Serializable

@@ -7,6 +7,8 @@ import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.data.model.SongCatalogMetadata
+import com.theveloper.pixelplay.data.model.catalogMetadata
 import kotlinx.coroutines.flow.Flow
 
 /** Metadata for playable online tracks referenced by persisted local playlists. */
@@ -21,6 +23,7 @@ data class OnlineSongCacheEntity(
     val path: String,
     val contentUri: String,
     val mimeType: String?,
+    val catalogMetadataJson: String? = null,
 )
 
 @Dao
@@ -49,7 +52,7 @@ fun OnlineSongCacheEntity.toSong(): Song = Song(
     mimeType = mimeType,
     bitrate = null,
     sampleRate = null,
-)
+).let { SongCatalogMetadata.decode(catalogMetadataJson)?.applyTo(it) ?: it }
 
 fun Song.toOnlineSongCacheEntity(): OnlineSongCacheEntity = OnlineSongCacheEntity(
     id = id,
@@ -61,4 +64,5 @@ fun Song.toOnlineSongCacheEntity(): OnlineSongCacheEntity = OnlineSongCacheEntit
     path = path,
     contentUri = contentUriString,
     mimeType = mimeType,
+    catalogMetadataJson = catalogMetadata().encode(),
 )

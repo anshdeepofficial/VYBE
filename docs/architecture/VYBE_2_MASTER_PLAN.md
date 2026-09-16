@@ -170,7 +170,7 @@ artists and playlists carry their native IDs, names/titles and artwork.
 | Phase | Scope | Status |
 |---|---|---|
 | 0 | Freeze baseline, document issues, add critical characterization tests | In progress; gates open |
-| 1 | Canonical identities and metadata propagation | Not started |
+| 1 | Canonical identities and metadata propagation | In progress; persistence boundaries implemented, validation open |
 | 2 | PlaybackCoordinator above preserved DualPlayerEngine | Not started |
 | 3 | StreamResolver single-flight, health, validation, retries and diagnostics | Not started |
 | 4 | Queue mutations and provider-first autoplay | Not started |
