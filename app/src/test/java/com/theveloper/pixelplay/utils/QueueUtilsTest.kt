@@ -15,6 +15,43 @@ import kotlin.random.Random
 class QueueUtilsTest {
 
     @Test
+    fun anchoredShuffle_preservesRepeatedEntriesAndDoesNotMutateInput() {
+        val tracks = buildSongs(3)
+        val input = mutableListOf(tracks[0], tracks[1], tracks[0], tracks[2])
+        val before = input.toList()
+
+        val shuffled = QueueUtils.buildAnchoredShuffleQueue(input, 1, Random(17))
+
+        assertEquals(before, input)
+        assertEquals(tracks[1], shuffled[1])
+        assertEquals(before.groupingBy { it.id }.eachCount(), shuffled.groupingBy { it.id }.eachCount())
+    }
+
+    @Test
+    fun anchoredShuffle_clampsStaleIndicesWithoutLosingTracks() {
+        val songs = buildSongs(5)
+
+        for (requestedIndex in listOf(-1, songs.size + 10)) {
+            val shuffled = QueueUtils.buildAnchoredShuffleQueue(songs, requestedIndex, Random(31))
+            val anchor = requestedIndex.coerceIn(songs.indices)
+            assertEquals(songs[anchor], shuffled[anchor])
+            assertEquals(songs.toSet(), shuffled.toSet())
+            assertEquals(songs.size, shuffled.size)
+        }
+    }
+
+    @Test
+    fun shuffle_emptyAndSingleTrackQueuesRemainPlayable() = runBlocking {
+        for (songs in listOf(emptyList(), buildSongs(1))) {
+            assertEquals(songs, QueueUtils.buildAnchoredShuffleQueue(songs, -1))
+            assertEquals(
+                songs,
+                QueueUtils.buildAnchoredShuffleQueueSuspending(songs, 99, startAtZero = true)
+            )
+        }
+    }
+
+    @Test
     fun buildAnchoredShuffleQueueSuspending_handles10kSongsWithoutLosingItems() = runBlocking {
         val songs = buildSongs(10_000)
         val anchorIndex = 7_654
