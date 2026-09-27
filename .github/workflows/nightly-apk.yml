@@ -1,9 +1,8 @@
-name: Build Nightly APK
+name: Build APK (Manual Only)
 
 on:
-  schedule:
-    # Runs at 02:17 America/Buenos_Aires.
-    - cron: '17 5 * * *'
+  # This workflow is intentionally manual-only.
+  # APKs are built locally and uploaded manually, so it must never auto-trigger.
   workflow_dispatch:
 
 permissions:
@@ -25,58 +24,23 @@ jobs:
       short-sha: ${{ steps.nightly-changes.outputs.short-sha }}
 
     steps:
-      - name: Check for new master changes
+      - name: Prepare manual build
         id: nightly-changes
         uses: actions/github-script@v9
         with:
           script: |
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const workflow_id = 'nightly-apk.yml';
             const currentSha = context.sha;
             const shortSha = currentSha.slice(0, 7);
 
-            if (context.eventName === 'workflow_dispatch') {
-              core.setOutput('current-sha', currentSha);
-              core.setOutput('previous-sha', '');
-              core.setOutput('short-sha', shortSha);
-              core.setOutput('should-build', 'true');
-              await core.summary
-                .addHeading('Nightly APK')
-                .addRaw(`Manual run requested for ${currentSha}. Building APKs.`)
-                .write();
-              return;
-            }
-
-            const runs = await github.paginate(github.rest.actions.listWorkflowRuns, {
-              owner,
-              repo,
-              workflow_id,
-              branch: 'master',
-              status: 'success',
-              per_page: 20,
-            });
-
-            const previousRun = runs.find((run) => run.id !== context.runId);
-            const previousSha = previousRun?.head_sha ?? '';
-            const shouldBuild = previousSha !== currentSha;
-
             core.setOutput('current-sha', currentSha);
-            core.setOutput('previous-sha', previousSha);
+            core.setOutput('previous-sha', '');
             core.setOutput('short-sha', shortSha);
-            core.setOutput('should-build', shouldBuild ? 'true' : 'false');
+            core.setOutput('should-build', 'true');
 
-            const summary = core.summary.addHeading('Nightly APK');
-            if (shouldBuild) {
-              summary.addRaw(
-                previousSha
-                  ? `master moved from ${previousSha} to ${currentSha}. Building APKs.`
-                  : `No previous successful nightly was found. Building APKs for ${currentSha}.`
-              );
-            } else {
-              summary.addRaw(`master is still at ${currentSha}. Skipping APK build.`);
-            }
-            await summary.write();
+            await core.summary
+              .addHeading('Manual APK Build')
+              .addRaw(`Manual run requested for ${currentSha}. Building APK.`)
+              .write();
 
   build:
     needs: changes
