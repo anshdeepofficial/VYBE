@@ -13,6 +13,7 @@ import androidx.media3.common.MediaMetadata.PICTURE_TYPE_FRONT_COVER
 import androidx.media3.common.util.UnstableApi
 import com.theveloper.pixelplay.data.provider.SharedArtworkContentProvider
 import com.theveloper.pixelplay.data.model.Song
+import com.theveloper.pixelplay.data.model.catalogMetadata
 import java.io.File
 
 object MediaItemBuilder {
@@ -97,6 +98,7 @@ object MediaItemBuilder {
     const val EXTERNAL_EXTRA_SAMPLE_RATE = EXTERNAL_EXTRA_PREFIX + "SAMPLE_RATE"
     const val EXTERNAL_EXTRA_FILE_PATH = EXTERNAL_EXTRA_PREFIX + "FILE_PATH"
     const val EXTERNAL_EXTRA_NAVIDROME_ID = EXTERNAL_EXTRA_PREFIX + "NAVIDROME_ID"
+    const val EXTRA_CATALOG_METADATA = "com.vybe.catalog.METADATA"
 
     fun build(song: Song): MediaItem {
         return MediaItem.Builder()
@@ -310,6 +312,7 @@ object MediaItemBuilder {
         }
 
         val extras = Bundle().apply {
+            putString(EXTRA_CATALOG_METADATA, song.catalogMetadata().encode())
             putBoolean(EXTERNAL_EXTRA_FLAG, song.id.startsWith(EXTERNAL_MEDIA_ID_PREFIX))
             putString(EXTERNAL_EXTRA_ALBUM, song.album)
             putLong(EXTERNAL_EXTRA_DURATION, song.duration)

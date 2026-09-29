@@ -298,6 +298,28 @@ class QueueStateHolderTest {
     }
 
     @Test
+    fun `removing one repeated track preserves its other manual occurrence`() {
+        val holder = holder()
+        holder.saveOriginalQueueState(listOf(song1, song2, song1, song3), "Manual")
+
+        holder.onQueueItemRemoved(index = 2, songId = song1.id)
+
+        assertEquals(listOf(song1, song2, song3), holder.getOriginalQueueForRestore())
+    }
+
+    @Test
+    fun `missing removal and stale move do not damage the restore queue`() {
+        val holder = holder()
+        holder.saveOriginalQueueState(listOf(song1, song2), "Manual")
+
+        holder.onQueueItemRemoved(index = 0, songId = "missing")
+        holder.onQueueItemMoved(fromIndex = -1, toIndex = 0)
+        holder.onQueueItemMoved(fromIndex = 0, toIndex = 20)
+
+        assertEquals(listOf(song1, song2), holder.getOriginalQueueForRestore())
+    }
+
+    @Test
     fun `queue snapshot mutations preserve add and reorder operations`() {
         val holder = holder()
         holder.saveOriginalQueueState(listOf(song1, song2), "Original")

@@ -27,7 +27,7 @@ class PixelPlayDatabaseMigrationTest {
     @After
     fun tearDown() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        for (version in 25..44) {
+        for (version in 25..45) {
             context.deleteDatabase(databaseNameFor(version))
         }
         context.deleteDatabase(DB_NAME_33_TO_34)
@@ -37,8 +37,29 @@ class PixelPlayDatabaseMigrationTest {
     }
 
     @Test
+    fun migration45To46PreservesExistingOnlineAndDownloadedRows() {
+        val name = databaseNameFor(45)
+        helper.createDatabase(name, 45).apply {
+            execSQL("INSERT INTO online_song_cache VALUES ('yt_keep', 'Track', 'Artist', 'Album', NULL, 1000, 'yt://keep', 'yt://keep', NULL)")
+            execSQL("INSERT INTO downloaded_songs VALUES ('yt_keep', 'Track', 'Artist', 'Album', NULL, 1000, '/downloads/keep.m4a', 'audio/mp4', 256, 1)")
+            close()
+        }
+        helper.runMigrationsAndValidate(name, 46, true, PixelPlayDatabase.MIGRATION_45_46).use { db ->
+            for (table in listOf("online_song_cache", "downloaded_songs")) {
+                db.query("SELECT id, title, catalogMetadataJson FROM `$table`").use { cursor ->
+                    assertTrue(cursor.moveToFirst())
+                    assertEquals("yt_keep", cursor.getString(0))
+                    assertEquals("Track", cursor.getString(1))
+                    assertTrue(cursor.isNull(2))
+                    assertTrue(!cursor.moveToNext())
+                }
+            }
+        }
+    }
+
+    @Test
     fun migrateEveryExportedSchemaToLatest() {
-        for (startVersion in 25..44) {
+        for (startVersion in 25..45) {
             helper.createDatabase(databaseNameFor(startVersion), startVersion).close()
 
             helper.runMigrationsAndValidate(
@@ -321,7 +342,7 @@ class PixelPlayDatabaseMigrationTest {
     }
 
     private object PixelPlayDatabaseVersion {
-        const val LATEST = 45
+        const val LATEST = 46
     }
 
     companion object {
@@ -350,7 +371,8 @@ class PixelPlayDatabaseMigrationTest {
             PixelPlayDatabase.MIGRATION_41_42,
             PixelPlayDatabase.MIGRATION_42_43,
             PixelPlayDatabase.MIGRATION_43_44,
-            PixelPlayDatabase.MIGRATION_44_45
+            PixelPlayDatabase.MIGRATION_44_45,
+            PixelPlayDatabase.MIGRATION_45_46
         )
     }
 }

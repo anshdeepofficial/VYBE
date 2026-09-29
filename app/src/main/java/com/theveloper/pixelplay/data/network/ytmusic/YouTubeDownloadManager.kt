@@ -1,5 +1,7 @@
 package com.theveloper.pixelplay.data.network.ytmusic
 
+import com.theveloper.pixelplay.data.model.catalogMetadata
+
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -431,7 +433,8 @@ class YouTubeDownloadManager @Inject constructor(
                 localFilePath = targetFile.absolutePath,
                 mimeType = "audio/mp4",
                 bitrate = song.bitrate?.takeIf { it > 0 } ?: 256,
-                downloadedAt = System.currentTimeMillis()
+                downloadedAt = System.currentTimeMillis(),
+                catalogMetadataJson = song.catalogMetadata().encode(),
             )
             downloadedSongDao.insert(entity)
 

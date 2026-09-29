@@ -1,0 +1,58 @@
+name: VYBE baseline verification
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vybe-baseline-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    name: Android ${{ matrix.revision }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        revision: [baseline, candidate]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Compare the PR base with the proposed merge. Manual runs compare
+          # the original Phase 0 snapshot with the selected branch.
+          ref: ${{ matrix.revision == 'baseline' && (github.event.pull_request.base.sha || '2afa33920908abe5a9f770da64a6eb08b713fef5') || github.ref }}
+      - name: Record tested revision
+        run: git rev-parse HEAD
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Unit tests and debug build
+        run: ./gradlew :app:testDebugUnitTest :app:assembleDebug --continue --console=plain
+      - name: Preserve test reports even on failure
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: vybe-${{ matrix.revision }}-test-reports
+          path: |
+            app/build/reports/tests/
+            app/build/test-results/
+            app/schemas/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Print generated catalogue schema for review
+        if: always() && matrix.revision == 'candidate'
+        run: |
+          schema=app/schemas/com.theveloper.pixelplay.data.database.PixelPlayDatabase/46.json
+          if [ -f "$schema" ]; then
+            echo 'VYBE_SCHEMA_46_BEGIN'
+            cat "$schema"
+            echo 'VYBE_SCHEMA_46_END'
+          fi
