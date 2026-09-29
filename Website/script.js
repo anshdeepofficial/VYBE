@@ -7,8 +7,8 @@
   const backToTop = document.getElementById('backToTop');
   const toast = document.getElementById('toast');
 
-  const releaseApi = 'https://api.github.com/repos/anshdeepofficial/VYBE/releases/latest';
-  const releaseFallback = 'https://github.com/anshdeepofficial/VYBE/releases/latest';
+  const releaseApi = 'https://api.github.com/repos/anshdeepofficial1/VYBE/releases/latest';
+  const releaseFallback = 'https://github.com/anshdeepofficial1/VYBE/releases/latest';
   const defaultVersion = 'v0.9.1';
 
   const systemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
