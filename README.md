@@ -6,12 +6,12 @@
 
 **A modern music experience for YouTube Music discovery, local playback, lyrics, downloads, and personal listening.**
 
-[![Latest Release](https://img.shields.io/github/v/release/anshdeepofficial/VYBE?style=for-the-badge&logo=github&label=Latest)](https://github.com/anshdeepofficial/VYBE/releases/latest)
-![Downloads](https://img.shields.io/github/downloads/anshdeepofficial/VYBE/total?style=for-the-badge&logo=github&label=Downloads)
+[![Latest Release](https://img.shields.io/github/v/release/anshdeepofficial1/VYBE?style=for-the-badge&logo=github&label=Latest)](https://github.com/anshdeepofficial1/VYBE/releases/latest)
+![Downloads](https://img.shields.io/github/downloads/anshdeepofficial1/VYBE/total?style=for-the-badge&logo=github&label=Downloads)
 ![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-Jetpack%20Compose-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)
 
-<a href="https://github.com/anshdeepofficial/VYBE/releases/latest"><img src="https://img.shields.io/badge/Download-Latest%20APK-22C55E?style=for-the-badge&logo=android&logoColor=white" alt="Download latest VYBE APK" /></a>
+<a href="https://github.com/anshdeepofficial1/VYBE/releases/latest"><img src="https://img.shields.io/badge/Download-Latest%20APK-22C55E?style=for-the-badge&logo=android&logoColor=white" alt="Download latest VYBE APK" /></a>
 <a href="https://github.com/sponsors/anshdeepofficial"><img src="https://img.shields.io/badge/Sponsor-%E2%9D%A4-EA4AAA?style=for-the-badge&logo=githubsponsors&logoColor=white" alt="Sponsor on GitHub" /></a>
 <a href="https://buymeacoffee.com/anshdeepofficial"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Support-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=000" alt="Buy Me a Coffee" /></a>
 
@@ -79,7 +79,7 @@ VYBE combines online music discovery with a full local music player. Search the 
 
 ## 📥 Install VYBE
 
-Use the **[Latest Release](https://github.com/anshdeepofficial/VYBE/releases/latest)** page and download the newest published `.apk`.
+Use the **[Latest Release](https://github.com/anshdeepofficial1/VYBE/releases/latest)** page and download the newest published `.apk`.
 
 > VYBE now publishes a universal signed Android APK for supported architectures. The old version-specific ARM64/ARMv7 README download links have been removed. Using `releases/latest` keeps this README pointed at the newest release instead of an outdated APK.
 
@@ -88,7 +88,7 @@ Android may ask you to allow installation from your browser or file manager when
 ## 🧑‍💻 Build From Source
 
 ```bash
-git clone https://github.com/anshdeepofficial/VYBE.git
+git clone https://github.com/anshdeepofficial1/VYBE.git
 cd VYBE
 ```
 
@@ -98,7 +98,7 @@ Open the project in Android Studio, let Gradle sync the dependencies, select a c
 
 VYBE uses GitHub Releases for public Android builds and in-app update checks. The dynamic version badge at the top of this README always reflects the newest published release.
 
-**[View the latest VYBE release →](https://github.com/anshdeepofficial/VYBE/releases/latest)**
+**[View the latest VYBE release →](https://github.com/anshdeepofficial1/VYBE/releases/latest)**
 
 ## 🔐 Accounts & Third-Party Services
 
@@ -115,5 +115,5 @@ VYBE is an independent open-source client and is not affiliated with YouTube, Yo
 ---
 
 <div align="center">
-Built with music in mind by <a href="https://github.com/anshdeepofficial">Anshdeep Singh</a>
+Built with music in mind by <a href="https://github.com/anshdeepofficial1">Anshdeep Singh</a>
 </div>
