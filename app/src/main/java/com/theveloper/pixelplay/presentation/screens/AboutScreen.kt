@@ -151,7 +151,7 @@ private val CoreMaintainer = Contributor(
     detail = "Lead developer and maintainer of VYBE.",
     avatarUrl = "https://avatars.githubusercontent.com/anshdeepofficial",
     iconRes = R.drawable.rounded_person_24,
-    githubUrl = "https://github.com/anshdeepofficial",
+    githubUrl = "https://github.com/anshdeepofficial1",
 )
 
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -499,7 +499,7 @@ fun AboutScreen(
         FeedbackDialog(type, onDismiss = { feedbackType = null }) { details ->
             val title = android.net.Uri.encode("${type.issuePrefix} ${details.lineSequence().firstOrNull().orEmpty().take(70)}")
             val body = android.net.Uri.encode("${details.trim()}\n\nVYBE $versionName (${BuildConfig.VERSION_CODE})\nAndroid ${android.os.Build.VERSION.RELEASE}")
-            openUrl(context, "https://github.com/anshdeepofficial/VYBE/issues/new?title=$title&body=$body")
+            openUrl(context, "https://github.com/anshdeepofficial1/VYBE/issues/new?title=$title&body=$body")
             feedbackType = null
         }
     }
@@ -609,7 +609,7 @@ private fun AboutHeroCard(
                     subtitle = "@anshdeepofficial",
                     iconRes = R.drawable.github,
                     contentDescription = "Open GitHub Profile",
-                    onClick = { openUrl(context, "https://github.com/anshdeepofficial") },
+                    onClick = { openUrl(context, "https://github.com/anshdeepofficial1") },
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
